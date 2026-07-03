@@ -1,0 +1,7 @@
+# Built/downloaded game data — never commit (game.pk3 is ~90 MB)
+web/nzp/*.pk3
+
+# Local dev leftovers
+*.log
+.DS_Store
+node_modules/
