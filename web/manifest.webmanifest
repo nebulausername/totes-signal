@@ -1,7 +1,7 @@
 {
-  "name": "Endzeit: Untot",
-  "short_name": "Endzeit",
-  "description": "Koop-Zombie-Shooter im Browser - ein Fan-Fork von Nazi Zombies: Portable.",
+  "name": "Totes Signal",
+  "short_name": "Signal",
+  "description": "Totes Signal - Koop-Zombie-Shooter im Browser. Ein Fan-Fork von Nazi Zombies: Portable.",
   "id": "/zombie/",
   "start_url": "./",
   "scope": "./",

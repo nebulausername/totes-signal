@@ -1,4 +1,4 @@
-// Endzeit: Untot — Service Worker (PWA / Offline, M8).
+// Totes Signal — Service Worker (PWA / Offline, M8).
 // Zwei-Tier-Cache: kleine Boot-Shell wird beim Install precached, die ~90 MB
 // game.pk3 wird NUR lazy (cache-first + put-on-miss) nach dem ersten Spiel
 // persistiert. Bewusst KEIN COOP/COEP (Engine ist single-threaded; Isolation
@@ -6,9 +6,9 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v1';
-const SHELL = 'endzeit-shell-' + SW_VERSION;
-const DATA  = 'endzeit-data-'  + SW_VERSION;
+const SW_VERSION = 'v2';                 // Rebrand -> alte endzeit-*-Caches werden im activate gepurgt
+const SHELL = 'totes-shell-' + SW_VERSION;
+const DATA  = 'totes-data-'  + SW_VERSION;
 const ALLOW = [SHELL, DATA];
 
 // Boot-kritisch (~5.4 MB). game.pk3 ist ABSICHTLICH NICHT dabei — ein einziges
@@ -40,7 +40,7 @@ self.addEventListener('activate', function (event) {
       return Promise.all(keys.map(function (k) {
         // Nur unsere eigenen Caches verwalten; die engine-eigene CacheStorage
         // (andere Namen) NIE anfassen.
-        if (k.indexOf('endzeit-') === 0 && ALLOW.indexOf(k) === -1) {
+        if ((k.indexOf('totes-') === 0 || k.indexOf('endzeit-') === 0) && ALLOW.indexOf(k) === -1) {
           return caches.delete(k);
         }
         return null;

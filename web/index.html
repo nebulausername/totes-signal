@@ -1,13 +1,13 @@
 <!doctype html>
-<html lang="en-us">
+<html lang="de">
   <head>
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-	<meta content="Endzeit: Untot" property="og:title" />
-    	<meta content="Koop-Zombie-Shooter im Browser (WebGL) - ein Fan-Fork von Nazi Zombies: Portable. / Co-op zombie shooter in your browser, a fan fork of NZ:P." property="og:description" />
+	<meta content="Totes Signal" property="og:title" />
+    	<meta content="Totes Signal - Koop-Zombie-Shooter im Browser (WebGL). Ein Fan-Fork von Nazi Zombies: Portable." property="og:description" />
 	<meta content="#6e0d00" data-react-helmet="true" name="theme-color" />
-	<title>Endzeit: Untot</title>
+	<title>Totes Signal</title>
 	<link rel="icon" href="favicon.ico">
 	<!-- PWA (M8): installierbar + offline. Alles relativ → funktioniert unter
 	     /zombie/, GitHub Pages und local dev gleichzeitig. -->
@@ -16,7 +16,7 @@
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	<meta name="mobile-web-app-capable" content="yes">
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-	<meta name="apple-mobile-web-app-title" content="Endzeit">
+	<meta name="apple-mobile-web-app-title" content="Totes Signal">
 	<!-- KEIN COOP/COEP: Engine ist single-threaded (kein SharedArrayBuffer/pthread);
 	     Cross-Origin-Isolation wuerde den kaufmeinewebsite.de-iframe-Embed via
 	     demo_security_headers.frame-ancestors brechen. Der SW braucht keine Isolation. -->
@@ -38,6 +38,7 @@
 		font-size:13px; font-weight:bold; letter-spacing:0.5px;
 	}
 	#touchui .tbtn:active, #touchui .tbtn.held { background:rgba(110,13,0,0.55); }
+	#touchui #autobtn.on { background:rgba(40,150,60,0.6); border-color:#3ad16a; color:#eaffea; }
 	#stick {
 		position:absolute; pointer-events:auto; touch-action:none;
 		left:calc(24px + env(safe-area-inset-left)); bottom:calc(28px + env(safe-area-inset-bottom));
@@ -49,25 +50,54 @@
 		background:rgba(230,225,210,0.45); pointer-events:none;
 	}
 
-	/* ---- mobile start gate + rotate hint ---- */
-	#mstart, #rotate {
+	/* ---- TOTES SIGNAL: dead-radio-signal theme (start gate + loading + rotate) ---- */
+	#mstart, #rotate, #loadscreen {
 		position:fixed; inset:0; z-index:50; display:none;
-		background:#050505; color:#e6e1d2; font-family:monospace;
+		background:radial-gradient(120% 90% at 50% 35%, #12100e 0%, #070605 55%, #000 100%);
+		color:#e6e1d2; font-family:monospace;
 		align-items:center; justify-content:center; text-align:center; padding:24px;
-		-webkit-user-select:none; user-select:none;
+		-webkit-user-select:none; user-select:none; overflow:hidden;
 	}
-	#mstart .box, #rotate .box { max-width:88%; }
-	#mstart h1 { color:#8a1200; font-size:min(9vw,52px); margin:0 0 10px; letter-spacing:3px; text-shadow:0 0 18px rgba(138,18,0,0.6); }
-	#mstart p, #rotate p { font-size:min(4.4vw,18px); line-height:1.55; opacity:0.82; margin:6px 0; }
+	#loadscreen { z-index:52; }
+	/* CRT scanlines */
+	#mstart::before, #rotate::before, #loadscreen::before {
+		content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
+		background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.30) 2px 3px);
+	}
+	/* rolling static grain + gentle flicker */
+	#mstart::after, #rotate::after, #loadscreen::after {
+		content:''; position:absolute; inset:-60%; pointer-events:none; z-index:1; opacity:0.06;
+		background-image:radial-gradient(rgba(255,255,255,0.9) 0.5px, transparent 0.7px);
+		background-size:3px 3px; animation:tsnoise 0.9s steps(4) infinite;
+	}
+	@keyframes tsnoise { 0%{transform:translate(0,0)} 25%{transform:translate(-4%,3%)} 50%{transform:translate(3%,-2%)} 75%{transform:translate(-2%,-4%)} 100%{transform:translate(0,0)} }
+	#mstart .box, #rotate .box, #loadscreen .box { position:relative; z-index:2; max-width:92%; }
+	.ts-skull { width:min(20vw,92px); height:auto; margin:0 auto 8px; display:block; filter:drop-shadow(0 0 14px rgba(180,20,0,0.6)); opacity:0.95; }
+	.ts-mark { color:#c21500; font-size:min(11vw,60px); font-weight:bold; margin:0; letter-spacing:6px;
+		text-shadow:0 0 4px #c21500, 0 0 22px rgba(194,21,0,0.55); animation:tsflk 4.5s infinite; }
+	.ts-sub { color:#9a9384; font-size:min(3.2vw,14px); letter-spacing:5px; margin:3px 0 0; opacity:0.85; }
+	@keyframes tsflk { 0%,92%,100%{opacity:1} 93%{opacity:0.35} 94%{opacity:1} 96%{opacity:0.55} 97%{opacity:1} }
+	#mstart p.hint, #rotate p, #loadscreen p.hint { font-size:min(4.2vw,17px); line-height:1.55; opacity:0.82; margin:12px 0 0; }
 	#mstart .play {
-		margin-top:26px; display:inline-block; padding:16px 30px; cursor:pointer;
-		border:2px solid #8a1200; border-radius:12px; color:#f2ede0;
+		margin-top:26px; display:inline-block; padding:16px 32px; cursor:pointer;
+		border:2px solid #c21500; border-radius:12px; color:#f2ede0;
 		font-size:min(6vw,24px); font-weight:bold; letter-spacing:1px;
-		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(138,18,0,0.35);
+		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(194,21,0,0.4);
 	}
-	#mstart .play:active { background:rgba(138,18,0,0.55); }
-	#rotate .rot { font-size:min(16vw,90px); margin-bottom:14px; display:block; animation:rotwig 1.7s ease-in-out infinite; }
+	#mstart .play:active { background:rgba(194,21,0,0.55); }
+	#rotate .rot { font-size:min(16vw,90px); margin-bottom:14px; display:block; color:#c21500; animation:rotwig 1.7s ease-in-out infinite; }
 	@keyframes rotwig { 0%,100%{transform:rotate(6deg)} 50%{transform:rotate(-84deg)} }
+	/* loading bar */
+	.ts-barwrap { position:relative; z-index:2; width:min(78vw,420px); height:14px; margin:24px auto 8px;
+		border:1px solid rgba(194,21,0,0.5); border-radius:7px; background:rgba(0,0,0,0.5); overflow:hidden; }
+	.ts-bar { height:100%; width:0%; border-radius:6px;
+		background:linear-gradient(90deg, #6e0d00, #c21500); box-shadow:0 0 12px rgba(194,21,0,0.6);
+		transition:width 0.35s ease-out; }
+	.ts-barwrap::after { content:''; position:absolute; inset:0; pointer-events:none;
+		background:repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 8px, rgba(0,0,0,0.22) 8px 10px); }
+	#loadpct { z-index:2; position:relative; font-size:min(3.6vw,14px); color:#c9c2b0; letter-spacing:1px; }
+	#loadtip { z-index:2; position:relative; margin-top:16px; font-size:min(3.4vw,13px); color:#9a9384; opacity:0.85; min-height:2.8em; max-width:min(82vw,440px); }
+	#loadscreen.fade { opacity:0; transition:opacity 0.6s ease; }
 
 	/* ---- PWA install affordance (nur wenn installierbar, erst nach Load) ---- */
 	#installbtn {
@@ -81,7 +111,7 @@
 	</style>
   </head>
   <body ondrop="gotdrop(event);" ondragover="event.preventDefault()">
-	<div class="emscripten" id="status">Please allow/unblock our javascript to play.</div>
+	<div class="emscripten" id="status">Bitte JavaScript aktivieren, um zu spielen.</div>
 	<div id="dropzone" ondrop="gotdrop(event);" ondragover="event.preventDefault()" hidden=1>Drop Zone</div>
 	<button type="button" onclick="begin()" id="begin" hidden=1>Click To Begin!</button>
 	<div class="emscripten">
@@ -103,18 +133,29 @@
 		<!-- M7.1: gameplay gaps. impulse-Binds stecken bereits in nzportable.cfg (game.pk3),
 		     daher genügt das Dispatchen des schon gebundenen keyCode über den data-key-Handler. -->
 		<div class="tbtn" data-key="16" data-code="ShiftLeft" data-tap="1" style="left:calc(196px + env(safe-area-inset-left)); bottom:calc(70px + env(safe-area-inset-bottom));  width:52px; height:52px; font-size:12px;">SPRT</div>
-		<div class="tbtn" data-key="18" data-code="AltLeft"   data-tap="1" style="left:calc(196px + env(safe-area-inset-left)); bottom:calc(136px + env(safe-area-inset-bottom)); width:52px; height:52px; font-size:12px;">DUCK</div>
+		<div class="tbtn" data-key="18" data-code="AltLeft"   data-tap="1" style="left:calc(196px + env(safe-area-inset-left)); bottom:calc(136px + env(safe-area-inset-bottom)); width:52px; height:52px; font-size:10px;">HALTUNG</div>
 		<div class="tbtn" data-key="52" data-code="Digit4"    data-tap="1" style="right:calc(168px + env(safe-area-inset-right)); bottom:calc(246px + env(safe-area-inset-bottom)); width:44px; height:44px; font-size:11px;">NAD2</div>
 		<div class="tbtn" id="firebtn"                        style="right:calc(232px + env(safe-area-inset-right)); bottom:calc(38px + env(safe-area-inset-bottom));  width:84px; height:84px; font-size:15px;">FEUER</div>
+		<div class="tbtn" id="autobtn"                        style="right:calc(244px + env(safe-area-inset-right)); bottom:calc(130px + env(safe-area-inset-bottom)); width:60px; height:30px; border-radius:8px; font-size:11px;">AUTO</div>
 	</div>
 	<div id="mstart"><div class="box">
-		<h1>ENDZEIT: UNTOT</h1>
-		<p data-i18n="tap"></p>
+		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
+		<p class="ts-mark">TOTES SIGNAL</p>
+		<p class="ts-sub" data-i18n="sub"></p>
+		<p class="hint" data-i18n="tap"></p>
 		<span class="play" data-i18n="play"></span>
 	</div></div>
 	<div id="rotate"><div class="box">
 		<span class="rot">⟳</span>
 		<p data-i18n="rotate"></p>
+	</div></div>
+	<div id="loadscreen"><div class="box">
+		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
+		<p class="ts-mark">TOTES SIGNAL</p>
+		<p class="ts-sub" data-i18n="sub"></p>
+		<div class="ts-barwrap"><div class="ts-bar" id="loadbar"></div></div>
+		<div id="loadpct"></div>
+		<div id="loadtip"></div>
 	</div></div>
 	<button id="installbtn" type="button" data-i18n="install"></button>
 	<script type='text/javascript'>
@@ -154,6 +195,7 @@ var Module = {
 		}
 		statusElement.innerHTML = text;
 		statusElement.hidden = text.length==0;
+		if (window.TS_LOAD) TS_LOAD.fromEngine(text, m);
 	},
 //	preRun: [],
 	totalDependencies: 0,
@@ -169,8 +211,8 @@ var Module = {
 		{
 			if (Module["sched"] === undefined)
 			{	//our main function failed to set up the main loop. ie: main didn't get called. panic.
-				alert("Unable to initialise. You may need to restart your browser. If you get this often and inconsistently, consider using a 64bit browser instead.");
-				Module.setStatus("Initialisation Failure");
+				alert(T('initErr'));
+				Module.setStatus(T('initErr'));
 			}
 		}
 	],
@@ -182,7 +224,8 @@ function begin()
 	Module.began = true;
 	document.getElementById('dropzone').hidden = true;
 	document.getElementById('begin').hidden = true;
-	Module.setStatus('Downloading game data (~95 MB, cached after first visit)...');
+	if (window.TS_LOAD) TS_LOAD.show();
+	Module.setStatus(T('ldRecv') + ' (~90 MB)...');
 
 	// make a script. do it the hard way for the error.
 	var s = document.createElement('script');
@@ -190,7 +233,7 @@ function begin()
 	s.setAttribute('src',"ftewebgl.js");
 	s.setAttribute('type',"text/javascript");
 	s.setAttribute('charset',"utf-8");
-	s.addEventListener('error', function() {alert("Oh noes! we got an error!"); Module.setStatus("Unable to download engine javascript");}, false);
+	s.addEventListener('error', function() {alert(T('ldEngErr')); Module.setStatus(T('ldEngErr'));}, false);
 	// add to DOM
 	document.head.appendChild(s);
 }
@@ -278,19 +321,109 @@ function gotdrop(ev)
 }
 // ---- mobile: touch detection, i18n, start gate, orientation ----
 var IS_TOUCH = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
-var LANG = ((navigator.language||'en').slice(0,2) === 'de') ? 'de' : 'en';
+// Deutsch-first: Englisch nur fuer explizit englische Browser.
+var LANG = ((navigator.language||'de').slice(0,2) === 'en') ? 'en' : 'de';
 var I18N = {
-	de: { tap:'Koop-Zombie-Shooter im Browser. Fan-Fork von Nazi Zombies: Portable.',
-	      play:'▶ TIPPEN ZUM SPIELEN', rotate:'Bitte Gerät ins Querformat drehen.',
-	      install:'⇩ Als App installieren' },
-	en: { tap:'Co-op zombie shooter in your browser. Fan fork of Nazi Zombies: Portable.',
-	      play:'▶ TAP TO PLAY', rotate:'Please rotate your device to landscape.',
-	      install:'⇩ Install app' }
+	de: {
+		sub:'▚ KEIN SIGNAL ▚',
+		tap:'Koop-Zombie-Shooter im Browser. Fan-Fork von Nazi Zombies: Portable.',
+		play:'▶ TIPPEN ZUM SPIELEN',
+		rotate:'Bitte Gerät ins Querformat drehen.',
+		install:'⇩ Als App installieren',
+		ldRecv:'Signal wird empfangen', ldPrep:'Daten werden entschlüsselt',
+		ldDone:'Signal empfangen.', ldEngErr:'Engine-Daten konnten nicht geladen werden.',
+		initErr:'Start fehlgeschlagen. Bitte Browser neu starten (64-Bit-Browser empfohlen).',
+		tips:[
+			'Erstkontakt lädt ~90 MB — danach läuft es offline aus dem Cache.',
+			'Quer halten: links laufen, rechts über den Bildschirm wischen zum Zielen.',
+			'FEUER halten — oder AUTO für Dauerfeuer aktivieren.',
+			'HALTUNG schaltet Stehen → Hocke → Liegen durch.',
+			'Kopfschüsse geben mehr Punkte. Ziel höher.',
+			'Die Mystery Box ist Glückssache — manchmal die Rettung.',
+			'Kein Empfang. Nur Untote.'
+		]
+	},
+	en: {
+		sub:'▚ NO SIGNAL ▚',
+		tap:'Co-op zombie shooter in your browser. Fan fork of Nazi Zombies: Portable.',
+		play:'▶ TAP TO PLAY',
+		rotate:'Please rotate your device to landscape.',
+		install:'⇩ Install app',
+		ldRecv:'Receiving signal', ldPrep:'Decrypting data',
+		ldDone:'Signal received.', ldEngErr:'Failed to load engine data.',
+		initErr:'Startup failed. Please restart your browser (a 64-bit browser is recommended).',
+		tips:[
+			'First contact downloads ~90 MB — then it runs offline from cache.',
+			'Hold landscape: left to move, swipe the right side to aim.',
+			'Hold FIRE — or enable AUTO for continuous fire.',
+			'STANCE cycles standing → crouch → prone.',
+			'Headshots score more. Aim higher.',
+			'The Mystery Box is a gamble — sometimes a lifesaver.',
+			'No signal. Only the undead.'
+		]
+	}
 };
+function T(k){ return (I18N[LANG] || I18N.en)[k]; }
 (function(){ var t = I18N[LANG];
 	var els = document.querySelectorAll('[data-i18n]');
-	for (var i=0;i<els.length;i++){ var k = els[i].getAttribute('data-i18n'); els[i].textContent = t[k] || ''; }
+	for (var i=0;i<els.length;i++){ var k = els[i].getAttribute('data-i18n'); if (typeof t[k] === 'string') els[i].textContent = t[k]; }
 })();
+
+// ---- themed loading screen (TOTES SIGNAL) ----
+var TS_LOAD = {
+	on:false, p:0, target:0, done:false, finished:false, label:'', loaded:0, total:0,
+	tipI:0, raf:0, tipTimer:0,
+	el:function(id){ return document.getElementById(id); },
+	show:function(){
+		if (this.on) return; this.on = true;
+		var s = this.el('loadscreen'); if (!s) return;
+		s.style.display = 'flex';
+		this.label = T('ldRecv');
+		this.rotateTip(); this.tipTimer = setInterval(this.rotateTip.bind(this), 4500);
+		var self = this;
+		(function tick(){
+			if (self.done) self.p = 100;
+			else { self.p += (95 - self.p) * 0.012; if (self.p > 95) self.p = 95; }
+			self.render();
+			if (!self.finished) self.raf = requestAnimationFrame(tick);
+		})();
+		// Der Canvas ist via .emscripten{display:block} immer sichtbar (das
+		// hidden-Attribut bleibt gesetzt) -> nicht darauf warten. Echtes Signal:
+		// Engine-Mainloop läuft (Module.sched gesetzt) = Downloads fertig + main().
+		var iv = setInterval(function(){
+			if (window.Module && Module.began && Module.sched !== undefined){
+				clearInterval(iv); setTimeout(function(){ self.finish(); }, 1600); // Puffer fürs erste Menü-Frame
+			}
+		}, 300);
+		setTimeout(function(){ if (!self.finished){ try { clearInterval(iv); } catch(e){} self.finish(); } }, 90000); // harte Notbremse
+	},
+	rotateTip:function(){
+		var tips = T('tips') || []; if (!tips.length) return;
+		var e = this.el('loadtip'); if (e) e.textContent = tips[this.tipI % tips.length]; this.tipI++;
+	},
+	render:function(){
+		var bar = this.el('loadbar'); if (bar) bar.style.width = Math.min(100, Math.round(this.p)) + '%';
+		var pct = this.el('loadpct'); if (!pct) return;
+		var line = (this.label || T('ldRecv'));
+		if (this.total > 5e5) line += ' · ' + (this.loaded/1048576).toFixed(0) + '/' + (this.total/1048576).toFixed(0) + ' MB';
+		pct.textContent = line + '  ·  ' + Math.min(100, Math.round(this.p)) + '%';
+	},
+	fromEngine:function(text, m){
+		if (!this.on) return;
+		if (/All downloads complete/i.test(text)){ this.done = true; this.p = 100; this.label = T('ldDone'); this.render(); return; }
+		if (m){ var a = parseFloat(m[2]), b = parseFloat(m[4]);
+			if (b > 0){ this.target = (a/b)*100; if (b > 5e5){ this.loaded = a; this.total = b; } } }
+		if (/Preparing/i.test(text)) this.label = T('ldPrep');
+		else if (/Downloading|Signal|data/i.test(text)) this.label = T('ldRecv');
+	},
+	finish:function(){
+		if (this.finished) return; this.finished = true; this.done = true; this.p = 100; this.render();
+		if (this.tipTimer) clearInterval(this.tipTimer);
+		if (this.raf) cancelAnimationFrame(this.raf);
+		var s = this.el('loadscreen');
+		if (s){ s.classList.add('fade'); setTimeout(function(){ s.style.display = 'none'; }, 650); }
+	}
+};
 
 function enterImmersive()
 {	// must run inside a user gesture (fullscreen + orientation lock + iOS audio unlock)
@@ -457,12 +590,14 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			}
 			b.addEventListener('pointerup', release);
 			b.addEventListener('pointercancel', release);
+			b.addEventListener('lostpointercapture', release);   // Finger rutscht ab -> Taste loslassen
 		})(btns[i]);
 	}
 
-	// --- dedicated FIRE button: drives the native MOUSE1 (+attack) path so the
-	// look-drag on the canvas no longer fires by accident. Touch is captured on
-	// the button, so it never reaches the canvas -> no double-fire. Hold = auto. ---
+	// --- dedicated FIRE button + AUTO-fire toggle. Drives the native MOUSE1
+	// (+attack) path so the look-drag on the canvas never fires by accident
+	// (touch is captured on the button). AUTO on: tap FEUER to start/stop a
+	// pulsed fire loop (no holding) — works for semi- and full-autos. ---
 	(function(){
 		var fire = document.getElementById('firebtn');
 		if (!fire) return;
@@ -473,19 +608,45 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 				clientX: r.left + r.width/2, clientY: r.top + r.height/2 });
 			canvas.dispatchEvent(ev);
 		}
+		var autoFire = false;
+		try { autoFire = localStorage.getItem('ts_autofire') === '1'; } catch(e){}
+		var loop = 0, looping = false;
+		function startLoop(){
+			if (looping) return; looping = true; fire.classList.add('held');
+			mouse('mousedown', true);
+			loop = setInterval(function(){ mouse('mouseup', false); mouse('mousedown', true); }, 110);
+		}
+		function stopLoop(){
+			if (!looping) return; looping = false; clearInterval(loop); loop = 0;
+			fire.classList.remove('held'); mouse('mouseup', false);
+		}
 		fire.addEventListener('pointerdown', function(e){
 			e.preventDefault();
-			fire.setPointerCapture(e.pointerId);
-			fire.classList.add('held');
-			mouse('mousedown', true);
+			try { fire.setPointerCapture(e.pointerId); } catch(err){}
+			if (autoFire){ if (looping) stopLoop(); else startLoop(); return; }   // AUTO = tap-latch
+			fire.classList.add('held'); mouse('mousedown', true);
 		});
 		function rel(){
+			if (autoFire) return;                                 // AUTO latched -> ignore release
 			if (!fire.classList.contains('held')) return;
-			fire.classList.remove('held');
-			mouse('mouseup', false);
+			fire.classList.remove('held'); mouse('mouseup', false);
 		}
 		fire.addEventListener('pointerup', rel);
 		fire.addEventListener('pointercancel', rel);
+		fire.addEventListener('lostpointercapture', rel);
+
+		// AUTO toggle
+		var ab = document.getElementById('autobtn');
+		if (ab){
+			if (autoFire) ab.classList.add('on');
+			ab.addEventListener('pointerdown', function(e){
+				e.preventDefault();
+				autoFire = !autoFire;
+				try { localStorage.setItem('ts_autofire', autoFire ? '1' : '0'); } catch(err){}
+				ab.classList.toggle('on', autoFire);
+				if (!autoFire) stopLoop();
+			});
+		}
 	})();
 
 	// --- fullscreen + landscape ---

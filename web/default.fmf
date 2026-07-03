@@ -1,5 +1,5 @@
 game nzp
-name "Endzeit: Untot"
+name "Totes Signal"
 basegame nzp
 mainconfig "nzportable.cfg"
 disablehomedir 1
