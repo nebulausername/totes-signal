@@ -5,3 +5,9 @@ web/nzp/*.pk3
 *.log
 .DS_Store
 node_modules/
+
+# Python venv for the QuakeC build toolchain (tools/full-build.sh)
+.venv/
+
+# Local headless verification screenshots
+docs/verify/

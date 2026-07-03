@@ -37,6 +37,26 @@
 		position:absolute; left:50px; top:50px; width:50px; height:50px; border-radius:50%;
 		background:rgba(230,225,210,0.45); pointer-events:none;
 	}
+
+	/* ---- mobile start gate + rotate hint ---- */
+	#mstart, #rotate {
+		position:fixed; inset:0; z-index:50; display:none;
+		background:#050505; color:#e6e1d2; font-family:monospace;
+		align-items:center; justify-content:center; text-align:center; padding:24px;
+		-webkit-user-select:none; user-select:none;
+	}
+	#mstart .box, #rotate .box { max-width:88%; }
+	#mstart h1 { color:#8a1200; font-size:min(9vw,52px); margin:0 0 10px; letter-spacing:3px; text-shadow:0 0 18px rgba(138,18,0,0.6); }
+	#mstart p, #rotate p { font-size:min(4.4vw,18px); line-height:1.55; opacity:0.82; margin:6px 0; }
+	#mstart .play {
+		margin-top:26px; display:inline-block; padding:16px 30px; cursor:pointer;
+		border:2px solid #8a1200; border-radius:12px; color:#f2ede0;
+		font-size:min(6vw,24px); font-weight:bold; letter-spacing:1px;
+		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(138,18,0,0.35);
+	}
+	#mstart .play:active { background:rgba(138,18,0,0.55); }
+	#rotate .rot { font-size:min(16vw,90px); margin-bottom:14px; display:block; animation:rotwig 1.7s ease-in-out infinite; }
+	@keyframes rotwig { 0%,100%{transform:rotate(6deg)} 50%{transform:rotate(-84deg)} }
 	</style>
   </head>
   <body ondrop="gotdrop(event);" ondragover="event.preventDefault()">
@@ -59,7 +79,22 @@
 		<div class="tbtn" data-key="17"  data-code="ControlLeft"  style="right:calc(24px + env(safe-area-inset-right));  top:calc(96px + env(safe-area-inset-top));     width:48px; height:48px;">SWAP</div>
 		<div class="tbtn" data-key="27"  data-code="Escape" data-tap="1" style="right:calc(24px + env(safe-area-inset-right)); top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px;">MENU</div>
 		<div class="tbtn" id="fsbtn" data-tap="1"                 style="left:calc(24px + env(safe-area-inset-left)); top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px;">⛶</div>
+		<!-- M7.1: gameplay gaps. impulse-Binds stecken bereits in nzportable.cfg (game.pk3),
+		     daher genügt das Dispatchen des schon gebundenen keyCode über den data-key-Handler. -->
+		<div class="tbtn" data-key="16" data-code="ShiftLeft" data-tap="1" style="left:calc(196px + env(safe-area-inset-left)); bottom:calc(70px + env(safe-area-inset-bottom));  width:52px; height:52px; font-size:12px;">SPRT</div>
+		<div class="tbtn" data-key="18" data-code="AltLeft"   data-tap="1" style="left:calc(196px + env(safe-area-inset-left)); bottom:calc(136px + env(safe-area-inset-bottom)); width:52px; height:52px; font-size:12px;">DUCK</div>
+		<div class="tbtn" data-key="52" data-code="Digit4"    data-tap="1" style="right:calc(168px + env(safe-area-inset-right)); bottom:calc(246px + env(safe-area-inset-bottom)); width:44px; height:44px; font-size:11px;">NAD2</div>
+		<div class="tbtn" id="firebtn"                        style="right:calc(232px + env(safe-area-inset-right)); bottom:calc(38px + env(safe-area-inset-bottom));  width:84px; height:84px; font-size:15px;">FEUER</div>
 	</div>
+	<div id="mstart"><div class="box">
+		<h1>ENDZEIT: UNTOT</h1>
+		<p data-i18n="tap"></p>
+		<span class="play" data-i18n="play"></span>
+	</div></div>
+	<div id="rotate"><div class="box">
+		<span class="rot">⟳</span>
+		<p data-i18n="rotate"></p>
+	</div></div>
 	<script type='text/javascript'>
 // connect to canvas
 var Module = {
@@ -219,9 +254,57 @@ function gotdrop(ev)
 		}
 	showfiles();
 }
-if (window.location.hash != "" || Object.keys(Module.files).length)
-	begin();		//if the url has a #foo.fmf then just begin instantly,
-else
+// ---- mobile: touch detection, i18n, start gate, orientation ----
+var IS_TOUCH = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+var LANG = ((navigator.language||'en').slice(0,2) === 'de') ? 'de' : 'en';
+var I18N = {
+	de: { tap:'Koop-Zombie-Shooter im Browser. Fan-Fork von Nazi Zombies: Portable.',
+	      play:'▶ TIPPEN ZUM SPIELEN', rotate:'Bitte Gerät ins Querformat drehen.' },
+	en: { tap:'Co-op zombie shooter in your browser. Fan fork of Nazi Zombies: Portable.',
+	      play:'▶ TAP TO PLAY', rotate:'Please rotate your device to landscape.' }
+};
+(function(){ var t = I18N[LANG];
+	var els = document.querySelectorAll('[data-i18n]');
+	for (var i=0;i<els.length;i++){ var k = els[i].getAttribute('data-i18n'); els[i].textContent = t[k] || ''; }
+})();
+
+function enterImmersive()
+{	// must run inside a user gesture (fullscreen + orientation lock + iOS audio unlock)
+	var el = document.documentElement;
+	var req = el.requestFullscreen || el.webkitRequestFullscreen;
+	if (req) { try { var p = req.call(el); if (p && p.catch) p.catch(function(){}); } catch(e){} }
+	if (screen.orientation && screen.orientation.lock)
+		screen.orientation.lock('landscape').catch(function(){});
+}
+function updateOrient()
+{	if (!IS_TOUCH) return;
+	var portrait = window.matchMedia('(orientation: portrait)').matches;
+	var r = document.getElementById('rotate');
+	var tui = document.getElementById('touchui');
+	r.style.display = (portrait && Module.began) ? 'flex' : 'none';   // only nag once playing
+	if (tui) tui.style.visibility = portrait ? 'hidden' : 'visible';  // hide controls in portrait
+}
+window.addEventListener('resize', updateOrient);
+window.addEventListener('orientationchange', updateOrient);
+
+function mobileStart()
+{	var g = document.getElementById('mstart');
+	g.style.display = 'flex';
+	g.addEventListener('click', function once(){
+		g.removeEventListener('click', once);
+		g.style.display = 'none';
+		enterImmersive();
+		begin();
+		setTimeout(updateOrient, 400);
+	});
+}
+
+if (window.location.hash != "" || Object.keys(Module.files).length) {
+	if (IS_TOUCH)
+		mobileStart();	//defer for fullscreen + audio unlock + landscape
+	else
+		begin();		//desktop: if the url has a #foo.fmf then just begin instantly,
+} else
 	showfiles();	//otherwise show our lame file dropper and wait for the user to click 'go'.
 
 //---------------------------------------------------------------------
@@ -273,6 +356,34 @@ else
 			b.addEventListener('pointercancel', release);
 		})(btns[i]);
 	}
+
+	// --- dedicated FIRE button: drives the native MOUSE1 (+attack) path so the
+	// look-drag on the canvas no longer fires by accident. Touch is captured on
+	// the button, so it never reaches the canvas -> no double-fire. Hold = auto. ---
+	(function(){
+		var fire = document.getElementById('firebtn');
+		if (!fire) return;
+		function mouse(type, down){
+			var r = canvas.getBoundingClientRect();
+			var ev = new MouseEvent(type, { bubbles:true, cancelable:true, view:window,
+				button:0, buttons: down ? 1 : 0,
+				clientX: r.left + r.width/2, clientY: r.top + r.height/2 });
+			canvas.dispatchEvent(ev);
+		}
+		fire.addEventListener('pointerdown', function(e){
+			e.preventDefault();
+			fire.setPointerCapture(e.pointerId);
+			fire.classList.add('held');
+			mouse('mousedown', true);
+		});
+		function rel(){
+			if (!fire.classList.contains('held')) return;
+			fire.classList.remove('held');
+			mouse('mouseup', false);
+		}
+		fire.addEventListener('pointerup', rel);
+		fire.addEventListener('pointercancel', rel);
+	})();
 
 	// --- fullscreen + landscape ---
 	document.getElementById('fsbtn').addEventListener('pointerdown', function(e){
