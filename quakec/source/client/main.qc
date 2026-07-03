@@ -1380,23 +1380,23 @@ noref void() CSQC_Parse_Event =
 						chaptertitle = GAME_DEFAULT_CHAPTER;
 					break;
 				case GAMEMODE_GUNGAME:
-					chaptertitle = "GUN GAME";
-					location = "Cycle all Weapons to WIN!";
+					chaptertitle = T("GUN GAME");
+					location = T("Cycle all Weapons to WIN!");
 					date = "";
 					person = "";
 					break;
 				case GAMEMODE_HARDCORE:
-					chaptertitle = "HARDCORE";
+					chaptertitle = T("HARDCORE");
 					break;
 				case GAMEMODE_STICKSNSTONES:
-					chaptertitle = "STICKS & STONES";
-					location = "Ballistic Knife FTW!";
+					chaptertitle = T("STICKS & STONES");
+					location = T("Ballistic Knife FTW!");
 					date = "";
 					person = "";
 					break;
 				case GAMEMODE_WILDWEST:
-					chaptertitle = "WILD WEST";
-					location = "It's a stand-off!";
+					chaptertitle = T("WILD WEST");
+					location = T("It's a stand-off!");
 					date = "";
 					person = "";
 					break;

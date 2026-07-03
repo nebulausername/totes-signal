@@ -105,36 +105,36 @@ void() Menu_Control =
         Menu_Control_Init();
 
     Menu_DrawBackground();
-    Menu_DrawTitle("CONTROL OPTIONS");
+    Menu_DrawTitle(T("CONTROL OPTIONS"));
     Menu_DrawMapPanel();
 
-    Menu_Button(1, "cm_adsm", "AIM DOWN SIGHT", "Switch between Hold and Toggle ADS Modes.") ? Menu_Control_ApplyADS() : 0;
+    Menu_Button(1, "cm_adsm", T("AIM DOWN SIGHT"), T("Switch between Hold and Toggle ADS Modes.")) ? Menu_Control_ApplyADS() : 0;
     string ads_string = "";
     switch(current_adsmode) {
-        case 0: ads_string = "HOLD"; break;
-        case 1: ads_string = "TOGGLE"; break;
+        case 0: ads_string = T("HOLD"); break;
+        case 1: ads_string = T("TOGGLE"); break;
         default: break;
     }
     Menu_DrawOptionValue(1, ads_string);
 
-    Menu_Button(2, "cm_sens", "SENSITIVITY", "Alter Look Sensitivity.") ? 0 : 0;
+    Menu_Button(2, "cm_sens", T("SENSITIVITY"), T("Alter Look Sensitivity.")) ? 0 : 0;
     Menu_CvarSlider(2, "cm_sens", [1, 10, 10], "sensitivity", false, false, false);
 
-    Menu_Button(3, "cm_invs", "INVERT LOOK", "Invert Y-Axis Camera Input.") ? Menu_Control_InvertLook() : 0;
+    Menu_Button(3, "cm_invs", T("INVERT LOOK"), T("Invert Y-Axis Camera Input.")) ? Menu_Control_InvertLook() : 0;
     string invert_string = "";
     switch(current_invert) {
-        case 0: invert_string = "ENABLED"; break;
-        case 1: invert_string = "DISABLED"; break;
+        case 0: invert_string = T("ENABLED"); break;
+        case 1: invert_string = T("DISABLED"); break;
         default: break;
     }
     Menu_DrawOptionValue(3, invert_string);
 
-    Menu_Button(4, "cm_gpad", "GAMEPAD", "Gamepad specific options.") ? current_menu = MENU_GAMEPAD : 0;
-    Menu_Button(5, "cm_bind", "BINDINGS", "Change Input Bindings.") ? current_menu = MENU_BINDINGS : 0;
+    Menu_Button(4, "cm_gpad", T("GAMEPAD"), T("Gamepad specific options.")) ? current_menu = MENU_GAMEPAD : 0;
+    Menu_Button(5, "cm_bind", T("BINDINGS"), T("Change Input Bindings.")) ? current_menu = MENU_BINDINGS : 0;
 
     Menu_DrawDivider(12.25);
-    Menu_Button(-2, "cm_apply", "APPLY", "Save & Apply Settings.") ? Menu_Control_ApplySettings() : 0;
-    Menu_Button(-1, "cm_back", "BACK", "Return to Configuration.") ? current_menu = MENU_OPTIONS : 0;
+    Menu_Button(-2, "cm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Control_ApplySettings() : 0;
+    Menu_Button(-1, "cm_back", T("BACK"), T("Return to Configuration.")) ? current_menu = MENU_OPTIONS : 0;
 
 	sui_pop_frame();	
 };

@@ -92,45 +92,45 @@ string(string next_id) Menu_Bindings_GetPreviousButton =
 void() Menu_Bindings =
 {
     Menu_DrawBackground();
-    Menu_DrawTitle("CONTROL BINDINGS");
+    Menu_DrawTitle(T("CONTROL BINDINGS"));
     Menu_DrawMapPanel();
 
-    Menu_Button(1, "bm_jump", "JUMP", "") ? Menu_Bindings_Listen(1, "impulse 10") : 0;
+    Menu_Button(1, "bm_jump", T("JUMP"), "") ? Menu_Bindings_Listen(1, "impulse 10") : 0;
     Menu_Bindings_PrintBindForCommand(1, "impulse 10");
 
-    Menu_Button(2, "bm_spri", "SPRINT", "") ? Menu_Bindings_Listen(2, "impulse 23") : 0;
+    Menu_Button(2, "bm_spri", T("SPRINT"), "") ? Menu_Bindings_Listen(2, "impulse 23") : 0;
     Menu_Bindings_PrintBindForCommand(2, "impulse 23");
 
-    Menu_Button(3, "bm_crou", "CHANGE STANCE", "") ? Menu_Bindings_Listen(3, "impulse 30") : 0;
+    Menu_Button(3, "bm_crou", T("CHANGE STANCE"), "") ? Menu_Bindings_Listen(3, "impulse 30") : 0;
     Menu_Bindings_PrintBindForCommand(3, "impulse 30");
-    
-    Menu_Button(4, "bm_wnex", "SWAP WEAPON", "") ? Menu_Bindings_Listen(4, "+button4") : 0;
+
+    Menu_Button(4, "bm_wnex", T("SWAP WEAPON"), "") ? Menu_Bindings_Listen(4, "+button4") : 0;
     Menu_Bindings_PrintBindForCommand(4, "+button4");
-    
-    Menu_Button(5, "bm_use", "INTERACT", "") ? Menu_Bindings_Listen(5, "+button7") : 0;
+
+    Menu_Button(5, "bm_use", T("INTERACT"), "") ? Menu_Bindings_Listen(5, "+button7") : 0;
     Menu_Bindings_PrintBindForCommand(5, "+button7");
-    
-    Menu_Button(6, "bm_relo", "RELOAD", "") ? Menu_Bindings_Listen(6, "+button5") : 0;
+
+    Menu_Button(6, "bm_relo", T("RELOAD"), "") ? Menu_Bindings_Listen(6, "+button5") : 0;
     Menu_Bindings_PrintBindForCommand(6, "+button5");
-    
-    Menu_Button(7, "bm_mele", "MELEE", "") ? Menu_Bindings_Listen(7, "+button6") : 0;
+
+    Menu_Button(7, "bm_mele", T("MELEE"), "") ? Menu_Bindings_Listen(7, "+button6") : 0;
     Menu_Bindings_PrintBindForCommand(7, "+button6");
-    
-    Menu_Button(8, "bm_prig", "PRIMARY GRENADE", "") ? Menu_Bindings_Listen(8, "+button3") : 0;
+
+    Menu_Button(8, "bm_prig", T("PRIMARY GRENADE"), "") ? Menu_Bindings_Listen(8, "+button3") : 0;
     Menu_Bindings_PrintBindForCommand(8, "+button3");
-    
-    Menu_Button(9, "bm_secg", "SECONDARY GRENADE", "") ? Menu_Bindings_Listen(9, "impulse 33") : 0;
+
+    Menu_Button(9, "bm_secg", T("SECONDARY GRENADE"), "") ? Menu_Bindings_Listen(9, "impulse 33") : 0;
     Menu_Bindings_PrintBindForCommand(9, "impulse 33");
 
-    Menu_Button(10, "bm_fire", "WEAPON FIRE", "") ? Menu_Bindings_Listen(10, "+attack") : 0;
+    Menu_Button(10, "bm_fire", T("WEAPON FIRE"), "") ? Menu_Bindings_Listen(10, "+attack") : 0;
     Menu_Bindings_PrintBindForCommand(10, "+attack");
 
-    Menu_Button(11, "bm_ads", "AIM DOWN SIGHTS", "") ? Menu_Bindings_Listen(11, "+button8") : 0;
+    Menu_Button(11, "bm_ads", T("AIM DOWN SIGHTS"), "") ? Menu_Bindings_Listen(11, "+button8") : 0;
     Menu_Bindings_PrintBindForCommand(11, "+button8");
 
     Menu_DrawDivider(12.25);
-    Menu_Button(-2, "bm_apply", "APPLY", "Save & Apply Settings.") ? Menu_Gamepad_ApplySettings() : 0;
-    Menu_Button(-1, "bm_back", "BACK", "Return to Control Options.") ? Menu_Bindings_Back() : 0;
+    Menu_Button(-2, "bm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Gamepad_ApplySettings() : 0;
+    Menu_Button(-1, "bm_back", T("BACK"), T("Return to Control Options.")) ? Menu_Bindings_Back() : 0;
 
 	sui_pop_frame();	
 };

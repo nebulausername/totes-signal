@@ -384,7 +384,7 @@ void(int idx) Menu_Bios_EnterSubMenu =
 void() Menu_Bios =
 {
     Menu_DrawBackground();
-    Menu_DrawTitle("CHARACTER BIOS");
+    Menu_DrawTitle(T("CHARACTER BIOS"));
     Menu_DrawMapPanel();
 
     if (menu_bios_biosubmenu == 0)
@@ -402,7 +402,7 @@ void() Menu_Bios =
 
         Menu_DrawDivider(13.25);
 
-        Menu_Button(-1, "bi_back", "BACK", "Return to Main Menu.") ? current_menu = MENU_MAIN : 0;
+        Menu_Button(-1, "bi_back", T("BACK"), T("Return to Main Menu.")) ? current_menu = MENU_MAIN : 0;
     }
     else
     {
@@ -427,7 +427,7 @@ void() Menu_Bios =
             menu_bio_info[menu_bios_biosubmenu - 1].description[16]
         );
 
-        Menu_Button(-1, "bi_back", "BACK", "") ? Menu_Bios_EnterSubMenu(0) : 0;
+        Menu_Button(-1, "bi_back", T("BACK"), "") ? Menu_Bios_EnterSubMenu(0) : 0;
     }
     
 	sui_pop_frame();	

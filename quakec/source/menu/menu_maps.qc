@@ -114,10 +114,10 @@ void() Menu_Maps =
     float back_menudest = 0;
 
     switch(menu_map_mode) {
-        case MAP_SOLOSTOCK: Menu_DrawTitle("SELECT MAP: SOLO"); back_string = "Return to Main Menu."; back_menudest = MENU_MAIN; break;
-        case MAP_SOLOUSER: Menu_DrawTitle("USER MAPS: SOLO"); back_string = "Return to Stock Map selection."; back_menudest = MENU_SOLO; break;
-        case MAP_COOPSTOCK: Menu_DrawTitle("SELECT MAP: COOP"); back_string = "Return to Create Game Menu."; back_menudest = MENU_COOPCREATE; break;
-        case MAP_COOPUSER: Menu_DrawTitle("USER MAPS: COOP"); back_string = "Return to Stock Map selection."; back_menudest = MENU_COOPSTOCK; break;
+        case MAP_SOLOSTOCK: Menu_DrawTitle(T("SELECT MAP: SOLO")); back_string = T("Return to Main Menu."); back_menudest = MENU_MAIN; break;
+        case MAP_SOLOUSER: Menu_DrawTitle(T("USER MAPS: SOLO")); back_string = T("Return to Stock Map selection."); back_menudest = MENU_SOLO; break;
+        case MAP_COOPSTOCK: Menu_DrawTitle(T("SELECT MAP: COOP")); back_string = T("Return to Create Game Menu."); back_menudest = MENU_COOPCREATE; break;
+        case MAP_COOPUSER: Menu_DrawTitle(T("USER MAPS: COOP")); back_string = T("Return to Stock Map selection."); back_menudest = MENU_COOPSTOCK; break;
         default: break;
     }
 
@@ -149,12 +149,12 @@ void() Menu_Maps =
         Menu_DrawDivider(i + 1.25);
 
 		if (menu_map_mode == MAP_SOLOSTOCK) {
-			Menu_Button(i + 1.5, "map_nzpusermaps", "USER MAPS", "View User-Created Maps.") ? current_menu = MENU_SOLOUSER : 0;
+			Menu_Button(i + 1.5, "map_nzpusermaps", T("USER MAPS"), T("View User-Created Maps.")) ? current_menu = MENU_SOLOUSER : 0;
 		} else if (menu_map_mode == MAP_COOPSTOCK) {
-			Menu_Button(i + 1.5, "map_nzpusermaps", "USER MAPS", "View User-Created Maps.") ? current_menu = MENU_COOPUSER : 0;
+			Menu_Button(i + 1.5, "map_nzpusermaps", T("USER MAPS"), T("View User-Created Maps.")) ? current_menu = MENU_COOPUSER : 0;
 		}
 
-        if (Menu_Button(i + 2.5, "map_randommap", "RANDOM", "Feeling indecisive? Try rolling the dice."))
+        if (Menu_Button(i + 2.5, "map_randommap", T("RANDOM"), T("Feeling indecisive? Try rolling the dice.")))
         {
             int random_map_index = rint(random() * user_maps_count);
             Menu_Maps_LoadMap(user_maps[random_map_index].map_name);
@@ -200,23 +200,23 @@ void() Menu_Maps =
         if (maps_on_page + maps_start_position < user_maps_count) {
             menu_maps_buttons[current_registry_position] = "map_usernext";
             current_registry_position++;
-            Menu_Button(-3, "map_usernext", "NEXT PAGE", "Advance to next User Map page.") ? Menu_Maps_NextPage() : 0;
+            Menu_Button(-3, "map_usernext", T("NEXT PAGE"), T("Advance to next User Map page.")) ? Menu_Maps_NextPage() : 0;
         } else {
-            Menu_GreyButton(-3, "NEXT PAGE");
+            Menu_GreyButton(-3, T("NEXT PAGE"));
         }
 
         if (user_maps_page != 0) {
             menu_maps_buttons[current_registry_position] = "map_userprev";
             current_registry_position++;
-            Menu_Button(-2, "map_userprev", "PREVIOUS PAGE", "Return to last User Map page.") ? Menu_Maps_PrevPage() : 0;
+            Menu_Button(-2, "map_userprev", T("PREVIOUS PAGE"), T("Return to last User Map page.")) ? Menu_Maps_PrevPage() : 0;
         } else {
-            Menu_GreyButton(-2, "PREVIOUS PAGE");
+            Menu_GreyButton(-2, T("PREVIOUS PAGE"));
         }
 
         menu_maps_buttons[current_registry_position] = "map_back";
     }
 
-    Menu_Button(-1, "map_back", "BACK", back_string) ? current_menu = back_menudest : 0;
+    Menu_Button(-1, "map_back", T("BACK"), back_string) ? current_menu = back_menudest : 0;
 
 	sui_pop_frame();	
 };

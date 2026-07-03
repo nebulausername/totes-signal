@@ -132,7 +132,7 @@ void() Menu_Coop_Browse =
 
 	Menu_DrawBackground();
 
-	Menu_DrawTitle("BROWSE SERVERS");
+	Menu_DrawTitle(T("BROWSE SERVERS"));
 
 	// draw server list
 	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
@@ -140,14 +140,14 @@ void() Menu_Coop_Browse =
 	vector vsize = sui_current_frame_size();
 	Menu_ServerList("cbm_serverlist", [0, 0], [vsize.x, vsize.y / 2], serverlist_scrollofs, num_cached_servers);
 
-	Menu_Button(-2, "cbm_refresh", "REFRESH", "Refresh server list.") ? Menu_Coop_RefreshCache() : 0;
-	Menu_Button(-1, "cbm_back", "BACK", "Return to Join Game Menu.") ? current_menu = MENU_COOPJOIN : 0;
+	Menu_Button(-2, "cbm_refresh", T("REFRESH"), T("Refresh server list.")) ? Menu_Coop_RefreshCache() : 0;
+	Menu_Button(-1, "cbm_back", T("BACK"), T("Return to Join Game Menu.")) ? current_menu = MENU_COOPJOIN : 0;
 
 	// draw tooltip
 	if (!sui_is_hovered("cbm_refresh") && !sui_is_hovered("cbm_back"))
 	{
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
-		sui_text([0, -30], MENU_TEXT_MEDIUM, "NOTE: Keyboard or gamepad is not supported for server selection.", [1, 1, 1], 1, 0);
+		sui_text([0, -30], MENU_TEXT_MEDIUM, T("NOTE: Keyboard or gamepad is not supported for server selection."), [1, 1, 1], 1, 0);
 	}
 
 	sui_pop_frame();
@@ -167,18 +167,18 @@ void() Menu_Coop_Direct =
 
 	Menu_DrawBackground();
 
-	Menu_DrawTitle("DIRECT IP/ID");
+	Menu_DrawTitle(T("DIRECT IP/ID"));
 
-	Menu_Button(1, "cdm_serverip", "SERVER IP/ROOM ID", "IP or ID for the Server (typically starts with /).");
+	Menu_Button(1, "cdm_serverip", T("SERVER IP/ROOM ID"), T("IP or ID for the Server (typically starts with /)."));
 	Menu_TextInput("cdm_serverip", 1, server_ip, server_ip_cursor);
 
-	Menu_Button(2, "cdm_serverpassword", "SERVER PASSWORD", "Password for the Match set by the Host (optional).");
+	Menu_Button(2, "cdm_serverpassword", T("SERVER PASSWORD"), T("Password for the Match set by the Host (optional)."));
 	Menu_PasswordInput("cdm_serverpassword", 2, server_password, server_password_cursor);
 
 	Menu_DrawDivider(3);
-	Menu_Button(3.25, "cdm_connect", "CONNECT TO SERVER", "Attempt to connect to Game.") ? Menu_Coop_Connect(server_ip) : 0;
+	Menu_Button(3.25, "cdm_connect", T("CONNECT TO SERVER"), T("Attempt to connect to Game.")) ? Menu_Coop_Connect(server_ip) : 0;
 
-	Menu_Button(-1, "cdm_back", "BACK", "Return to Join Game Menu.") ? current_menu = MENU_COOPJOIN : 0;
+	Menu_Button(-1, "cdm_back", T("BACK"), T("Return to Join Game Menu.")) ? current_menu = MENU_COOPJOIN : 0;
 
 	sui_pop_frame();
 };
@@ -187,12 +187,12 @@ void() Menu_Coop_Join =
 {
 	Menu_DrawBackground();
 
-	Menu_DrawTitle("JOIN GAME");
+	Menu_DrawTitle(T("JOIN GAME"));
 
-	Menu_Button(1, "cjm_browse", "BROWSE SERVERS", "Browse the list of active Servers.") ? current_menu = MENU_COOPBROWSE : 0;
-	Menu_Button(2, "cjm_direct", "DIRECT IP/ID", "Connect directly to an active Server.") ? current_menu = MENU_COOPDIRECT : 0;
+	Menu_Button(1, "cjm_browse", T("BROWSE SERVERS"), T("Browse the list of active Servers.")) ? current_menu = MENU_COOPBROWSE : 0;
+	Menu_Button(2, "cjm_direct", T("DIRECT IP/ID"), T("Connect directly to an active Server.")) ? current_menu = MENU_COOPDIRECT : 0;
 
-	Menu_Button(-1, "cjm_back", "BACK", "Return to Co-Op Menu.") ? current_menu = MENU_COOP : 0;
+	Menu_Button(-1, "cjm_back", T("BACK"), T("Return to Co-Op Menu.")) ? current_menu = MENU_COOP : 0;
 
 	sui_pop_frame();
 };
@@ -205,25 +205,25 @@ void() Menu_Coop_Create =
 
 	Menu_DrawBackground();
 
-	Menu_DrawTitle("CREATE GAME");
+	Menu_DrawTitle(T("CREATE GAME"));
 
-	Menu_Button(1, "ccm_servername", "SERVER NAME", "Enter a name that will appear in the Server List.");
+	Menu_Button(1, "ccm_servername", T("SERVER NAME"), T("Enter a name that will appear in the Server List."));
 	Menu_TextInput("ccm_servername", 1, server_hostname, server_hostname_cursor);
 
-	Menu_Button(2, "ccm_port", "SERVER PORT", "Edit the port that the Server will use.");
+	Menu_Button(2, "ccm_port", T("SERVER PORT"), T("Edit the port that the Server will use."));
 	Menu_TextInput("ccm_port", 2, server_port, server_port_cursor);
 
-	Menu_Button(3, "ccm_password", "SERVER PASSWORD", "Enter an (optional) password to limit who can join.");
+	Menu_Button(3, "ccm_password", T("SERVER PASSWORD"), T("Enter an (optional) password to limit who can join."));
 	Menu_PasswordInput("ccm_password", 3, server_password, server_password_cursor);
 
 	// Max players
-	Menu_Button(4, "ccm_maxplayers", "MAX PLAYERS", "Change the maximum number of players who can join your server.") ? 0 : 0;
+	Menu_Button(4, "ccm_maxplayers", T("MAX PLAYERS"), T("Change the maximum number of players who can join your server.")) ? 0 : 0;
     Menu_CvarSlider(4, "ccm_maxplayers", [1, 8, 7], "maxplayers", true, false, false);
 
 	Menu_DrawDivider(5);
-	Menu_Button(5.25, "ccm_choosemap", "CHOOSE MAP", "Select a Map to start the Game.") ? Menu_StartCoop() : 0;
+	Menu_Button(5.25, "ccm_choosemap", T("CHOOSE MAP"), T("Select a Map to start the Game.")) ? Menu_StartCoop() : 0;
 
-	Menu_Button(-1, "ccm_back", "BACK", "Return to Co-Op Menu.") ? current_menu = MENU_COOP : 0;
+	Menu_Button(-1, "ccm_back", T("BACK"), T("Return to Co-Op Menu.")) ? current_menu = MENU_COOP : 0;
 
 	sui_pop_frame();
 
@@ -255,16 +255,16 @@ void() Menu_Coop =
 
 	Menu_DrawBackground();
 
-	Menu_DrawTitle("COOPERATIVE");
+	Menu_DrawTitle(T("COOPERATIVE"));
 
-	Menu_Button(1, "cm_playername", "PLAYER NAME", "Name that appears in-game and on the Scoreboard.");
+	Menu_Button(1, "cm_playername", T("PLAYER NAME"), T("Name that appears in-game and on the Scoreboard."));
 	Menu_TextInput("cm_playername", 1, player_name, player_name_cursor);
 
 	Menu_DrawDivider(2);
-	Menu_Button(2.25, "cm_join", "JOIN GAME", "Join an in-progress Match.") ? Menu_Coop_EnterJoin() : 0;
-	Menu_Button(3.25, "cm_create", "CREATE GAME", "Create a new Match for others to join.") ? Menu_Coop_EnterCreate() : 0;
+	Menu_Button(2.25, "cm_join", T("JOIN GAME"), T("Join an in-progress Match.")) ? Menu_Coop_EnterJoin() : 0;
+	Menu_Button(3.25, "cm_create", T("CREATE GAME"), T("Create a new Match for others to join.")) ? Menu_Coop_EnterCreate() : 0;
 
-	Menu_Button(-1, "cm_back", "BACK", "Return to Main Menu.") ? Menu_Coop_EnterBack() : 0;
+	Menu_Button(-1, "cm_back", T("BACK"), T("Return to Main Menu.")) ? Menu_Coop_EnterBack() : 0;
 
 	sui_pop_frame();
 };

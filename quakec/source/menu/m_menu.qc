@@ -558,7 +558,7 @@ void() Menu_DrawBuildDate =
 {
 	sui_set_align([SUI_ALIGN_END, SUI_ALIGN_START]);
 	sui_text([-6, 8], MENU_TEXT_SMALL, build_datetime, [0.70, 0.68, 0.60], 1, 0);
-	sui_text([-6, 22], MENU_TEXT_SMALL, sprintf("Welcome, %s", cvar_string("name")), [0.90, 0.60, 0.15], 1, 0);
+	sui_text([-6, 22], MENU_TEXT_SMALL, sprintf(T("Welcome, %s"), cvar_string("name")), [0.90, 0.60, 0.15], 1, 0);
 };
 
 //
@@ -877,9 +877,9 @@ void(string id, vector pos, vector size, __inout vector scrollofs, float num_ser
 	if (map_display_x == 0)
 		return;
 	
-	sui_text([server_display_x, pos.y] + [8, -135], MENU_TEXT_SMALL, "Server Name", MENU_TEXT_1, 1, 0);
-	sui_text([map_display_x, pos.y] + [8, -135], MENU_TEXT_SMALL, "Map", MENU_TEXT_1, 1, 0);
-	sui_text([player_display_x, pos.y] + [8, -135], MENU_TEXT_SMALL, "Players", MENU_TEXT_1, 1, 0);
+	sui_text([server_display_x, pos.y] + [8, -135], MENU_TEXT_SMALL, T("Server Name"), MENU_TEXT_1, 1, 0);
+	sui_text([map_display_x, pos.y] + [8, -135], MENU_TEXT_SMALL, T("Map"), MENU_TEXT_1, 1, 0);
+	sui_text([player_display_x, pos.y] + [8, -135], MENU_TEXT_SMALL, T("Players"), MENU_TEXT_1, 1, 0);
 };
 
 void() Menu_StartCoop =

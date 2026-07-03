@@ -87,10 +87,10 @@ string(string next_id) Menu_Gamepad_GetPreviousButton =
 void() Menu_Gamepad =
 {
     Menu_DrawBackground();
-    Menu_DrawTitle("GAMEPAD OPTIONS");
+    Menu_DrawTitle(T("GAMEPAD OPTIONS"));
     Menu_DrawMapPanel();
 
-    Menu_Button(1, "gp_glyp", "GLYPH TYPE", "Change the Style/Branding for Gamepad Glyphs.") ? Menu_Gamepad_ApplyGlpyh() : 0;
+    Menu_Button(1, "gp_glyp", T("GLYPH TYPE"), T("Change the Style/Branding for Gamepad Glyphs.")) ? Menu_Gamepad_ApplyGlpyh() : 0;
     string glyph_string = "";
     switch(cvar_string("cl_controllerglyphs")) {
         case "xbox": glyph_string = "MICROSOFT"; break;
@@ -102,33 +102,33 @@ void() Menu_Gamepad =
     Menu_DrawOptionValue(1, glyph_string);
     Menu_DrawControllerGlyphDemo(1);
 
-    Menu_Button(2, "gp_rumb", "RUMBLE", "Toggle Rumble during Gameplay Actions.") ? Menu_Gamepad_ApplyRumble() : 0;
+    Menu_Button(2, "gp_rumb", T("RUMBLE"), T("Toggle Rumble during Gameplay Actions.")) ? Menu_Gamepad_ApplyRumble() : 0;
     string rumble_string = "";
     switch(cvar("in_rumbleenabled")) {
-        case 0: rumble_string = "DISABLED"; break;
-        case 1: rumble_string = "ENABLED"; break;
+        case 0: rumble_string = T("DISABLED"); break;
+        case 1: rumble_string = T("ENABLED"); break;
         default: break;
     }
     Menu_DrawOptionValue(2, rumble_string);
 
-    Menu_Button(3, "gp_aima", "AIM ASSIST", "Toggle Aim Sensitivity+Snapping Assist.") ? Menu_Gamepad_ApplyAimAssist() : 0;
+    Menu_Button(3, "gp_aima", T("AIM ASSIST"), T("Toggle Aim Sensitivity+Snapping Assist.")) ? Menu_Gamepad_ApplyAimAssist() : 0;
     string aa_string = "";
     switch(cvar("in_aimassist")) {
-        case 0: aa_string = "DISABLED"; break;
-        case 1: aa_string = "ENABLED"; break;
+        case 0: aa_string = T("DISABLED"); break;
+        case 1: aa_string = T("ENABLED"); break;
         default: break;
     }
     Menu_DrawOptionValue(3, aa_string);
 
-    Menu_Button(4, "gp_senx", "X AXIS SENSITIVITY", "Alter X-Axis Look Sensitivity.") ? 0 : 0;
+    Menu_Button(4, "gp_senx", T("X AXIS SENSITIVITY"), T("Alter X-Axis Look Sensitivity.")) ? 0 : 0;
     Menu_CvarSlider(4, "gp_senx", [0, 4, 16], "joypitchsensitivity", false, false, false);
 
-    Menu_Button(5, "gp_seny", "Y AXIS SENSITIVITY", "Alter Y-Axis Look Sensitivity.") ? 0 : 0;
+    Menu_Button(5, "gp_seny", T("Y AXIS SENSITIVITY"), T("Alter Y-Axis Look Sensitivity.")) ? 0 : 0;
     Menu_CvarSlider(5, "gp_seny", [0, 4, 16], "joyyawsensitivity", false, false, false);
 
     Menu_DrawDivider(12.25);
-    Menu_Button(-2, "gp_apply", "APPLY", "Save & Apply Settings.") ? Menu_Gamepad_ApplySettings() : 0;
-    Menu_Button(-1, "gp_back", "BACK", "Return to Control Options.") ? current_menu = MENU_CONTROL : 0;
+    Menu_Button(-2, "gp_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Gamepad_ApplySettings() : 0;
+    Menu_Button(-1, "gp_back", T("BACK"), T("Return to Control Options.")) ? current_menu = MENU_CONTROL : 0;
 
 	sui_pop_frame();	
 };

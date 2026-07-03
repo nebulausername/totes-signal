@@ -209,12 +209,12 @@ void() Menu_Video =
         Menu_Video_Init();
     
     Menu_DrawBackground();
-    Menu_DrawTitle("VIDEO OPTIONS");
+    Menu_DrawTitle(T("VIDEO OPTIONS"));
 
     Menu_DrawMapPanel();
 
     // Resolution
-    Menu_Button(1, "vm_resol", "RESOLUTION", "Window size adjustment.") ? Menu_Video_UpdateVideoMode() : 0;
+    Menu_Button(1, "vm_resol", T("RESOLUTION"), T("Window size adjustment.")) ? Menu_Video_UpdateVideoMode() : 0;
     if (current_selected_vidmode > menu_video_modes) current_selected_vidmode = 0;
     string resolution_string = sprintf("%dx%d (%d:%d)", video_modes[current_selected_vidmode].size[0], 
     video_modes[current_selected_vidmode].size[1], video_modes[current_selected_vidmode].ratio[0], 
@@ -222,74 +222,74 @@ void() Menu_Video =
     Menu_DrawOptionValue(1, resolution_string);
 
     // Fullscreen
-    Menu_Button(2, "vm_fulls", "FULLSCREEN", "Change Fullscreen Mode.") ? Menu_Video_UpdateFullscreen() : 0;
+    Menu_Button(2, "vm_fulls", T("FULLSCREEN"), T("Change Fullscreen Mode.")) ? Menu_Video_UpdateFullscreen() : 0;
     string fullscreen_string = "";
     switch(current_fullscreen) {
-        case 0: fullscreen_string = "DISABLED"; break;
-        case 1: fullscreen_string = "ENABLED"; break;
-        case 2: fullscreen_string = "BORDERLESS"; break;
+        case 0: fullscreen_string = T("DISABLED"); break;
+        case 1: fullscreen_string = T("ENABLED"); break;
+        case 2: fullscreen_string = T("BORDERLESS"); break;
         default: break;
     }
     Menu_DrawOptionValue(2, fullscreen_string);
 
     // Show FPS
-    Menu_Button(3, "vm_shfps", "SHOW FPS", "Toggles display of FPS Values.") ? Menu_Video_UpdateShowFPS() : 0;
+    Menu_Button(3, "vm_shfps", T("SHOW FPS"), T("Toggles display of FPS Values.")) ? Menu_Video_UpdateShowFPS() : 0;
     string showfps_string = "";
     switch(current_showfps) {
-        case 0: showfps_string = "DISABLED"; break;
-        case 1: showfps_string = "ENABLED"; break;
-        case 2: showfps_string = "VERBOSE"; break;
+        case 0: showfps_string = T("DISABLED"); break;
+        case 1: showfps_string = T("ENABLED"); break;
+        case 2: showfps_string = T("VERBOSE"); break;
         default: break;
     }
     Menu_DrawOptionValue(3, showfps_string);
 
     // Max FPS
     if (cvar("vid_vsync") == 0) {
-        Menu_Button(4, "vm_maxps", "MAX FPS", "Configure Maximum FPS Value.") ? 0 : 0;
+        Menu_Button(4, "vm_maxps", T("MAX FPS"), T("Configure Maximum FPS Value.")) ? 0 : 0;
         Menu_CvarSlider(4, "vm_maxps", [10, 500, 490], "cl_maxfps", true, false, false);
     } else {
-        Menu_GreyButton(4, "[VSYNC ON] MAX FPS");
+        Menu_GreyButton(4, T("[VSYNC ON] MAX FPS"));
     }
 
     // VSync
-    Menu_Button(5, "vm_vsync", "VSYNC", "Sync Framerate with Display.") ? Menu_Video_UpdateVsync() : 0;
+    Menu_Button(5, "vm_vsync", T("VSYNC"), T("Sync Framerate with Display.")) ? Menu_Video_UpdateVsync() : 0;
     string vsync_string = "";
-    if (current_vsync) vsync_string = "ENABLED";
-    else vsync_string = "DISABLED";
+    if (current_vsync) vsync_string = T("ENABLED");
+    else vsync_string = T("DISABLED");
     Menu_DrawOptionValue(5, vsync_string);
 
     // Field of View
-    Menu_Button(6, "vm_fov", "FIELD OF VIEW", "Change Camera Field of View.") ? 0 : 0;
+    Menu_Button(6, "vm_fov", T("FIELD OF VIEW"), T("Change Camera Field of View.")) ? 0 : 0;
     Menu_CvarSlider(6, "vm_fov", [10, 150, 140], "fov", true, false, false);
 
     // Gamma
-    Menu_Button(7, "vm_gamma", "GAMMA", "Adjust game Black Level.") ? 0 : 0;
+    Menu_Button(7, "vm_gamma", T("GAMMA"), T("Adjust game Black Level.")) ? 0 : 0;
     Menu_CvarSlider(7, "vm_gamma", [0.3, 2, 17], "gamma", false, true, false);
 
     // Ultrawide Mode
-    Menu_Button(8, "vm_uwide", "ULTRAWIDE MODE", "Condenses HUD closer to center of Display.") ? Menu_Video_UpdateUltrawide() : 0;
+    Menu_Button(8, "vm_uwide", T("ULTRAWIDE MODE"), T("Condenses HUD closer to center of Display.")) ? Menu_Video_UpdateUltrawide() : 0;
     string wide_string = "";
-    if (current_ultrawide) wide_string = "ENABLED";
-    else wide_string = "DISABLED";
+    if (current_ultrawide) wide_string = T("ENABLED");
+    else wide_string = T("DISABLED");
     Menu_DrawOptionValue(8, wide_string);
 
     // Particles
-    Menu_Button(9, "vm_parts", "PARTICLES", "Toggle Particle Effects for Performance.") ? Menu_Video_UpdateParticles() : 0;
+    Menu_Button(9, "vm_parts", T("PARTICLES"), T("Toggle Particle Effects for Performance.")) ? Menu_Video_UpdateParticles() : 0;
     string part_string = "";
-    if (current_particles) part_string = "ENABLED";
-    else part_string = "DISABLED";
+    if (current_particles) part_string = T("ENABLED");
+    else part_string = T("DISABLED");
     Menu_DrawOptionValue(9, part_string);
 
     // Texture Filtering
-    Menu_Button(10, "vm_filtr", "TEXTURE FILTERING", "Choose 3D Environment Filtering Mode.") ? Menu_Video_UpdateFiltering() : 0;
+    Menu_Button(10, "vm_filtr", T("TEXTURE FILTERING"), T("Choose 3D Environment Filtering Mode.")) ? Menu_Video_UpdateFiltering() : 0;
     string filt_string = "";
-    if (current_filter) filt_string = "NEAREST";
-    else filt_string = "LINEAR";
+    if (current_filter) filt_string = T("NEAREST");
+    else filt_string = T("LINEAR");
     Menu_DrawOptionValue(10, filt_string);
 
     Menu_DrawDivider(12.25);
-    Menu_Button(-2, "vm_apply", "APPLY", "Save & Apply Settings.") ? Menu_Video_ApplySettings() : 0;
-    Menu_Button(-1, "vm_back", "BACK", "Return to Configuration Menu.") ? current_menu = MENU_OPTIONS : 0;
+    Menu_Button(-2, "vm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Video_ApplySettings() : 0;
+    Menu_Button(-1, "vm_back", T("BACK"), T("Return to Configuration Menu.")) ? current_menu = MENU_OPTIONS : 0;
 
 	sui_pop_frame();	
 };

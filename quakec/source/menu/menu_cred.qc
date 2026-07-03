@@ -112,18 +112,18 @@ credits_s credits[] =
 void() Menu_Credits =
 {
     Menu_DrawBackground();
-    Menu_DrawTitle("CREDITS");
+    Menu_DrawTitle(T("CREDITS"));
     Menu_DrawMapPanel();
 
     for(int i = 0; i < credits.length; i++) {
-        Menu_DrawCreditHeader(i, credits[i].header);
+        Menu_DrawCreditHeader(i, T(credits[i].header));
 
         for(int j = 0; j < 4; j++) {
             Menu_DrawCreditContributor(i, j, credits[i].contributors[j]);
         }
     }
 
-    Menu_Button(-1, "cr_back", "BACK", "Return to Main Menu.") ? current_menu = MENU_MAIN : 0;
+    Menu_Button(-1, "cr_back", T("BACK"), T("Return to Main Menu.")) ? current_menu = MENU_MAIN : 0;
 
 	sui_pop_frame();
 };

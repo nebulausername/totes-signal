@@ -1798,15 +1798,15 @@ void() HUD_Scores =
 		string map_name = serverkey("mapname_pretty");
 		Draw_String([g_width/2 - 265, 180], map_name, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
 
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth("Score", scoreboard_text_size)/2), 180], "Score", [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Score"), scoreboard_text_size)/2), 180], T("Score"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth("Kills", scoreboard_text_size)/2), 180], "Kills", [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Kills"), scoreboard_text_size)/2), 180], T("Kills"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth("Downs", scoreboard_text_size)/2), 180], "Downs", [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Downs"), scoreboard_text_size)/2), 180], T("Downs"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth("Revives", scoreboard_text_size)/2), 180], "Revives", [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Revives"), scoreboard_text_size)/2), 180], T("Revives"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth("Headshots", scoreboard_text_size)/2), 180], "Headshots", [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Headshots"), scoreboard_text_size)/2), 180], T("Headshots"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
 	
 		for (int i = 0; i < 4; i = i + 1)

@@ -23,7 +23,7 @@ void() Localization_Init =
 	// Register once with the archive flag; config.cfg then persists the
 	// user's choice, and we never override it on later boots.
 	if (!cvar_type("cl_language"))
-		localcmd("seta cl_language 0\n");
+		localcmd("seta cl_language 1\n");   // Default Deutsch (deutsch-first); Englisch per LANGUAGE-Toggle
 };
 
 string(string english) T =
@@ -144,6 +144,254 @@ string(string english) T =
 	case "It doesn't seem to be working..": return "Es scheint nicht zu funktionieren..";
 	case " to Drop the Nuke": return " zum Abwerfen der Nuke";
 	case "[Cost: ": return "[Preis: ";
+
+	// === menu: common actions / values ===
+	case "APPLY": return "UEBERNEHMEN";
+	case "Save & Apply Settings.": return "Einstellungen speichern & anwenden.";
+	case "REFRESH": return "AKTUALISIEREN";
+	case "CANCEL": return "ABBRECHEN";
+	case "ENABLED": return "AN";
+	case "DISABLED": return "AUS";
+	case "HOLD": return "HALTEN";
+	case "TOGGLE": return "UMSCHALTEN";
+	case "Welcome, %s": return "Willkommen, %s";
+
+	// === options: configuration submenus ===
+	case "CONTROL OPTIONS": return "STEUERUNGSOPTIONEN";
+	case "Return to Configuration.": return "Zurueck zu den Einstellungen.";
+	case "Return to Configuration Menu.": return "Zurueck zum Einstellungsmenue.";
+
+	// === controls menu ===
+	case "AIM DOWN SIGHT": return "KIMME & KORN";
+	case "Switch between Hold and Toggle ADS Modes.": return "Zwischen Halten und Umschalten fuers Zielen wechseln.";
+	case "SENSITIVITY": return "EMPFINDLICHKEIT";
+	case "Alter Look Sensitivity.": return "Blickempfindlichkeit anpassen.";
+	case "INVERT LOOK": return "Y-ACHSE INVERTIEREN";
+	case "Invert Y-Axis Camera Input.": return "Y-Achse der Kamera invertieren.";
+	case "GAMEPAD": return "GAMEPAD";
+	case "Gamepad specific options.": return "Gamepad-spezifische Optionen.";
+	case "BINDINGS": return "TASTENBELEGUNG";
+	case "Change Input Bindings.": return "Tastenbelegung aendern.";
+
+	// === gamepad menu ===
+	case "GAMEPAD OPTIONS": return "GAMEPAD-OPTIONEN";
+	case "GLYPH TYPE": return "GLYPHEN-STIL";
+	case "Change the Style/Branding for Gamepad Glyphs.": return "Stil/Marke der Gamepad-Glyphen aendern.";
+	case "RUMBLE": return "VIBRATION";
+	case "Toggle Rumble during Gameplay Actions.": return "Vibration bei Spielaktionen umschalten.";
+	case "AIM ASSIST": return "ZIELHILFE";
+	case "Toggle Aim Sensitivity+Snapping Assist.": return "Zielhilfe (Empfindlichkeit + Einrasten) umschalten.";
+	case "X AXIS SENSITIVITY": return "X-ACHSEN-EMPFINDLICHKEIT";
+	case "Alter X-Axis Look Sensitivity.": return "Empfindlichkeit der X-Achse anpassen.";
+	case "Y AXIS SENSITIVITY": return "Y-ACHSEN-EMPFINDLICHKEIT";
+	case "Alter Y-Axis Look Sensitivity.": return "Empfindlichkeit der Y-Achse anpassen.";
+	case "Return to Control Options.": return "Zurueck zu den Steuerungsoptionen.";
+
+	// === bindings menu ===
+	case "CONTROL BINDINGS": return "TASTENBELEGUNG";
+	case "JUMP": return "SPRINGEN";
+	case "SPRINT": return "SPRINTEN";
+	case "CHANGE STANCE": return "HALTUNG WECHSELN";
+	case "SWAP WEAPON": return "WAFFE WECHSELN";
+	case "INTERACT": return "INTERAGIEREN";
+	case "RELOAD": return "NACHLADEN";
+	case "MELEE": return "NAHKAMPF";
+	case "PRIMARY GRENADE": return "PRIMAERGRANATE";
+	case "SECONDARY GRENADE": return "SEKUNDAERGRANATE";
+	case "WEAPON FIRE": return "FEUERN";
+	case "AIM DOWN SIGHTS": return "ZIELEN";
+
+	// === audio menu ===
+	case "AUDIO OPTIONS": return "AUDIO-OPTIONEN";
+	case "MASTER VOLUME": return "GESAMTLAUTSTAERKE";
+	case "Volume for all Audio.": return "Lautstaerke fuer alle Audioinhalte.";
+	case "INTERFACE VOLUME": return "MENUE-LAUTSTAERKE";
+	case "Volume for UI/Menus.": return "Lautstaerke fuer Menues und Interface.";
+	case "MUSIC VOLUME": return "MUSIKLAUTSTAERKE";
+	case "Volume for Background Music.": return "Lautstaerke der Hintergrundmusik.";
+
+	// === video menu ===
+	case "VIDEO OPTIONS": return "VIDEO-OPTIONEN";
+	case "RESOLUTION": return "AUFLOESUNG";
+	case "Window size adjustment.": return "Fenstergroesse anpassen.";
+	case "FULLSCREEN": return "VOLLBILD";
+	case "Change Fullscreen Mode.": return "Vollbildmodus aendern.";
+	case "BORDERLESS": return "RANDLOS";
+	case "SHOW FPS": return "FPS ANZEIGEN";
+	case "Toggles display of FPS Values.": return "Anzeige der FPS-Werte umschalten.";
+	case "VERBOSE": return "AUSFUEHRLICH";
+	case "MAX FPS": return "MAX. FPS";
+	case "Configure Maximum FPS Value.": return "Maximalen FPS-Wert festlegen.";
+	case "[VSYNC ON] MAX FPS": return "[VSYNC AN] MAX. FPS";
+	case "VSYNC": return "VSYNC";
+	case "Sync Framerate with Display.": return "Bildrate mit dem Display synchronisieren.";
+	case "FIELD OF VIEW": return "SICHTFELD";
+	case "Change Camera Field of View.": return "Sichtfeld der Kamera aendern.";
+	case "GAMMA": return "GAMMA";
+	case "Adjust game Black Level.": return "Schwarzwert des Spiels anpassen.";
+	case "ULTRAWIDE MODE": return "ULTRAWIDE-MODUS";
+	case "Condenses HUD closer to center of Display.": return "Rueckt das HUD naeher zur Bildmitte.";
+	case "PARTICLES": return "PARTIKEL";
+	case "Toggle Particle Effects for Performance.": return "Partikeleffekte fuer mehr Leistung umschalten.";
+	case "TEXTURE FILTERING": return "TEXTURFILTERUNG";
+	case "Choose 3D Environment Filtering Mode.": return "Filtermodus der 3D-Umgebung waehlen.";
+	case "NEAREST": return "NEAREST";
+	case "LINEAR": return "LINEAR";
+
+	// === accessibility menu ===
+	case "HITMARKERS": return "TREFFERMARKER";
+	case "HUD Hitmarkers for visual feedback.": return "HUD-Treffermarker fuer visuelles Feedback.";
+	case "TEXT BACKDROP": return "TEXT-HINTERGRUND";
+	case "Opacity of backdrop for text elements on HUD.": return "Deckkraft des Hintergrunds fuer HUD-Textelemente.";
+	case "ACCESSIBLE COLORS": return "KONTRASTFARBEN";
+	case "Uses enhanced Player colors to improve visibilty.": return "Nutzt kontrastreichere Spielerfarben fuer bessere Sichtbarkeit.";
+	case "WHITE SCREEN FLASHES": return "WEISSE BILDSCHIRMBLITZE";
+	case "Choose the color of white screen flashes.": return "Farbe der weissen Bildschirmblitze waehlen.";
+	case "WHITE": return "WEISS";
+	case "BLACK": return "SCHWARZ";
+	case "MONTH SPOOF": return "MONAT VORTAEUSCHEN";
+	case "Lie to the game about the current Month, if you are host.": return "Dem Spiel als Host einen anderen Monat vortaeuschen.";
+	case "REAL TIME": return "ECHTZEIT";
+	case "JANUARY": return "JANUAR";
+	case "FEBRUARY": return "FEBRUAR";
+	case "MARCH": return "MAERZ";
+	case "APRIL": return "APRIL";
+	case "MAY": return "MAI";
+	case "JUNE": return "JUNI";
+	case "JULY": return "JULI";
+	case "AUGUST": return "AUGUST";
+	case "SEPTEMBER": return "SEPTEMBER";
+	case "OCTOBER": return "OKTOBER";
+	case "NOVEMBER": return "NOVEMBER";
+	case "DECEMBER": return "DEZEMBER";
+
+	// === credits menu ===
+	case "MODELING, MAPS": return "MODELLE, MAPS";
+	case "PROGRAMMING": return "PROGRAMMIERUNG";
+	case "2D ART": return "2D-GRAFIK";
+	case "MUSIC": return "MUSIK";
+	case "SFX": return "SOUNDEFFEKTE";
+	case "SPECIAL THANKS": return "BESONDERER DANK";
+
+	// === coop menu ===
+	case "PLAYER NAME": return "SPIELERNAME";
+	case "Name that appears in-game and on the Scoreboard.": return "Name, der im Spiel und auf der Rangliste erscheint.";
+	case "JOIN GAME": return "SPIEL BEITRETEN";
+	case "Join an in-progress Match.": return "Einem laufenden Match beitreten.";
+	case "CREATE GAME": return "SPIEL ERSTELLEN";
+	case "Create a new Match for others to join.": return "Ein neues Match zum Beitreten erstellen.";
+	case "Return to Co-Op Menu.": return "Zurueck zum Koop-Menue.";
+	case "BROWSE SERVERS": return "SERVER DURCHSUCHEN";
+	case "Browse the list of active Servers.": return "Liste aktiver Server durchsuchen.";
+	case "DIRECT IP/ID": return "DIREKT IP/ID";
+	case "Connect directly to an active Server.": return "Direkt mit einem aktiven Server verbinden.";
+	case "Return to Join Game Menu.": return "Zurueck zum Beitreten-Menue.";
+	case "Refresh server list.": return "Serverliste aktualisieren.";
+	case "NOTE: Keyboard or gamepad is not supported for server selection.": return "HINWEIS: Tastatur oder Gamepad wird fuer die Serverauswahl nicht unterstuetzt.";
+	case "SERVER IP/ROOM ID": return "SERVER-IP/RAUM-ID";
+	case "IP or ID for the Server (typically starts with /).": return "IP oder ID des Servers (beginnt meist mit /).";
+	case "SERVER PASSWORD": return "SERVER-PASSWORT";
+	case "Password for the Match set by the Host (optional).": return "Vom Host gesetztes Match-Passwort (optional).";
+	case "CONNECT TO SERVER": return "MIT SERVER VERBINDEN";
+	case "Attempt to connect to Game.": return "Verbindung zum Spiel herstellen.";
+	case "SERVER NAME": return "SERVERNAME";
+	case "Enter a name that will appear in the Server List.": return "Name eingeben, der in der Serverliste erscheint.";
+	case "SERVER PORT": return "SERVER-PORT";
+	case "Edit the port that the Server will use.": return "Port bearbeiten, den der Server nutzt.";
+	case "Enter an (optional) password to limit who can join.": return "Optionales Passwort setzen, um Beitritte zu beschraenken.";
+	case "MAX PLAYERS": return "MAX. SPIELER";
+	case "Change the maximum number of players who can join your server.": return "Maximale Spielerzahl fuer deinen Server aendern.";
+	case "CHOOSE MAP": return "MAP WAEHLEN";
+	case "Select a Map to start the Game.": return "Eine Map zum Starten des Spiels waehlen.";
+
+	// === map selection menu ===
+	case "SELECT MAP: SOLO": return "MAP WAEHLEN: SOLO";
+	case "SELECT MAP: COOP": return "MAP WAEHLEN: KOOP";
+	case "USER MAPS: SOLO": return "USERMAPS: SOLO";
+	case "USER MAPS: COOP": return "USERMAPS: KOOP";
+	case "Return to Stock Map selection.": return "Zurueck zur Standard-Map-Auswahl.";
+	case "Return to Create Game Menu.": return "Zurueck zum Spiel-Erstellen-Menue.";
+	case "USER MAPS": return "USERMAPS";
+	case "View User-Created Maps.": return "Von Nutzern erstellte Maps ansehen.";
+	case "RANDOM": return "ZUFALL";
+	case "Feeling indecisive? Try rolling the dice.": return "Unentschlossen? Lass den Zufall entscheiden.";
+	case "NEXT PAGE": return "NAECHSTE SEITE";
+	case "Advance to next User Map page.": return "Zur naechsten Usermap-Seite wechseln.";
+	case "PREVIOUS PAGE": return "VORHERIGE SEITE";
+	case "Return to last User Map page.": return "Zur vorherigen Usermap-Seite zurueck.";
+
+	// === lobby / pre-game menu ===
+	case "PRE-GAME": return "VORBEREITUNG";
+	case "START GAME": return "SPIEL STARTEN";
+	case "Face the Horde!": return "Stell dich der Horde!";
+	case "GAME SETTINGS": return "SPIELEINSTELLUNGEN";
+	case "Adjust Gameplay Options.": return "Gameplay-Optionen anpassen.";
+	case "NOT SUPPORTED BY MAP": return "VON MAP NICHT UNTERSTUETZT";
+	case "Return to Map Selection.": return "Zurueck zur Map-Auswahl.";
+	case "..Take it back!": return "..Doch nicht!";
+	case "Game Starting In.. %d": return "Spiel startet in.. %d";
+	case "Game Mode": return "Spielmodus";
+	case "Difficulty": return "Schwierigkeit";
+	case "Start Round": return "Startrunde";
+	case "Magic": return "Magie";
+	case "Headshots Only": return "Nur Kopfschuesse";
+	case "Horde Size": return "Horden-Groesse";
+	case "Fast Rounds": return "Schnelle Runden";
+
+	// === game settings menu ===
+	case "GAME MODE": return "SPIELMODUS";
+	case "START ROUND": return "STARTRUNDE";
+	case "Round to begin the Game on.": return "Runde, in der das Spiel beginnt.";
+	case "MAGIC": return "MAGIE";
+	case "Whether to allow Perks, Power-Ups, and the Mystery Box.": return "Ob Perks, Power-Ups und die Mystery Box erlaubt sind.";
+	case "HEADSHOTS ONLY": return "NUR KOPFSCHUESSE";
+	case "Headshots are the only means of Death. Explosives don't work, either.": return "Nur Kopfschuesse toeten. Auch Sprengstoff wirkt nicht.";
+	case "HORDE SIZE": return "HORDEN-GROESSE";
+	case "Maximum Zombies that can Active at once.": return "Maximale Zahl gleichzeitig aktiver Zombies.";
+	case "FAST ROUNDS": return "SCHNELLE RUNDEN";
+	case "Minimize Time between Rounds.": return "Zeit zwischen Runden minimieren.";
+	case "Return to Pre-Game Menu.": return "Zurueck zum Vorbereitungsmenue.";
+	case "DIFFICULTY": return "SCHWIERIGKEIT";
+
+	// === game modes ===
+	case "CLASSIC": return "KLASSISCH";
+	case "Classic Round-Based Zombies.": return "Klassisches rundenbasiertes Zombies.";
+	case "GRIEF": return "GRIEF";
+	case "GUN GAME": return "GUN GAME";
+	case "Race to earn Score to cycle through Weaponry.": return "Sammle Punkte, um durch alle Waffen zu wechseln.";
+	case "Cycle all Weapons to WIN!": return "Wechsle durch alle Waffen zum SIEG!";
+	case "HARDCORE": return "HARDCORE";
+	case "No HUD? Two Perks? 150% Item Cost? No Problem.": return "Kein HUD? Zwei Perks? 150% Kosten? Kein Problem.";
+	case "WILD WEST": return "WILDER WESTEN";
+	case "Ole Fashioned stand-off between you and the Dead.": return "Ein altmodisches Duell zwischen dir und den Toten.";
+	case "It's a stand-off!": return "Ein Duell!";
+	case "STICKS & STONES": return "STOECKE & STEINE";
+	case "Knives-and-Nades only. Grenades Explode on Contact.": return "Nur Messer und Granaten. Granaten explodieren bei Kontakt.";
+	case "Ballistic Knife FTW!": return "Ballistisches Messer FTW!";
+	case "FEVER": return "FIEBER";
+	case "The cycle continues. Old meets new in this Cold War inspired mode!": return "Der Kreislauf geht weiter. Alt trifft Neu in diesem vom Kalten Krieg inspirierten Modus!";
+
+	// === difficulties ===
+	case "NORMAL": return "NORMAL";
+	case "Normal Zombies gameplay.": return "Normales Zombies-Gameplay.";
+	case "EASY": return "LEICHT";
+	case "Less & Slower Zombies. More Power-Ups. More Health.": return "Weniger & langsamere Zombies. Mehr Power-Ups. Mehr Leben.";
+	case "HARD": return "SCHWER";
+	case "More & Faster Zombies. Less Power-Ups. Less Health.": return "Mehr & schnellere Zombies. Weniger Power-Ups. Weniger Leben.";
+	case "NIGHTMARE": return "ALPTRAUM";
+	case "Hellish Zombies. Earn Less Score. Rare Power-Ups. 1 hit KO.": return "Hoellische Zombies. Weniger Punkte. Seltene Power-Ups. 1-Treffer-K.O.";
+
+	// === server browser table headers ===
+	case "Server Name": return "Servername";
+	case "Map": return "Map";
+	case "Players": return "Spieler";
+
+	// === HUD: scoreboard headers ===
+	case "Score": return "Punkte";
+	case "Kills": return "Kills";
+	case "Downs": return "K.O.";
+	case "Revives": return "Wiederbelebt";
+	case "Headshots": return "Kopfschuesse";
 
 	default: return english;
 	}

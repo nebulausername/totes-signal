@@ -102,66 +102,66 @@ void() Menu_Accessibility =
         Menu_Accessibility_Init();
 
     Menu_DrawBackground();
-    Menu_DrawTitle("ACCESSIBILITY");
+    Menu_DrawTitle(T("ACCESSIBILITY"));
 
     // Hitmarkers
-    Menu_Button(1, "ac_hitm", "HITMARKERS", "HUD Hitmarkers for visual feedback.") ? Menu_Accessibility_UpdateHitmarkers() : 0;
+    Menu_Button(1, "ac_hitm", T("HITMARKERS"), T("HUD Hitmarkers for visual feedback.")) ? Menu_Accessibility_UpdateHitmarkers() : 0;
     string hitmarker_string = "";
     switch(current_hitmarker) {
-        case 0: hitmarker_string = "DISABLED"; break;
-        case 1: hitmarker_string = "ENABLED"; break;
+        case 0: hitmarker_string = T("DISABLED"); break;
+        case 1: hitmarker_string = T("ENABLED"); break;
         default: break;
     }
     Menu_DrawOptionValue(1, hitmarker_string);
 
     // Text Backdrop
-    Menu_Button(2, "ac_text", "TEXT BACKDROP", "Opacity of backdrop for text elements on HUD.") ? 0 : 0;
+    Menu_Button(2, "ac_text", T("TEXT BACKDROP"), T("Opacity of backdrop for text elements on HUD.")) ? 0 : 0;
     Menu_CvarSlider(2, "ac_text", [0, 1, 20], "cl_textopacity", false, false, false);
 
     // Accessible Colors
-    Menu_Button(3, "ac_color", "ACCESSIBLE COLORS", "Uses enhanced Player colors to improve visibilty.") ? Menu_Accessibility_UpdateColorblindFilter() : 0;
+    Menu_Button(3, "ac_color", T("ACCESSIBLE COLORS"), T("Uses enhanced Player colors to improve visibilty.")) ? Menu_Accessibility_UpdateColorblindFilter() : 0;
     string colorblind_string = "";
     switch(current_colorblind) {
-        case 0: colorblind_string = "DISABLED"; break;
-        case 1: colorblind_string = "ENABLED"; break;
+        case 0: colorblind_string = T("DISABLED"); break;
+        case 1: colorblind_string = T("ENABLED"); break;
         default: break;
     }
     Menu_DrawOptionValue(3, colorblind_string);
 
     // Screen Flashes
-    Menu_Button(4, "ac_screenflash", "WHITE SCREEN FLASHES", "Choose the color of white screen flashes.") ? Menu_Accessibility_UpdateWhiteFlash() : 0;
+    Menu_Button(4, "ac_screenflash", T("WHITE SCREEN FLASHES"), T("Choose the color of white screen flashes.")) ? Menu_Accessibility_UpdateWhiteFlash() : 0;
     string whiteflash_string = "";
     switch(current_whiteflash) {
-        case 0: whiteflash_string = "WHITE"; break;
-        case 1: whiteflash_string = "BLACK"; break;
+        case 0: whiteflash_string = T("WHITE"); break;
+        case 1: whiteflash_string = T("BLACK"); break;
         default: break;
     }
     Menu_DrawOptionValue(4, whiteflash_string);
 
     // Month Spoof
-    Menu_Button(5, "ac_monthspoof", "MONTH SPOOF", "Lie to the game about the current Month, if you are host.") ? Menu_Accessibility_UpdateMonthSpoof() : 0;
+    Menu_Button(5, "ac_monthspoof", T("MONTH SPOOF"), T("Lie to the game about the current Month, if you are host.")) ? Menu_Accessibility_UpdateMonthSpoof() : 0;
     string month_string = "";
     switch(current_monthspoof) {
-        case 0: month_string = "REAL TIME"; break;
-        case 1: month_string = "JANUARY"; break;
-        case 2: month_string = "FEBRUARY"; break;
-        case 3: month_string = "MARCH"; break;
-        case 4: month_string = "APRIL"; break;
-        case 5: month_string = "MAY"; break;
-        case 6: month_string = "JUNE"; break;
-        case 7: month_string = "JULY"; break;
-        case 8: month_string = "AUGUST"; break;
-        case 9: month_string = "SEPTEMBER"; break;
-        case 10: month_string = "OCTOBER"; break;
-        case 11: month_string = "NOVEMBER"; break;
-        case 12: month_string = "DECEMBER"; break;
+        case 0: month_string = T("REAL TIME"); break;
+        case 1: month_string = T("JANUARY"); break;
+        case 2: month_string = T("FEBRUARY"); break;
+        case 3: month_string = T("MARCH"); break;
+        case 4: month_string = T("APRIL"); break;
+        case 5: month_string = T("MAY"); break;
+        case 6: month_string = T("JUNE"); break;
+        case 7: month_string = T("JULY"); break;
+        case 8: month_string = T("AUGUST"); break;
+        case 9: month_string = T("SEPTEMBER"); break;
+        case 10: month_string = T("OCTOBER"); break;
+        case 11: month_string = T("NOVEMBER"); break;
+        case 12: month_string = T("DECEMBER"); break;
         default: break;
     }
     Menu_DrawOptionValue(5, month_string);
 
     Menu_DrawDivider(12.25);
-    Menu_Button(-2, "ac_apply", "APPLY", "Save & Apply Settings.") ? Menu_Accessibility_ApplySettings() : 0;
-    Menu_Button(-1, "ac_back", "BACK", "Return to Configuration Menu.") ? current_menu = MENU_OPTIONS : 0;
+    Menu_Button(-2, "ac_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Accessibility_ApplySettings() : 0;
+    Menu_Button(-1, "ac_back", T("BACK"), T("Return to Configuration Menu.")) ? current_menu = MENU_OPTIONS : 0;
 
 	sui_pop_frame();	
 };
