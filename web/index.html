@@ -295,8 +295,61 @@ function mobileStart()
 		g.style.display = 'none';
 		enterImmersive();
 		begin();
+		startDynRes();
 		setTimeout(updateOrient, 400);
 	});
+}
+
+// ---- M9: mobile render scaling (DPR-Cap + dynamische Auflösung) ----
+// Nur auf Touch-Geräten; Desktop-Browser behalten volle Qualität. Die Engine
+// liest in ihrem window.onresize `scale = window.devicePixelRatio` und rendert
+// den Canvas-Backbuffer in CSS-Größe × scale. Auf 3x-Phones = 9× Fragmente.
+// Wir cappen NUR devicePixelRatio (per Getter) — die engine-eigene onresize
+// (inkl. korrektem FTEC.evcb.resize für Input-Koordinaten) nutzt dann unseren
+// Wert. Für dynamische Auflösung ändern wir M9.eff und rufen window.onresize().
+var M9 = { on:false, cap:1.5, eff:1.5, floor:0.66, tier:'mid' };
+(function(){
+	if (!IS_TOUCH) return;
+	var dpr   = window.devicePixelRatio || 1;
+	var cores = navigator.hardwareConcurrency || 4;
+	var mem   = navigator.deviceMemory || 4;
+	var tier = 'mid';
+	if (cores <= 4 || mem <= 3)          tier = 'low';
+	else if (cores >= 8 && mem >= 6)     tier = 'high';
+	M9.tier = tier;
+	M9.cap  = ({ low:1.0, mid:1.25, high:1.5 })[tier];
+	M9.eff  = Math.min(dpr, M9.cap);          // Start: gecappter nativer DPR
+	try {
+		Object.defineProperty(window, 'devicePixelRatio', {
+			configurable:true, get:function(){ return M9.eff; }
+		});
+		M9.on = true;
+	} catch(e) { M9.on = false; }
+})();
+
+function startDynRes()
+{	if (!M9.on) return;
+	var STEPS = [1.5, 1.25, 1.0, 0.85, 0.75, 0.66].filter(function(s){ return s <= M9.cap + 1e-3; });
+	if (STEPS[STEPS.length-1] > M9.floor) STEPS.push(M9.floor);
+	var idx = 0;                              // 0 = höchste (Cap)
+	var ema = 60, last = 0, lowSince = 0, highSince = 0;
+	function apply(){
+		M9.eff = STEPS[idx];
+		if (typeof window.onresize === 'function') window.onresize();  // engine-Resize-Pfad erneut auslösen
+	}
+	function tick(now){
+		if (last){ var dt = now - last; if (dt > 0) ema = ema*0.9 + Math.min(1000/dt, 144)*0.1; }
+		last = now;
+		if (window.Module && Module.began && document.visibilityState === 'visible'){
+			if (ema < 50){ highSince = 0; if (!lowSince) lowSince = now;
+				if (now - lowSince > 2000 && idx < STEPS.length-1){ idx++; apply(); lowSince = now; } }
+			else if (ema > 58){ lowSince = 0; if (!highSince) highSince = now;
+				if (now - highSince > 6000 && idx > 0){ idx--; apply(); highSince = now; } }
+			else { lowSince = 0; highSince = 0; }
+		}
+		requestAnimationFrame(tick);
+	}
+	requestAnimationFrame(tick);
 }
 
 if (window.location.hash != "" || Object.keys(Module.files).length) {

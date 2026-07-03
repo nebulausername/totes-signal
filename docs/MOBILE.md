@@ -49,6 +49,31 @@ Touch-Geräten eingeblendet wird (`pointer: coarse` bzw. `ontouchstart`).
 - Der dedizierte **FEUER**-Button löst das frühere „Tap aufs Spielfeld feuert
   immer" — Look-Drag feuert nicht mehr versehentlich. (Native Tap-Feuerung
   bleibt möglich, ist aber nicht mehr nötig.)
-- Zukunft (siehe Masterplan M8/M9): PWA/Offline-Cache (2-Tier-Service-Worker),
-  Render-Auflösung drosseln (DPR-Cap ≤2, dynamische Auflösung), Settings-Panel
-  (Opacity/Scale/Links-Hand/Auto-Fire), resumable `game.pk3`-Download.
+## Performance (mobil, M9)
+
+Nur auf Touch-Geräten aktiv; Desktop-Browser rendern unverändert in voller
+Auflösung.
+
+- **DPR-Cap:** Die Engine rendert den Canvas-Backbuffer in `CSS-Größe ×
+  window.devicePixelRatio`. Auf 3x-Phones sind das 9× Fragmente. Wir cappen
+  **nur** `devicePixelRatio` über einen Getter (`Object.defineProperty`) → die
+  engine-eigene `window.onresize` (samt korrektem `FTEC.evcb.resize` für die
+  Input-Koordinaten) nutzt den gedeckelten Wert. Tier-Detect vor `begin()` via
+  `hardwareConcurrency`/`deviceMemory`: **low 1.0 · mid 1.25 · high 1.5**.
+- **Dynamische Auflösung:** rAF-Sampler mit EMA-fps; Stufen `cap … 0.66`. Runter
+  bei `fps<50` (>2 s), hoch bei `fps>58` (>6 s), Hysterese gegen Oszillation.
+  Umschalten ruft `M9.eff` + engine-eigene `window.onresize()` → Resize-Pfad
+  bleibt konsistent (`canvas.width == CSS-Breite × eff`, verifiziert).
+
+## Bekannte Grenzen / Ideen (Rest M9/M8)
+
+- **Low-End-cvar-Profil (M9 B/C):** `nzp_particles/decals 0`, `r_dynamic/
+  shadows 0`, `r_fastsky 1`, `cl_maxfps 60` — nur per **Repack** setzbar
+  (`ftewebgl.js` exponiert keinen JS-Konsolen-Hook) und muss web/touch-gated in
+  `main.qc` erfolgen (sonst leidet der Desktop-Browser); cvar-Namen vorher in der
+  Live-Konsole gegen diesen Build prüfen.
+- **Resumable `game.pk3` (M9 D):** Server unterstützt Range (`Accept-Ranges:
+  bytes`, 206 verifiziert); der Client-Loader müsste den Engine-Fetch übernehmen
+  und via `Module.files` einspeisen — offen.
+- **M8 PWA/Offline:** 2-Tier-Service-Worker + Manifest + Icons — offen.
+- **Settings-Panel:** Opacity/Scale/Links-Hand/Auto-Fire — offen.
