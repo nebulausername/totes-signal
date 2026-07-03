@@ -75,5 +75,26 @@ Auflösung.
 - **Resumable `game.pk3` (M9 D):** Server unterstützt Range (`Accept-Ranges:
   bytes`, 206 verifiziert); der Client-Loader müsste den Engine-Fetch übernehmen
   und via `Module.files` einspeisen — offen.
-- **M8 PWA/Offline:** 2-Tier-Service-Worker + Manifest + Icons — offen.
 - **Settings-Panel:** Opacity/Scale/Links-Hand/Auto-Fire — offen.
+
+## PWA / Offline (M8, fertig)
+
+Installierbare, offline-fähige PWA-Schicht komplett unter `/zombie/` (alles
+relativ → funktioniert auch auf GitHub Pages + local dev). **Kein COOP/COEP.**
+
+- `web/manifest.webmanifest`: standalone, `orientation: landscape`, Theme
+  `#6e0d00`, 3 Icons (192/512/maskable), `scope`/`start_url` relativ (`./`).
+- `web/icons/`: gerendertes rot/schwarzes Skull-Icon (Quelle `icon-source.svg`).
+- `web/sw.js` — Zwei-Tier-Cache (`SW_VERSION` bumpen bei Engine/pk3-Änderung):
+  - `endzeit-shell-v1`: ~5,4-MB-Boot-Shell wird beim `install` precached
+    (index.html, ftewebgl.js/.wasm, default.fmf, manifest, icons, favicon).
+    **`game.pk3` NICHT im Install** — ein Fehlbyte würde ihn scheitern lassen.
+  - `endzeit-data-v1`: `nzp/*.pk3` **cache-first, lazy put-on-miss** (nach dem
+    ersten Spiel offline verfügbar).
+  - Navigation **network-first** (Rebrand-Updates shippen), Shell-Assets
+    cache-first (instant offline boot), **Range-Requests → Netz-Bypass** (Cache
+    API kann kein 206). Engine-eigene CacheStorage bleibt unangetastet.
+- `index.html`: Manifest/apple-touch/`apple-mobile-web-app-*`-Meta, guarded
+  SW-Register (`load`-Event), `beforeinstallprompt`-Affordance (INSTALL-Button
+  erst nach Load, weg bei `appinstalled`/Spielstart). Verifiziert (headless):
+  SW-Scope exakt `/zombie/`, Shell gecacht, **Offline-Reload bootet die Shell**.

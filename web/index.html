@@ -9,6 +9,17 @@
 	<meta content="#6e0d00" data-react-helmet="true" name="theme-color" />
 	<title>Endzeit: Untot</title>
 	<link rel="icon" href="favicon.ico">
+	<!-- PWA (M8): installierbar + offline. Alles relativ → funktioniert unter
+	     /zombie/, GitHub Pages und local dev gleichzeitig. -->
+	<link rel="manifest" href="manifest.webmanifest">
+	<link rel="apple-touch-icon" href="icons/icon-192.png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="Endzeit">
+	<!-- KEIN COOP/COEP: Engine ist single-threaded (kein SharedArrayBuffer/pthread);
+	     Cross-Origin-Isolation wuerde den kaufmeinewebsite.de-iframe-Embed via
+	     demo_security_headers.frame-ancestors brechen. Der SW braucht keine Isolation. -->
 	<style>
 	html,body { background-color:#000000; color:#808080; height:100%;width:100%;margin:0;padding:0; overflow:hidden; overscroll-behavior:none; }
 	.emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
@@ -57,6 +68,16 @@
 	#mstart .play:active { background:rgba(138,18,0,0.55); }
 	#rotate .rot { font-size:min(16vw,90px); margin-bottom:14px; display:block; animation:rotwig 1.7s ease-in-out infinite; }
 	@keyframes rotwig { 0%,100%{transform:rotate(6deg)} 50%{transform:rotate(-84deg)} }
+
+	/* ---- PWA install affordance (nur wenn installierbar, erst nach Load) ---- */
+	#installbtn {
+		position:fixed; left:50%; transform:translateX(-50%);
+		bottom:calc(16px + env(safe-area-inset-bottom)); z-index:60; display:none;
+		padding:10px 18px; border:1px solid #8a1200; border-radius:9px; cursor:pointer;
+		background:rgba(138,18,0,0.30); color:#f2ede0; font-family:monospace; font-size:13px;
+		-webkit-user-select:none; user-select:none;
+	}
+	#installbtn:active { background:rgba(138,18,0,0.55); }
 	</style>
   </head>
   <body ondrop="gotdrop(event);" ondragover="event.preventDefault()">
@@ -95,6 +116,7 @@
 		<span class="rot">⟳</span>
 		<p data-i18n="rotate"></p>
 	</div></div>
+	<button id="installbtn" type="button" data-i18n="install"></button>
 	<script type='text/javascript'>
 // connect to canvas
 var Module = {
@@ -259,9 +281,11 @@ var IS_TOUCH = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart'
 var LANG = ((navigator.language||'en').slice(0,2) === 'de') ? 'de' : 'en';
 var I18N = {
 	de: { tap:'Koop-Zombie-Shooter im Browser. Fan-Fork von Nazi Zombies: Portable.',
-	      play:'▶ TIPPEN ZUM SPIELEN', rotate:'Bitte Gerät ins Querformat drehen.' },
+	      play:'▶ TIPPEN ZUM SPIELEN', rotate:'Bitte Gerät ins Querformat drehen.',
+	      install:'⇩ Als App installieren' },
 	en: { tap:'Co-op zombie shooter in your browser. Fan fork of Nazi Zombies: Portable.',
-	      play:'▶ TAP TO PLAY', rotate:'Please rotate your device to landscape.' }
+	      play:'▶ TAP TO PLAY', rotate:'Please rotate your device to landscape.',
+	      install:'⇩ Install app' }
 };
 (function(){ var t = I18N[LANG];
 	var els = document.querySelectorAll('[data-i18n]');
@@ -293,6 +317,7 @@ function mobileStart()
 	g.addEventListener('click', function once(){
 		g.removeEventListener('click', once);
 		g.style.display = 'none';
+		var ib = document.getElementById('installbtn'); if (ib) ib.style.display = 'none';
 		enterImmersive();
 		begin();
 		startDynRes();
@@ -351,6 +376,31 @@ function startDynRes()
 	}
 	requestAnimationFrame(tick);
 }
+
+// ---- PWA (M8): Service-Worker + Install-Affordance (non-blocking, rührt begin() nicht an) ----
+if ('serviceWorker' in navigator) {
+	window.addEventListener('load', function(){
+		navigator.serviceWorker.register('sw.js').catch(function(){});   // relativ → Scope /zombie/
+	});
+}
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+	e.preventDefault(); deferredPrompt = e;                              // Auto-Prompt unterdrücken
+	var ib = document.getElementById('installbtn');
+	if (ib && !(window.Module && Module.began)) ib.style.display = 'block';   // erst nach Load, nicht im Spiel
+});
+(function(){
+	var ib = document.getElementById('installbtn');
+	if (!ib) return;
+	ib.addEventListener('click', function(){
+		ib.style.display = 'none';
+		if (deferredPrompt){ deferredPrompt.prompt();
+			if (deferredPrompt.userChoice) deferredPrompt.userChoice.then(function(){ deferredPrompt = null; }); }
+	});
+})();
+window.addEventListener('appinstalled', function(){
+	var ib = document.getElementById('installbtn'); if (ib) ib.style.display = 'none';
+});
 
 if (window.location.hash != "" || Object.keys(Module.files).length) {
 	if (IS_TOUCH)
