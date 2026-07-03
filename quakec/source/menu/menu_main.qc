@@ -68,21 +68,21 @@ string(string next_id) Menu_Main_GetPreviousButton =
 void() Menu_Main =
 {
     Menu_DrawBackground();
-    Menu_DrawTitle("MAIN MENU");
+    Menu_DrawTitle(T("MAIN MENU"));
     Menu_DrawBuildDate();
 
-    Menu_Button(1, "mm_start", "SOLO", "Play Solo.") ? Menu_StartSolo() : 0;
-    Menu_Button(2, "mm_coop", "COOPERATIVE", "Play with up to Four Players.") ? current_menu = MENU_COOP : 0;
+    Menu_Button(1, "mm_start", T("SOLO"), T("Play Solo.")) ? Menu_StartSolo() : 0;
+    Menu_Button(2, "mm_coop", T("COOPERATIVE"), T("Play with up to Four Players.")) ? current_menu = MENU_COOP : 0;
     Menu_DrawDivider(3);
-    Menu_Button(3.25, "mm_options", "CONFIGURATION", "Tweak Game related Options.") ? current_menu = MENU_OPTIONS : 0;
-    Menu_Button(4.25, "mm_bios", "CHARACTER BIOS", "View Character Bios.") ? current_menu = MENU_BIOS : 0;
+    Menu_Button(3.25, "mm_options", T("CONFIGURATION"), T("Tweak Game related Options.")) ? current_menu = MENU_OPTIONS : 0;
+    Menu_Button(4.25, "mm_bios", T("CHARACTER BIOS"), T("View Character Bios.")) ? current_menu = MENU_BIOS : 0;
     Menu_DrawDivider(5.25);
-    Menu_Button(5.50, "mm_credits", "CREDITS", GAME_CREDITS_BLURB) ? current_menu = MENU_CREDITS : 0;
+    Menu_Button(5.50, "mm_credits", T("CREDITS"), T(GAME_CREDITS_BLURB)) ? current_menu = MENU_CREDITS : 0;
 
-    // Don't have a Quit Game button on WASM 
+    // Don't have a Quit Game button on WASM
     if (running_platform != PLATFORM_WEB) {
         Menu_DrawDivider(6.50);
-        Menu_Button(6.75, "mm_quit", "QUIT GAME", sprintf("Return to %s.", Menu_Main_GetDashboardName())) ? localcmd("quit\n") : 0;
+        Menu_Button(6.75, "mm_quit", T("QUIT GAME"), sprintf(T("Return to %s."), Menu_Main_GetDashboardName())) ? localcmd("quit\n") : 0;
     }
 
     Menu_SocialBadge(1, "soc_youtube", "youtube.com/@nzpteam", 2);

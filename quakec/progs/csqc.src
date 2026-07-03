@@ -10,6 +10,7 @@
 defs/fte.qc
 defs/menu_defs.qc
 branding.qc
+localization.qc
 shared_defs.qc
 draw.qc
 

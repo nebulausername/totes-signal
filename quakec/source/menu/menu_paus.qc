@@ -80,19 +80,19 @@ void() Menu_Pause_No =
 void() Menu_Pause =
 {
     Menu_DrawBackground();
-    Menu_DrawTitle("PAUSED");
+    Menu_DrawTitle(T("PAUSED"));
 
     if (menu_paus_submenu == 0)
     {
-        Menu_Button(1, "pm_resum", "RESUME CARNAGE", "Return to Game.") ? ToggleMenu() : 0;
+        Menu_Button(1, "pm_resum", T("RESUME CARNAGE"), T("Return to Game.")) ? ToggleMenu() : 0;
 
         if (player_count == 1)
-            Menu_Button(2, "pm_reloa", "RESTART LEVEL", "Tough luck? Give things another go.") ? Menu_Pause_EnterSubMenu(1) : 0;
+            Menu_Button(2, "pm_reloa", T("RESTART LEVEL"), T("Tough luck? Give things another go.")) ? Menu_Pause_EnterSubMenu(1) : 0;
         else
-            Menu_GreyButton(2, "RESTART LEVEL");
+            Menu_GreyButton(2, T("RESTART LEVEL"));
 
-        Menu_Button(3, "pm_opts", "OPTIONS", "Tweak Game related Options.") ? current_menu = MENU_OPTIONS : 0;
-        Menu_Button(4, "pm_quit", "END GAME", "Return to Main Menu.") ? Menu_Pause_EnterSubMenu(2) : 0;
+        Menu_Button(3, "pm_opts", T("OPTIONS"), T("Tweak Game related Options.")) ? current_menu = MENU_OPTIONS : 0;
+        Menu_Button(4, "pm_quit", T("END GAME"), T("Return to Main Menu.")) ? Menu_Pause_EnterSubMenu(2) : 0;
 
         menu_paus_buttons[0] = "pm_resum";
         menu_paus_buttons[1] = "pm_reloa";
@@ -101,19 +101,19 @@ void() Menu_Pause =
     }
     else
     {
-        Menu_GreyButton(1, "RESUME CARNAGE");
-        Menu_GreyButton(2, "RESTART LEVEL");
-        Menu_GreyButton(3, "OPTIONS");
-        Menu_GreyButton(4, "END GAME");
+        Menu_GreyButton(1, T("RESUME CARNAGE"));
+        Menu_GreyButton(2, T("RESTART LEVEL"));
+        Menu_GreyButton(3, T("OPTIONS"));
+        Menu_GreyButton(4, T("END GAME"));
 
         // Draw the UI
         if (menu_paus_submenu == 1)
-            Menu_DrawYesNoPanel("Are you sure you want to restart?", "You will lose any progress that you have made.");
+            Menu_DrawYesNoPanel(T("Are you sure you want to restart?"), T("You will lose any progress that you have made."));
         else if (menu_paus_submenu == 2)
-            Menu_DrawYesNoPanel("Are you sure you want to quit?", "You will lose any progress that you have made.");
+            Menu_DrawYesNoPanel(T("Are you sure you want to quit?"), T("You will lose any progress that you have made."));
 
-        Menu_Button(8, "pm_yes", "GET ME OUTTA HERE!", "") ? Menu_Pause_Yes() : 0;
-        Menu_Button(9, "pm_no", "I WILL PERSEVERE", "") ? Menu_Pause_No() : 0;
+        Menu_Button(8, "pm_yes", T("GET ME OUTTA HERE!"), "") ? Menu_Pause_Yes() : 0;
+        Menu_Button(9, "pm_no", T("I WILL PERSEVERE"), "") ? Menu_Pause_No() : 0;
 
         menu_paus_buttons[0] = "pm_yes";
         menu_paus_buttons[1] = "pm_no";

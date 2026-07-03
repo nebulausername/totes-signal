@@ -14,8 +14,9 @@ Browser (WebGL), mit Fokus auf Mobile-Tauglichkeit.
 | `quakec/`  | Spiellogik (QuakeC), Fork von [nzp-team/quakec](https://github.com/nzp-team/quakec) (GPL-2.0) |
 | `web/`     | Web-Shell: `index.html`, FTEQW-WebGL-Engine (`ftewebgl.js/.wasm`), Manifest `default.fmf` |
 | `web/nzp/` | Spieldaten zur Laufzeit: `game.pk3` (Assets, wird heruntergeladen) + `progs.pk3` (wird gebaut) |
+| `config/`  | Mitgelieferte Configs (`autoexec.cfg`, wird ins `progs.pk3` gepackt) |
 | `tools/`   | Build-/Dev-Skripte                                                 |
-| `docs/`    | Branding, Lokalisierung, Upstream-Pinning, Rechtliches             |
+| `docs/`    | Branding, Lokalisierung, Mobile, Upstream-Pinning, Rechtliches     |
 
 ## Entwickeln
 

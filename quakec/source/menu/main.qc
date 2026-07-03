@@ -208,6 +208,9 @@ void() m_init =
 	// Get Platform Information
 	running_platform = Menu_GetPlatform();
 
+	// Register the language cvar (archived, keeps the user's choice).
+	Localization_Init();
+
 	if (running_platform == PLATFORM_WEB) {
 		localcmd("com_protocolname NZP-REBOOT-WEB\n");
 	}

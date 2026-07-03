@@ -534,8 +534,8 @@ void() HUD_Rounds =
 			ralpha = 1;
 		}
 
-		pwidth = getTextWidth("Round", 24)/2;
-		Draw_String([(g_width/2) - pwidth, g_height/2 - 70], "Round", [24, 24], [1, rcolor, rcolor], ralpha, 0);
+		pwidth = getTextWidth(T("Round"), 24)/2;
+		Draw_String([(g_width/2) - pwidth, g_height/2 - 70], T("Round"), [24, 24], [1, rcolor, rcolor], ralpha, 0);
 
 		rcolor -= frametime/2.5;
 		if (rcolor < 0) {
@@ -1067,83 +1067,83 @@ void() HUD_Useprint =
 			usestring = "";
 			break;
 		case 1://door
-			usestring = strcat("Hold  ",usespace, " to open Door");
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to open Door"));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 2://debris
-			usestring = strcat("Hold  ",usespace, " to remove Debris");
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to remove Debris"));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 3://ammo
-			usestring = strcat("Hold  ",usespace, " to buy Ammo for ", getstats(STAT_WEAPONNAMETOUCH));
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to buy Ammo for "), getstats(STAT_WEAPONNAMETOUCH));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 4://weapon
-			usestring = strcat("Hold  ",usespace, " to buy ", getstats(STAT_WEAPONNAMETOUCH));
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to buy "), getstats(STAT_WEAPONNAMETOUCH));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 5://window
-			usestring = strcat("Hold  ",usespace, " to Rebuild Barrier");
+			usestring = strcat(T("Hold  "), usespace, T(" to Rebuild Barrier"));
 			break;
 		case 6://box
-			usestring = strcat("Hold  ",usespace, " for Mystery Box");
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" for Mystery Box"));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 7://box take
-			usestring = strcat("Hold  ",usespace, " for ", getstats(STAT_WEAPONNAMETOUCH));
+			usestring = strcat(T("Hold  "), usespace, T(" for "), getstats(STAT_WEAPONNAMETOUCH));
 			break;
 		case 8://power
-			usestring = "The Power must be Activated first";
+			usestring = T("The Power must be Activated first");
 			break;
 		case 9://perk
-			usestring = strcat("Hold  ",usespace, " to buy ", GetItemName(useprint_weapon));
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to buy "), GetItemName(useprint_weapon));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 10://turn on power
-			usestring = strcat("Hold  ",usespace, " to Turn On the Power");
+			usestring = strcat(T("Hold  "), usespace, T(" to Turn On the Power"));
 			break;
 		case 11://turn on trap
-			usestring = strcat("Hold  ",usespace, " to Activate the Trap");
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to Activate the Trap"));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 12://packapunch
-			usestring = strcat("Hold  ",usespace, " to Pack-a-Punch");
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to Pack-a-Punch"));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 13://revive
-			usestring = strcat("Hold  ",usespace, " to Revive Player");
+			usestring = strcat(T("Hold  "), usespace, T(" to Revive Player"));
 			break;
 		case 14://use teleporter (free)
-			usestring = strcat("Hold  ", usespace, " to use Teleporter");
+			usestring = strcat(T("Hold  "), usespace, T(" to use Teleporter"));
 			break;
 		case 15://use teleporter (cost)
-			usestring = strcat("Hold  ", usespace, " to use Teleporter");
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to use Teleporter"));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 16://tp cooldown
-			usestring = "Teleporter is cooling down";
+			usestring = T("Teleporter is cooling down");
 			break;
 		case 17://link
-			usestring = strcat("Hold  ", usespace, " to initate link to pad");
+			usestring = strcat(T("Hold  "), usespace, T(" to initate link to pad"));
 			break;
 		case 18://no link
-			usestring = "Link not active";
+			usestring = T("Link not active");
 			break;
 		case 19://finish link
-			usestring = strcat("Hold  ", usespace, " to link pad with core");
+			usestring = strcat(T("Hold  "), usespace, T(" to link pad with core"));
 			break;
 		case 20://buyable ending
-			usestring = strcat("Hold  ", usespace, " to End the Game");
-			usecost = strcat("[Cost: ", ftos(useprint_cost), "]");
+			usestring = strcat(T("Hold  "), usespace, T(" to End the Game"));
+			usecost = strcat(T("[Cost: "), ftos(useprint_cost), "]");
 			break;
 		case 21: // Magic disabled
 			usestring = "...";
 			break;
 		case 22: // Jugger-Nog (NIGHTMARE)
-			usestring = "It doesn't seem to be working..";
+			usestring = T("It doesn't seem to be working..");
 			break;
 		case 23: // Tactical Nuke (Gun Game)
-			usestring = strcat("Hold ", usespace, " to Drop the Nuke");
+			usestring = strcat(T("Hold "), usespace, T(" to Drop the Nuke"));
 			break;
 		default:
 			usestring = "This should not happen you dum fuck"; //yikes
@@ -1728,7 +1728,7 @@ void() HUD_Broadcast =
 
 	switch(broadcast_type) {
 		case CSQC_BROADCAST_PLAYERDOWNED:
-			broadcast_msg = strcat(broadcast_name, " needs to be revived");
+			broadcast_msg = strcat(broadcast_name, T(" needs to be revived"));
 			break;
 		case CSQC_BROADCAST_BEINGREVIVED:
 			broadcast_msg = strcat(broadcast_name, " is reviving you");
@@ -1907,14 +1907,11 @@ void() HUD_Scores =
 void() HUD_Endgame = {
 	string game_over = "GAME OVER";
 	string survive;
-	string round;
 
 	if (rounds == 1)
-		round = " Round";
+		survive = sprintf(T("You Survived %d Round"), rounds);
 	else
-		round = " Rounds";
-
-	survive = strcat("You Survived ", ftos(rounds), round);
+		survive = sprintf(T("You Survived %d Rounds"), rounds);
 
 	float game_over_width = getTextWidth(game_over, 24);
 	HUD_DrawStringWithBackdrop([g_width/2 - game_over_width/2, 100], game_over, [24, 24], [1, 1, 1], 1, 0);
@@ -2057,7 +2054,7 @@ void() HUD_Achievements = {
 	}
 
 
-	Draw_String([0.2*g_width, achievement_ypos*g_height, 0], "ACHIEVEMENT GET!", [0.015*g_width, 0.015*g_width, 0], [1, 1, 0], 1, 0);
+	Draw_String([0.2*g_width, achievement_ypos*g_height, 0], T("ACHIEVEMENT GET!"), [0.015*g_width, 0.015*g_width, 0], [1, 1, 0], 1, 0);
 	Draw_String([0.2*g_width, achievement_desc_ypos*g_height, 0], achievements[active_achievement].name, [0.015*g_width, 0.015*g_width, 0], [1, 1, 1], 1, 0);
 	drawpic([0.005*g_width, achievement_img_ypos*g_height,0], achievements[active_achievement].img, [0.16*g_width, 0.08*g_width, 0], [1,1,1], 1);
 
@@ -2163,9 +2160,9 @@ void() HUD_Waypoint =
 void() HUD_Spectator =
 {
 	drawfill([0, 4], [250, 60], [0, 0, 0], cvar("cl_textopacity"), 0);
-	Draw_String([5, 8], "SPECTATING", [18, 18], [1, 1, 1], 1, 0);
-	Draw_String([5, 30], "You will spawn next Round", [12, 12], [1, 1, 0], 1, 0);
-	Draw_String([5, 45], "(Fly around or go grab a snack!)", [10, 10], [1, 1, 1], 1, 0);
+	Draw_String([5, 8], T("SPECTATING"), [18, 18], [1, 1, 1], 1, 0);
+	Draw_String([5, 30], T("You will spawn next Round"), [12, 12], [1, 1, 0], 1, 0);
+	Draw_String([5, 45], T("(Fly around or go grab a snack!)"), [10, 10], [1, 1, 1], 1, 0);
 	drawfill([5, 60], [240, 3], [0.3, 0.3, 0.3], 1, 0);
 }
 

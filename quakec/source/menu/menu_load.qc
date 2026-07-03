@@ -82,8 +82,8 @@ void(vector screensize, float opaque) m_drawloading =
     if (current_map_loading == "")
         return;
 
-    // Pick a loading tip.
-    string loading_tip = GetLoadingTip();
+    // Pick a loading tip (translated at display time).
+    string loading_tip = T(GetLoadingTip());
 
     string map_name_pretty = "";
 
@@ -100,7 +100,7 @@ void(vector screensize, float opaque) m_drawloading =
 
         map_name_pretty = UserMapNameLookup(current_map_loading);
     } else {
-        map_name_pretty = "Direct Connect..";
+        map_name_pretty = T("Direct Connect..");
         map_loadscreen_path = "gfx/lscreen/lscreen";
     }
 
@@ -116,7 +116,7 @@ void(vector screensize, float opaque) m_drawloading =
 
     // Notice for how to end server connecting
     if (loading_into_server == true) {
-        string abort_message = "Press ESC to abort connection and return to Menu..";
+        string abort_message = T("Press ESC to abort connection and return to Menu..");
         drawfill([0, 111], [screensize_x, 36], [0, 0, 0], 175/255);
         Draw_String([screensize_x/2 - getTextWidth(abort_message, MENU_TEXT_MEDIUM_x)/2, 120], abort_message, MENU_TEXT_MEDIUM, [1, 1, 1], 1, 0);
     }

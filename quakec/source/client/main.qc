@@ -139,7 +139,10 @@ float() GenerateAlphaTransparencyQ3Shaders =
 noref void(float apiver, string enginename, float enginever) CSQC_Init =
 {
 	setwindowcaption(GAME_NAME);
-	
+
+	// Register the language cvar (archived, keeps the user's choice).
+	Localization_Init();
+
 	precache_sound("sounds/menu/enter.wav");
 	precache_sound("sounds/menu/navigate.wav");
 	precache_model("models/player.mdl");

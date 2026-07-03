@@ -8,6 +8,7 @@
 defs/fte.qc
 defs/menu_defs.qc
 ../shared/branding.qc
+../shared/localization.qc
 ../client/draw.qc
 sui_sys.qc
 m_menu.qc
