@@ -1,11 +1,12 @@
-vector MENU_BG = '0.2 0.3 0.4';
-vector MENU_BG_DARK = '0.1 0.15 0.2';
-vector MENU_BORDER = '0.3 0.4 0.5';
-vector MENU_BUTTON = '0.3 0.4 0.5';
-vector MENU_BUTTON_BORDER = '0.35 0.45 0.55';
-vector MENU_TEXT_1 = '1 1 1';
-vector MENU_TEXT_2 = '0.7 0.75 0.75';
-vector MENU_HIGHLIGHT = '1 1 1';
+// TOTES SIGNAL — Dead-Signal-Palette (dunkel, Rost/Signalrot-Akzent, Knochenweiss).
+vector MENU_BG = '0.11 0.10 0.10';
+vector MENU_BG_DARK = '0.05 0.045 0.045';
+vector MENU_BORDER = '0.5 0.16 0.07';
+vector MENU_BUTTON = '0.16 0.13 0.12';
+vector MENU_BUTTON_BORDER = '0.55 0.18 0.08';
+vector MENU_TEXT_1 = '0.94 0.90 0.82';
+vector MENU_TEXT_2 = '0.60 0.55 0.50';
+vector MENU_HIGHLIGHT = '1 0.16 0.05';
 vector MENU_DARKEN = '1 1 1';
 
 vector MENU_TEXT_SUPERSMALL = '10 10 0';
@@ -445,9 +446,9 @@ float(float order, string id, string title, string description) Menu_Button =
 	sui_set_align(alignment);
 
 	float is_hovered = sui_is_hovered(id);
-	vector text_color = is_hovered ? [1, 0, 0] : [1, 1, 1];
+	vector text_color = is_hovered ? [1, 0.16, 0.06] : [0.94, 0.90, 0.82];
 	vector position, bbox_pos;
-	
+
 	if (order > 0) {
 		position = [6, 50 + (order * 25)];
 		bbox_pos = position - [6, 5, 0];
@@ -461,7 +462,7 @@ float(float order, string id, string title, string description) Menu_Button =
 	if (is_hovered) {
 		// Description
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
-		sui_text([0, -30], MENU_TEXT_MEDIUM, description, [1, 1, 1], 1, 0);
+		sui_text([0, -30], MENU_TEXT_MEDIUM, description, [0.94, 0.90, 0.82], 1, 0);
 		sui_set_align(alignment);
 
 		// Background
@@ -469,18 +470,18 @@ float(float order, string id, string title, string description) Menu_Button =
 
 		if (order > 0) {
 			// Top
-			sui_fill(bbox_pos, [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+			sui_fill(bbox_pos, [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
 			// Bottom
-			sui_fill(bbox_pos + [0, bbox_size_y - 2], [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+			sui_fill(bbox_pos + [0, bbox_size_y - 2], [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
 		} else {
 			// Top
-			sui_fill(bbox_pos - [0, bbox_size_y], [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+			sui_fill(bbox_pos - [0, bbox_size_y], [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
 			// Bottom
-			sui_fill(bbox_pos, [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+			sui_fill(bbox_pos, [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
 		}
 
-		// Right
-		sui_fill(bbox_pos + [bbox_size_x - 2, 0], [2, bbox_size_y], [0.4, 0, 0], 1, 0);
+		// Right accent (Signal-Balken)
+		sui_fill(bbox_pos + [bbox_size_x - 3, 0], [3, bbox_size_y], [1, 0.18, 0.05], 1, 0);
 	}
 
 	sui_text(position  - [getTextWidth(title, MENU_TEXT_MEDIUM_x), 0, 0] + [275, 0, 0], MENU_TEXT_MEDIUM, title, text_color, 1, 0);
@@ -556,8 +557,8 @@ void(float order, float sub_order, string header) Menu_DrawCreditContributor =
 void() Menu_DrawBuildDate =
 {
 	sui_set_align([SUI_ALIGN_END, SUI_ALIGN_START]);
-	sui_text([-6, 8], MENU_TEXT_SMALL, build_datetime, [1, 1, 1], 1, 0);
-	sui_text([-6, 22], MENU_TEXT_SMALL, sprintf("Welcome, %s", cvar_string("name")), [1, 1, 0], 1, 0);
+	sui_text([-6, 8], MENU_TEXT_SMALL, build_datetime, [0.70, 0.68, 0.60], 1, 0);
+	sui_text([-6, 22], MENU_TEXT_SMALL, sprintf("Welcome, %s", cvar_string("name")), [0.90, 0.60, 0.15], 1, 0);
 };
 
 //
@@ -580,8 +581,8 @@ void() Menu_DrawBackground =
 	//
 	float x_pos = 0 - (((sui_current_frame_size()[0] * 1.05) - sui_current_frame_size()[0]) * (elapsed_background_time/7));
 
-	sui_pic([x_pos, 0], [sui_current_frame_size()[0] * 1.05, sui_current_frame_size()[1]], menu_background, [1, 1, 1], 1, 1);
-	sui_fill([0, 0], sui_current_frame_size(), [0, 0, 0], 0.7, 0);
+	sui_pic([x_pos, 0], [sui_current_frame_size()[0] * 1.05, sui_current_frame_size()[1]], menu_background, [0.85, 0.8, 0.78], 1, 1);
+	sui_fill([0, 0], sui_current_frame_size(), [0.03, 0.0, 0.0], 0.80, 0);
 
 	//
 	// Fade new images in/out
@@ -606,11 +607,17 @@ void() Menu_DrawBackground =
 
 	// Top Bars
 	sui_fill([0, 0], [sui_current_frame_size()[0], 55], [0, 0, 0], 0.9, 0);
-	sui_fill([0, 52], [sui_current_frame_size()[0], 3], [0.2, 0.2, 0.2], 1, 0);
+	sui_fill([0, 52], [sui_current_frame_size()[0], 3], [0.55, 0.10, 0.03], 1, 0);
 
 	// Bottom Bars
 	sui_fill([0, sui_current_frame_size()[1] - 55], [sui_current_frame_size()[0], 55], [0, 0, 0], 0.9, 0);
-	sui_fill([0, sui_current_frame_size()[1] - 58], [sui_current_frame_size()[0], 3], [0.2, 0.2, 0.2], 1, 0);
+	sui_fill([0, sui_current_frame_size()[1] - 58], [sui_current_frame_size()[0], 3], [0.55, 0.10, 0.03], 1, 0);
+
+	// Persistente TOTES-SIGNAL-Wortmarke, zentriert in der Unterleiste (jeder Screen).
+	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
+	sui_text([0, -21], MENU_TEXT_SMALL, "TOTES SIGNAL", [0.85, 0.12, 0.04], 0.9, 0);
+	sui_text([0, -9],  MENU_TEXT_SUPERSMALL, "KEIN SIGNAL", [0.5, 0.46, 0.42], 0.75, 0);
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 };
 
 //
@@ -621,7 +628,8 @@ void() Menu_DrawBackground =
 void(string menu_title) Menu_DrawTitle =
 {
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
-	sui_text([6, 18], MENU_TEXT_LARGE, menu_title, [1, 1, 1], 1, 0);
+	sui_text([8, 20], MENU_TEXT_LARGE, menu_title, [0.55, 0.05, 0.02], 0.85, 0);   // Rot-Glow dahinter
+	sui_text([6, 18], MENU_TEXT_LARGE, menu_title, [0.95, 0.90, 0.82], 1, 0);        // Knochenweiss vorne
 };
 
 void(string id, vector pos, vector size, vector minmaxsteps, __inout float value) my_slider =
