@@ -62,8 +62,8 @@ self.addEventListener('fetch', function (event) {
   // ein volles 200-aus-Cache wuerde den 90-MB-Stream korrumpieren.
   if (req.headers.has('range')) { event.respondWith(fetch(req)); return; }
 
-  // game.pk3 / progs.pk3 -> cache-first gegen den DATA-Cache, lazy put on miss.
-  if (/\/nzp\/[^/]+\.pk3$/.test(url.pathname)) {
+  // game.pk3 (~90 MB, immutable) -> cache-first, lazy put on miss (offline replay).
+  if (/\/nzp\/game\.pk3$/.test(url.pathname)) {
     event.respondWith(
       caches.open(DATA).then(function (cache) {
         return cache.match(req).then(function (hit) {
@@ -73,6 +73,22 @@ self.addEventListener('fetch', function (event) {
             return res;
           });
         });
+      })
+    );
+    return;
+  }
+
+  // progs.pk3 (kompilierte Spiellogik, aendert sich bei JEDEM Repack) ->
+  // network-first: immer frisch holen, Cache nur als Offline-Fallback.
+  if (/\/nzp\/progs\.pk3$/.test(url.pathname)) {
+    event.respondWith(
+      fetch(req).then(function (res) {
+        if (res && res.ok && res.status === 200) {
+          var copy = res.clone(); caches.open(DATA).then(function (c) { c.put(req, copy); });
+        }
+        return res;
+      }).catch(function () {
+        return caches.open(DATA).then(function (c) { return c.match(req); });
       })
     );
     return;

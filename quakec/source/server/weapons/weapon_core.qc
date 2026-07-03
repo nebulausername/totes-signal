@@ -1731,7 +1731,6 @@ void () Impulse_Functions =
 		case 33:
 			W_PrimeBetty();
 			break;
-		case 26:
 		case 30:
 			if (self.sprinting)
 				dolphin_dive();

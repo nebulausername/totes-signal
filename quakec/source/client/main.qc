@@ -155,7 +155,7 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	autocvar(r_viewmodel_default_fov, 70);
 	autocvar(cl_controllerglyphs, "xbox");
 	autocvar(in_rumbleenabled, 1);
-	autocvar(in_aimassist, 0);
+	autocvar(in_aimassist, 1);   // Default an (mobile-first); im Optionsmenue abschaltbar, seta-Wahl bleibt
 	autocvar(cl_hitmarkers, 1);
 	autocvar(cl_textopacity, 0.20);
 	autocvar(cl_colorblind, 0);
@@ -802,7 +802,9 @@ void(vector client_view_angles) Camera_AimSnap =
 {
     float zoom_value = getstatf(STAT_WEAPONZOOM);
 
-	if (!(gamepad_enabled && cvar("in_aimassist") == 1))
+	// Aim-Assist fuer ALLE Eingaben (gamepad_enabled ist im Web nie gesetzt =
+	// immer 0, was das Snap-System sonst totlegt). Steuerung nur ueber in_aimassist.
+	if (!(cvar("in_aimassist") == 1))
 		return;
 
     if (zoom_value == 1 || zoom_value == 2) {
@@ -913,7 +915,7 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 	else
 		sensitivity_factor = (1 + SCALE_CONSTANT * getstatf(STAT_VIEWZOOM)) / (1 + SCALE_CONSTANT);
 
-	if (gamepad_enabled && getstatf(STAT_FACINGENEMY) && cvar("in_aimassist") == 1)
+	if (getstatf(STAT_FACINGENEMY) && cvar("in_aimassist") == 1)
 		sensitivity_factor *= 0.5;
 
 	setsensitivityscaler(sensitivity_factor);

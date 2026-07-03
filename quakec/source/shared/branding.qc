@@ -10,10 +10,10 @@
 */
 
 // Display name of the game (window caption, scoreboard, menus).
-#define GAME_NAME "Endzeit: Untot"
+#define GAME_NAME "Totes Signal"
 
 // Default chapter title shown when a classic map provides none.
-#define GAME_DEFAULT_CHAPTER "'Untot'"
+#define GAME_DEFAULT_CHAPTER "'Kein Signal'"
 
 // Shown in the credits button description.
 #define GAME_CREDITS_BLURB "Based on NZ:P by the NZ:P Team."
