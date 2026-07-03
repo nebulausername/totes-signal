@@ -1785,7 +1785,7 @@ void() HUD_Scores =
 	
 	if(serverkey("constate") != "disconnected")
 	{
-		Draw_String([5, g_height - scoreboard_text_size - 5], sprintf("Nazi Zombies: Portable %s", build_datetime), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
+		Draw_String([5, g_height - scoreboard_text_size - 5], sprintf("%s %s", GAME_NAME, build_datetime), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
 
 		// Scoreboard header
 		drawfill([g_width/2 - 271, 177], [270 * 2 + 2, 1], [0.2, 0.2, 0.2], 1, 0);

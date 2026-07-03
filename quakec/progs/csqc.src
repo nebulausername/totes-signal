@@ -9,6 +9,7 @@
 #includelist
 defs/fte.qc
 defs/menu_defs.qc
+branding.qc
 shared_defs.qc
 draw.qc
 

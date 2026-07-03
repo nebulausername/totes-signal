@@ -138,7 +138,7 @@ float() GenerateAlphaTransparencyQ3Shaders =
 
 noref void(float apiver, string enginename, float enginever) CSQC_Init =
 {
-	setwindowcaption("Nazi Zombies: Portable");
+	setwindowcaption(GAME_NAME);
 	
 	precache_sound("sounds/menu/enter.wav");
 	precache_sound("sounds/menu/navigate.wav");
@@ -1372,7 +1372,7 @@ noref void() CSQC_Parse_Event =
 			switch(active_gamemode) {
 				case GAMEMODE_CLASSIC: 
 					if (chaptertitle == "")
-						chaptertitle = "'Nazi Zombies'";
+						chaptertitle = GAME_DEFAULT_CHAPTER;
 					break;
 				case GAMEMODE_GUNGAME:
 					chaptertitle = "GUN GAME";

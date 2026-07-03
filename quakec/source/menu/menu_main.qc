@@ -77,7 +77,7 @@ void() Menu_Main =
     Menu_Button(3.25, "mm_options", "CONFIGURATION", "Tweak Game related Options.") ? current_menu = MENU_OPTIONS : 0;
     Menu_Button(4.25, "mm_bios", "CHARACTER BIOS", "View Character Bios.") ? current_menu = MENU_BIOS : 0;
     Menu_DrawDivider(5.25);
-    Menu_Button(5.50, "mm_credits", "CREDITS", "NZ:P Team + Special Thanks.") ? current_menu = MENU_CREDITS : 0;
+    Menu_Button(5.50, "mm_credits", "CREDITS", GAME_CREDITS_BLURB) ? current_menu = MENU_CREDITS : 0;
 
     // Don't have a Quit Game button on WASM 
     if (running_platform != PLATFORM_WEB) {
