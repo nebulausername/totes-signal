@@ -3,18 +3,40 @@
   <head>
 	<meta charset="utf-8">
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<meta name=viewport content="width=device-width, initial-scale=1">
+	<meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 	<meta content="Endzeit: Untot" property="og:title" />
     	<meta content="Koop-Zombie-Shooter im Browser (WebGL) - ein Fan-Fork von Nazi Zombies: Portable. / Co-op zombie shooter in your browser, a fan fork of NZ:P." property="og:description" />
 	<meta content="#6e0d00" data-react-helmet="true" name="theme-color" />
 	<title>Endzeit: Untot</title>
 	<link rel="icon" href="favicon.ico">
 	<style>
-	html,body { background-color:#000000; color:#808080; height:100%;width:100%;margin:0;padding:0;}
+	html,body { background-color:#000000; color:#808080; height:100%;width:100%;margin:0;padding:0; overflow:hidden; overscroll-behavior:none; }
 	.emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
 	div.emscripten { text-align: center; padding:0; margin: 0;}
 	/* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-	canvas.emscripten { border: 0px none; width:100%; height:100%; padding:0; margin: 0;}
+	canvas.emscripten { border: 0px none; width:100%; height:100%; padding:0; margin: 0; touch-action:none; }
+
+	/* ---- touch controls overlay (only shown on touch devices) ---- */
+	#touchui { position:fixed; inset:0; pointer-events:none; display:none; z-index:10;
+	           -webkit-user-select:none; user-select:none; font-family:monospace; }
+	#touchui .tbtn {
+		position:absolute; pointer-events:auto; touch-action:none;
+		display:flex; align-items:center; justify-content:center;
+		background:rgba(20,20,20,0.35); color:rgba(230,225,210,0.85);
+		border:1px solid rgba(230,225,210,0.35); border-radius:50%;
+		font-size:13px; font-weight:bold; letter-spacing:0.5px;
+	}
+	#touchui .tbtn:active, #touchui .tbtn.held { background:rgba(110,13,0,0.55); }
+	#stick {
+		position:absolute; pointer-events:auto; touch-action:none;
+		left:calc(24px + env(safe-area-inset-left)); bottom:calc(28px + env(safe-area-inset-bottom));
+		width:150px; height:150px; border-radius:50%;
+		background:rgba(20,20,20,0.30); border:1px solid rgba(230,225,210,0.30);
+	}
+	#stickthumb {
+		position:absolute; left:50px; top:50px; width:50px; height:50px; border-radius:50%;
+		background:rgba(230,225,210,0.45); pointer-events:none;
+	}
 	</style>
   </head>
   <body ondrop="gotdrop(event);" ondragover="event.preventDefault()">
@@ -25,6 +47,19 @@
 		<progress value="0" max="100" id="progress" hidden=1></progress>  
 	</div>
 	<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" hidden=1></canvas>
+	<div id="touchui">
+		<div id="stick"><div id="stickthumb"></div></div>
+		<!-- right-hand action cluster; look/fire = drag/tap directly on the canvas -->
+		<div class="tbtn" data-key="32"  data-code="Space"        style="right:calc(24px + env(safe-area-inset-right));  bottom:calc(120px + env(safe-area-inset-bottom)); width:64px; height:64px;">JUMP</div>
+		<div class="tbtn" data-key="82"  data-code="KeyR"         style="right:calc(100px + env(safe-area-inset-right)); bottom:calc(44px + env(safe-area-inset-bottom));  width:56px; height:56px;">RLD</div>
+		<div class="tbtn" data-key="69"  data-code="KeyE"         style="right:calc(168px + env(safe-area-inset-right)); bottom:calc(110px + env(safe-area-inset-bottom)); width:56px; height:56px;">USE</div>
+		<div class="tbtn" data-key="81"  data-code="KeyQ"         style="right:calc(24px + env(safe-area-inset-right));  bottom:calc(196px + env(safe-area-inset-bottom)); width:56px; height:56px;">AIM</div>
+		<div class="tbtn" data-key="86"  data-code="KeyV"         style="right:calc(100px + env(safe-area-inset-right)); bottom:calc(176px + env(safe-area-inset-bottom)); width:48px; height:48px;">KNF</div>
+		<div class="tbtn" data-key="71"  data-code="KeyG"         style="right:calc(168px + env(safe-area-inset-right)); bottom:calc(190px + env(safe-area-inset-bottom)); width:48px; height:48px;">NADE</div>
+		<div class="tbtn" data-key="17"  data-code="ControlLeft"  style="right:calc(24px + env(safe-area-inset-right));  top:calc(96px + env(safe-area-inset-top));     width:48px; height:48px;">SWAP</div>
+		<div class="tbtn" data-key="27"  data-code="Escape" data-tap="1" style="right:calc(24px + env(safe-area-inset-right)); top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px;">MENU</div>
+		<div class="tbtn" id="fsbtn" data-tap="1"                 style="left:calc(24px + env(safe-area-inset-left)); top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px;">⛶</div>
+	</div>
 	<script type='text/javascript'>
 // connect to canvas
 var Module = {
@@ -90,7 +125,7 @@ function begin()
 	Module.began = true;
 	document.getElementById('dropzone').hidden = true;
 	document.getElementById('begin').hidden = true;
-	Module.setStatus('Downloading...');
+	Module.setStatus('Downloading game data (~95 MB, cached after first visit)...');
 
 	// make a script. do it the hard way for the error.
 	var s = document.createElement('script');
@@ -185,9 +220,120 @@ function gotdrop(ev)
 	showfiles();
 }
 if (window.location.hash != "" || Object.keys(Module.files).length)
-	begin();		//if the url has a #foo.fmf then just begin instantly, 
+	begin();		//if the url has a #foo.fmf then just begin instantly,
 else
 	showfiles();	//otherwise show our lame file dropper and wait for the user to click 'go'.
+
+//---------------------------------------------------------------------
+// Touch controls: virtual joystick -> WASD key events, action buttons
+// -> key events for the binds in default.cfg/autoexec.cfg. Look + fire
+// are handled natively by the engine (drag/tap on the canvas).
+//---------------------------------------------------------------------
+(function(){
+	var isTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+	if (!isTouch)
+		return;
+	var ui = document.getElementById('touchui');
+	ui.style.display = 'block';
+
+	var canvas = document.getElementById('canvas');
+	function sendKey(type, keyCode, code)
+	{	//the engine reads legacy keyCode, which the KeyboardEvent
+		//constructor refuses to set - force it via defineProperty.
+		var ev = new KeyboardEvent(type, {code: code, bubbles: true, cancelable: true});
+		Object.defineProperty(ev, 'keyCode', {get: function(){return keyCode;}});
+		Object.defineProperty(ev, 'which',   {get: function(){return keyCode;}});
+		canvas.dispatchEvent(ev);
+	}
+
+	// --- action buttons ---
+	var btns = ui.querySelectorAll('.tbtn[data-key]');
+	for (var i = 0; i < btns.length; i++)
+	{
+		(function(b){
+			var keyCode = parseInt(b.getAttribute('data-key'), 10);
+			var code = b.getAttribute('data-code');
+			var tapOnly = b.getAttribute('data-tap') == '1';
+			b.addEventListener('pointerdown', function(e){
+				e.preventDefault();
+				b.setPointerCapture(e.pointerId);
+				b.classList.add('held');
+				sendKey('keydown', keyCode, code);
+				if (tapOnly)
+					sendKey('keyup', keyCode, code);
+			});
+			function release(e){
+				if (!b.classList.contains('held'))
+					return;
+				b.classList.remove('held');
+				if (!tapOnly)
+					sendKey('keyup', keyCode, code);
+			}
+			b.addEventListener('pointerup', release);
+			b.addEventListener('pointercancel', release);
+		})(btns[i]);
+	}
+
+	// --- fullscreen + landscape ---
+	document.getElementById('fsbtn').addEventListener('pointerdown', function(e){
+		e.preventDefault();
+		var el = document.documentElement;
+		var req = el.requestFullscreen || el.webkitRequestFullscreen;
+		if (req)
+			req.call(el).catch(function(){});
+		if (screen.orientation && screen.orientation.lock)
+			screen.orientation.lock('landscape').catch(function(){});
+	});
+
+	// --- virtual joystick ---
+	var stick = document.getElementById('stick');
+	var thumb = document.getElementById('stickthumb');
+	var KEYS = { w: [87,'KeyW'], a: [65,'KeyA'], s: [83,'KeyS'], d: [68,'KeyD'] };
+	var held = { w:false, a:false, s:false, d:false };
+	var stickPointer = -1;
+
+	function applyDirs(next)
+	{
+		for (var k in KEYS)
+		{
+			if (next[k] && !held[k]) sendKey('keydown', KEYS[k][0], KEYS[k][1]);
+			if (!next[k] && held[k]) sendKey('keyup',   KEYS[k][0], KEYS[k][1]);
+			held[k] = next[k];
+		}
+	}
+	function resetStick()
+	{
+		stickPointer = -1;
+		thumb.style.left = '50px';
+		thumb.style.top = '50px';
+		applyDirs({w:false,a:false,s:false,d:false});
+	}
+	stick.addEventListener('pointerdown', function(e){
+		e.preventDefault();
+		stick.setPointerCapture(e.pointerId);
+		stickPointer = e.pointerId;
+	});
+	stick.addEventListener('pointermove', function(e){
+		if (e.pointerId != stickPointer)
+			return;
+		e.preventDefault();
+		var r = stick.getBoundingClientRect();
+		var cx = r.left + r.width/2, cy = r.top + r.height/2;
+		var dx = e.clientX - cx, dy = e.clientY - cy;
+		var max = r.width/2;
+		var len = Math.sqrt(dx*dx + dy*dy);
+		if (len > max) { dx *= max/len; dy *= max/len; }
+		thumb.style.left = (50 + dx) + 'px';
+		thumb.style.top  = (50 + dy) + 'px';
+		var dead = max * 0.30;
+		applyDirs({
+			w: dy < -dead, s: dy > dead,
+			a: dx < -dead, d: dx > dead
+		});
+	});
+	stick.addEventListener('pointerup', resetStick);
+	stick.addEventListener('pointercancel', resetStick);
+})();
     </script>  
   </body>
 </html>

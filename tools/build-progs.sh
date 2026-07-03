@@ -14,6 +14,9 @@ mkdir -p "${REPO_ROOT}/web/nzp"
 rm -f "${REPO_ROOT}/web/nzp/progs.pk3"
 cd build/fte
 zip -9 "${REPO_ROOT}/web/nzp/progs.pk3" ./*.dat ./*.lno
+# Ship our configs (e.g. autoexec.cfg with touch-overlay binds) in the same pk3.
+cd "${REPO_ROOT}/config"
+zip -9 "${REPO_ROOT}/web/nzp/progs.pk3" ./*.cfg
 
 echo "[OK] web/nzp/progs.pk3:"
 unzip -l "${REPO_ROOT}/web/nzp/progs.pk3"
