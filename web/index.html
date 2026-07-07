@@ -5,7 +5,7 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta name=viewport content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 	<meta content="Totes Signal" property="og:title" />
-    	<meta content="Totes Signal - Koop-Zombie-Shooter im Browser (WebGL). Ein Fan-Fork von Nazi Zombies: Portable." property="og:description" />
+    	<meta content="Totes Signal - Koop-Zombie-Shooter im Browser (WebGL). Kein Empfang. Nur Untote." property="og:description" />
 	<meta content="#6e0d00" data-react-helmet="true" name="theme-color" />
 	<title>Totes Signal</title>
 	<link rel="icon" href="favicon.ico">
@@ -27,27 +27,51 @@
 	/* the canvas *must not* have any border or padding, or mouse coords will be wrong */
 	canvas.emscripten { border: 0px none; width:100%; height:100%; padding:0; margin: 0; touch-action:none; }
 
-	/* ---- touch controls overlay (only shown on touch devices) ---- */
+	/* ---- Touch-Controls-Overlay (nur Touch-Geraete, nur im Spiel) ----
+	   Alles skaliert mit vmin -> gleich bedienbar auf Handy wie Tablet. */
 	#touchui { position:fixed; inset:0; pointer-events:none; display:none; z-index:10;
-	           -webkit-user-select:none; user-select:none; font-family:monospace; }
+	           -webkit-user-select:none; user-select:none; font-family:monospace;
+	           --tb: clamp(50px, 12vmin, 88px);            /* Grundbreite / Rund-Durchmesser */
+	           --th: clamp(40px, 8.6vmin, 62px);           /* Pillen-Hoehe (Tap-Ziel >=40px) */
+	           --stick: clamp(126px, 31vmin, 216px); }
 	#touchui .tbtn {
 		position:absolute; pointer-events:auto; touch-action:none;
-		display:flex; align-items:center; justify-content:center;
-		background:rgba(20,20,20,0.35); color:rgba(230,225,210,0.85);
-		border:1px solid rgba(230,225,210,0.35); border-radius:50%;
-		font-size:13px; font-weight:bold; letter-spacing:0.5px;
+		box-sizing:border-box; min-width:var(--tb); height:var(--th); padding:0 clamp(7px,1.5vmin,13px);
+		display:flex; align-items:center; justify-content:center; text-align:center; white-space:nowrap;
+		background:rgba(16,14,13,0.46); color:rgba(236,229,215,0.94);
+		border:1px solid rgba(200,60,30,0.45); border-radius:11px;
+		font-size:clamp(10px,1.95vmin,14px); font-weight:bold; letter-spacing:0.6px; line-height:1;
+		text-shadow:0 1px 2px rgba(0,0,0,0.6); box-shadow:inset 0 0 12px rgba(0,0,0,0.42);
+		transition:background 0.05s, box-shadow 0.05s;
 	}
-	#touchui .tbtn:active, #touchui .tbtn.held { background:rgba(110,13,0,0.55); }
-	#touchui #autobtn.on { background:rgba(40,150,60,0.6); border-color:#3ad16a; color:#eaffea; }
+	#touchui .tbtn.big {                                    /* FEUER: primaer, gross, rot */
+		height:calc(var(--th)*1.55); min-width:calc(var(--tb)*1.55); border-radius:15px;
+		font-size:clamp(13px,2.6vmin,19px); background:rgba(150,18,4,0.5);
+		border-color:rgba(232,42,16,0.8); color:#fff; }
+	#touchui .tbtn.round {                                  /* Icon-Buttons (Vollbild) */
+		min-width:0; width:var(--tb); height:var(--tb); border-radius:50%; padding:0;
+		font-size:clamp(15px,2.8vmin,22px); }
+	#touchui .tbtn.pill {                                   /* AUTO-Umschalter */
+		height:calc(var(--th)*0.72); border-radius:8px; font-size:clamp(9px,1.7vmin,12px);
+		letter-spacing:1px; }
+	#touchui .tbtn:active, #touchui .tbtn.held {
+		background:rgba(156,20,5,0.66); border-color:#e6431f; color:#fff;
+		box-shadow:0 0 16px rgba(224,46,18,0.6), inset 0 0 12px rgba(0,0,0,0.4); }
+	#touchui .tbtn.big:active, #touchui .tbtn.big.held { background:rgba(214,34,12,0.82); }
+	#touchui #autobtn.on { background:rgba(40,150,60,0.62); border-color:#3ad16a; color:#eaffea;
+		box-shadow:0 0 15px rgba(40,170,70,0.5); }
 	#stick {
 		position:absolute; pointer-events:auto; touch-action:none;
-		left:calc(24px + env(safe-area-inset-left)); bottom:calc(28px + env(safe-area-inset-bottom));
-		width:150px; height:150px; border-radius:50%;
-		background:rgba(20,20,20,0.30); border:1px solid rgba(230,225,210,0.30);
+		left:calc(4vmin + env(safe-area-inset-left)); bottom:calc(5vmin + env(safe-area-inset-bottom));
+		width:var(--stick); height:var(--stick); border-radius:50%;
+		background:radial-gradient(circle at 50% 45%, rgba(34,12,9,0.32), rgba(13,11,11,0.44));
+		border:1px solid rgba(200,60,30,0.40); box-shadow:inset 0 0 24px rgba(0,0,0,0.55);
 	}
 	#stickthumb {
-		position:absolute; left:50px; top:50px; width:50px; height:50px; border-radius:50%;
-		background:rgba(230,225,210,0.45); pointer-events:none;
+		position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+		width:40%; height:40%; border-radius:50%; pointer-events:none;
+		background:radial-gradient(circle at 40% 34%, rgba(242,236,223,0.62), rgba(196,62,42,0.52));
+		border:1px solid rgba(232,226,212,0.5); box-shadow:0 0 14px rgba(224,52,26,0.45);
 	}
 
 	/* ---- TOTES SIGNAL: dead-radio-signal theme (start gate + loading + rotate) ---- */
@@ -119,24 +143,24 @@
 	</div>
 	<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" hidden=1></canvas>
 	<div id="touchui">
+		<!-- Linker Bewegungs-Cluster: Joystick + Sprint/Ducken. -->
 		<div id="stick"><div id="stickthumb"></div></div>
-		<!-- right-hand action cluster; look/fire = drag/tap directly on the canvas -->
-		<div class="tbtn" data-key="32"  data-code="Space"        style="right:calc(24px + env(safe-area-inset-right));  bottom:calc(120px + env(safe-area-inset-bottom)); width:64px; height:64px;">JUMP</div>
-		<div class="tbtn" data-key="82"  data-code="KeyR"         style="right:calc(100px + env(safe-area-inset-right)); bottom:calc(44px + env(safe-area-inset-bottom));  width:56px; height:56px;">RLD</div>
-		<div class="tbtn" data-key="69"  data-code="KeyE"         style="right:calc(168px + env(safe-area-inset-right)); bottom:calc(110px + env(safe-area-inset-bottom)); width:56px; height:56px;">USE</div>
-		<div class="tbtn" data-key="81"  data-code="KeyQ"         style="right:calc(24px + env(safe-area-inset-right));  bottom:calc(196px + env(safe-area-inset-bottom)); width:56px; height:56px;">AIM</div>
-		<div class="tbtn" data-key="86"  data-code="KeyV"         style="right:calc(100px + env(safe-area-inset-right)); bottom:calc(176px + env(safe-area-inset-bottom)); width:48px; height:48px;">KNF</div>
-		<div class="tbtn" data-key="71"  data-code="KeyG"         style="right:calc(168px + env(safe-area-inset-right)); bottom:calc(190px + env(safe-area-inset-bottom)); width:48px; height:48px;">NADE</div>
-		<div class="tbtn" data-key="17"  data-code="ControlLeft"  style="right:calc(24px + env(safe-area-inset-right));  top:calc(96px + env(safe-area-inset-top));     width:48px; height:48px;">SWAP</div>
-		<div class="tbtn" data-key="27"  data-code="Escape" data-tap="1" style="right:calc(24px + env(safe-area-inset-right)); top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px;">MENU</div>
-		<div class="tbtn" id="fsbtn" data-tap="1"                 style="left:calc(24px + env(safe-area-inset-left)); top:calc(16px + env(safe-area-inset-top)); width:48px; height:48px;">⛶</div>
-		<!-- M7.1: gameplay gaps. impulse-Binds stecken bereits in nzportable.cfg (game.pk3),
-		     daher genügt das Dispatchen des schon gebundenen keyCode über den data-key-Handler. -->
-		<div class="tbtn" data-key="16" data-code="ShiftLeft" data-tap="1" style="left:calc(196px + env(safe-area-inset-left)); bottom:calc(70px + env(safe-area-inset-bottom));  width:52px; height:52px; font-size:12px;">SPRT</div>
-		<div class="tbtn" data-key="18" data-code="AltLeft"   data-tap="1" style="left:calc(196px + env(safe-area-inset-left)); bottom:calc(136px + env(safe-area-inset-bottom)); width:52px; height:52px; font-size:10px;">HALTUNG</div>
-		<div class="tbtn" data-key="52" data-code="Digit4"    data-tap="1" style="right:calc(168px + env(safe-area-inset-right)); bottom:calc(246px + env(safe-area-inset-bottom)); width:44px; height:44px; font-size:11px;">NAD2</div>
-		<div class="tbtn" id="firebtn"                        style="right:calc(232px + env(safe-area-inset-right)); bottom:calc(38px + env(safe-area-inset-bottom));  width:84px; height:84px; font-size:15px;">FEUER</div>
-		<div class="tbtn" id="autobtn"                        style="right:calc(244px + env(safe-area-inset-right)); bottom:calc(130px + env(safe-area-inset-bottom)); width:60px; height:30px; border-radius:8px; font-size:11px;">AUTO</div>
+		<div class="tbtn" data-key="16" data-code="ShiftLeft" data-tap="1" style="left:calc(38vmin + env(safe-area-inset-left)); bottom:calc(5vmin + env(safe-area-inset-bottom));">SPRINT</div>
+		<div class="tbtn" data-key="18" data-code="AltLeft"   data-tap="1" style="left:calc(38vmin + env(safe-area-inset-left)); bottom:calc(19vmin + env(safe-area-inset-bottom));">DUCKEN</div>
+		<!-- Rechter Kampf-Cluster; Umsehen + Zielen = direkt auf dem Bildschirm wischen. -->
+		<div class="tbtn big" id="firebtn"                    style="right:calc(4vmin + env(safe-area-inset-right));  bottom:calc(4vmin + env(safe-area-inset-bottom));">FEUER</div>
+		<div class="tbtn pill" id="autobtn"                   style="right:calc(6vmin + env(safe-area-inset-right));  bottom:calc(25vmin + env(safe-area-inset-bottom));">AUTO</div>
+		<div class="tbtn" data-key="82" data-code="KeyR"      style="right:calc(24vmin + env(safe-area-inset-right)); bottom:calc(5vmin + env(safe-area-inset-bottom));">LADEN</div>
+		<div class="tbtn" data-key="81" data-code="KeyQ"      style="right:calc(23vmin + env(safe-area-inset-right)); bottom:calc(20vmin + env(safe-area-inset-bottom));">ZIELEN</div>
+		<div class="tbtn" data-key="32" data-code="Space"     style="right:calc(4vmin + env(safe-area-inset-right));  bottom:calc(40vmin + env(safe-area-inset-bottom));">SPRUNG</div>
+		<div class="tbtn" data-key="86" data-code="KeyV"      style="right:calc(42vmin + env(safe-area-inset-right)); bottom:calc(6vmin + env(safe-area-inset-bottom));">MESSER</div>
+		<div class="tbtn" data-key="71" data-code="KeyG"      style="right:calc(41vmin + env(safe-area-inset-right)); bottom:calc(21vmin + env(safe-area-inset-bottom));">GRANATE</div>
+		<div class="tbtn" data-key="52" data-code="Digit4" data-tap="1" style="right:calc(23vmin + env(safe-area-inset-right)); bottom:calc(35vmin + env(safe-area-inset-bottom));">GR. 2</div>
+		<div class="tbtn" data-key="17" data-code="ControlLeft" style="right:calc(41vmin + env(safe-area-inset-right)); bottom:calc(36vmin + env(safe-area-inset-bottom));">WAFFE</div>
+		<div class="tbtn" data-key="69" data-code="KeyE"      style="right:calc(6vmin + env(safe-area-inset-right));  bottom:calc(55vmin + env(safe-area-inset-bottom));">AKTION</div>
+		<!-- Ecken: Menue oben rechts, Vollbild oben links. -->
+		<div class="tbtn" data-key="27" data-code="Escape" data-tap="1" style="right:calc(4vmin + env(safe-area-inset-right)); top:calc(4vmin + env(safe-area-inset-top));">MENÜ</div>
+		<div class="tbtn" id="fsbtn" data-tap="1"             style="left:calc(4vmin + env(safe-area-inset-left)); top:calc(4vmin + env(safe-area-inset-top));">VOLLBILD</div>
 	</div>
 	<div id="mstart"><div class="box">
 		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
@@ -170,6 +194,13 @@ var Module = {
 	print: function(msg)
 	{	//stdout...
 		console.log(msg);
+		// QuakeC->JS bridge: the menu prints a marker on every menu<->game
+		// transition (see menu/main.qc m_draw). Show the touch HUD only in-game.
+		if (typeof msg === 'string' && window.TS_CTRL)
+		{
+			if (msg.indexOf('TSUI:game') !== -1) TS_CTRL.setInGame(true);
+			else if (msg.indexOf('TSUI:menu') !== -1) TS_CTRL.setInGame(false);
+		}
 	},
 	printErr: function(text)
 	{	//stderr...
@@ -326,7 +357,7 @@ var LANG = ((navigator.language||'de').slice(0,2) === 'en') ? 'en' : 'de';
 var I18N = {
 	de: {
 		sub:'▚ KEIN SIGNAL ▚',
-		tap:'Koop-Zombie-Shooter im Browser. Fan-Fork von Nazi Zombies: Portable.',
+		tap:'Koop-Zombie-Shooter im Browser. Kein Empfang. Nur Untote.',
 		play:'▶ TIPPEN ZUM SPIELEN',
 		rotate:'Bitte Gerät ins Querformat drehen.',
 		install:'⇩ Als App installieren',
@@ -345,7 +376,7 @@ var I18N = {
 	},
 	en: {
 		sub:'▚ NO SIGNAL ▚',
-		tap:'Co-op zombie shooter in your browser. Fan fork of Nazi Zombies: Portable.',
+		tap:'Co-op zombie shooter in your browser. No signal. Only the undead.',
 		play:'▶ TAP TO PLAY',
 		rotate:'Please rotate your device to landscape.',
 		install:'⇩ Install app',
@@ -439,7 +470,7 @@ function updateOrient()
 	var r = document.getElementById('rotate');
 	var tui = document.getElementById('touchui');
 	r.style.display = (portrait && Module.began) ? 'flex' : 'none';   // only nag once playing
-	if (tui) tui.style.visibility = portrait ? 'hidden' : 'visible';  // hide controls in portrait
+	if (window.TS_CTRL) TS_CTRL.applyVisibility();                    // HUD nur im Spiel + Querformat
 }
 window.addEventListener('resize', updateOrient);
 window.addEventListener('orientationchange', updateOrient);
@@ -493,6 +524,10 @@ function startDynRes()
 	var ema = 60, last = 0, lowSince = 0, highSince = 0;
 	function apply(){
 		M9.eff = STEPS[idx];
+		// Nicht mitten in der Bewegung resizen: ein Canvas-Resize kann ein
+		// pointercancel auf den gehaltenen Joystick-Finger ausloesen (genau der
+		// beruechtigte "nach paar Sekunden tot"-Bug). Warten bis Stick los ist.
+		if (window.__ts_stick_active) { M9.pendingResize = true; return; }
 		if (typeof window.onresize === 'function') window.onresize();  // engine-Resize-Pfad erneut auslösen
 	}
 	function tick(now){
@@ -553,9 +588,10 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	if (!isTouch)
 		return;
 	var ui = document.getElementById('touchui');
-	ui.style.display = 'block';
-
 	var canvas = document.getElementById('canvas');
+	// Alle "gehaltenen" Aktionen registrieren -> bei Menue/Blur garantiert freigeben,
+	// damit nie eine Taste in der Engine haengen bleibt.
+	var releasers = [];
 	function sendKey(type, keyCode, code)
 	{	//the engine reads legacy keyCode, which the KeyboardEvent
 		//constructor refuses to set - force it via defineProperty.
@@ -575,11 +611,11 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			var tapOnly = b.getAttribute('data-tap') == '1';
 			b.addEventListener('pointerdown', function(e){
 				e.preventDefault();
-				b.setPointerCapture(e.pointerId);
+				try { b.setPointerCapture(e.pointerId); } catch(err){}
+				if (b.classList.contains('held')) return;
 				b.classList.add('held');
 				sendKey('keydown', keyCode, code);
-				if (tapOnly)
-					sendKey('keyup', keyCode, code);
+				if (tapOnly) { b.classList.remove('held'); sendKey('keyup', keyCode, code); }
 			});
 			function release(e){
 				if (!b.classList.contains('held'))
@@ -591,6 +627,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			b.addEventListener('pointerup', release);
 			b.addEventListener('pointercancel', release);
 			b.addEventListener('lostpointercapture', release);   // Finger rutscht ab -> Taste loslassen
+			releasers.push(release);
 		})(btns[i]);
 	}
 
@@ -647,6 +684,8 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 				if (!autoFire) stopLoop();
 			});
 		}
+		// bei Menue/Blur: Dauerfeuer stoppen + Feuer freigeben
+		releasers.push(function(){ stopLoop(); if (fire.classList.contains('held')){ fire.classList.remove('held'); mouse('mouseup', false); } });
 	})();
 
 	// --- fullscreen + landscape ---
@@ -660,12 +699,15 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			screen.orientation.lock('landscape').catch(function(){});
 	});
 
-	// --- virtual joystick ---
+	// --- Virtueller Joystick -> WASD. Robust: KEIN setPointerCapture, Listener am
+	// window (Finger geht nie verloren), Re-Acquire bei jedem Tippen, Watchdog
+	// gegen haengende Tasten. Behebt "Bewegung stirbt nach paar Sekunden". ---
 	var stick = document.getElementById('stick');
 	var thumb = document.getElementById('stickthumb');
-	var KEYS = { w: [87,'KeyW'], a: [65,'KeyA'], s: [83,'KeyS'], d: [68,'KeyD'] };
+	var KEYS = { w:[87,'KeyW'], a:[65,'KeyA'], s:[83,'KeyS'], d:[68,'KeyD'] };
 	var held = { w:false, a:false, s:false, d:false };
-	var stickPointer = -1;
+	var stickId = null;
+	var lastDirs = { w:false, s:false, a:false, d:false };
 
 	function applyDirs(next)
 	{
@@ -675,39 +717,98 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			if (!next[k] && held[k]) sendKey('keyup',   KEYS[k][0], KEYS[k][1]);
 			held[k] = next[k];
 		}
+		lastDirs = next;
+	}
+	function moveThumb(dx, dy){
+		thumb.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
 	}
 	function resetStick()
 	{
-		stickPointer = -1;
-		thumb.style.left = '50px';
-		thumb.style.top = '50px';
-		applyDirs({w:false,a:false,s:false,d:false});
+		stickId = null;
+		window.__ts_stick_active = false;
+		moveThumb(0, 0);
+		applyDirs({ w:false, s:false, a:false, d:false });
+		// aufgestauten M9-Aufloesungswechsel jetzt sicher nachholen
+		if (window.M9 && M9.pendingResize){ M9.pendingResize = false;
+			if (typeof window.onresize === 'function') window.onresize(); }
+	}
+	function stickCompute(clientX, clientY)
+	{
+		var r = stick.getBoundingClientRect();
+		var cx = r.left + r.width/2, cy = r.top + r.height/2;
+		var dx = clientX - cx, dy = clientY - cy;
+		var max = r.width/2;
+		var len = Math.sqrt(dx*dx + dy*dy) || 1;
+		if (len > max){ dx *= max/len; dy *= max/len; }
+		moveThumb(dx, dy);
+		var dead = max * 0.28;
+		applyDirs({ w: dy < -dead, s: dy > dead, a: dx < -dead, d: dx > dead });
 	}
 	stick.addEventListener('pointerdown', function(e){
 		e.preventDefault();
-		stick.setPointerCapture(e.pointerId);
-		stickPointer = e.pointerId;
+		// Immer (neu) akquirieren - auch bei klebender alter ID -> ein noch
+		// aufliegender, vom Browser ge-cancelter Finger greift sofort wieder.
+		stickId = e.pointerId;
+		window.__ts_stick_active = true;
+		stickCompute(e.clientX, e.clientY);
 	});
-	stick.addEventListener('pointermove', function(e){
-		if (e.pointerId != stickPointer)
-			return;
+	// window-weit lauschen (kein Capture): Finger wird auch ausserhalb der Box verfolgt.
+	window.addEventListener('pointermove', function(e){
+		if (stickId === null || e.pointerId !== stickId) return;
 		e.preventDefault();
-		var r = stick.getBoundingClientRect();
-		var cx = r.left + r.width/2, cy = r.top + r.height/2;
-		var dx = e.clientX - cx, dy = e.clientY - cy;
-		var max = r.width/2;
-		var len = Math.sqrt(dx*dx + dy*dy);
-		if (len > max) { dx *= max/len; dy *= max/len; }
-		thumb.style.left = (50 + dx) + 'px';
-		thumb.style.top  = (50 + dy) + 'px';
-		var dead = max * 0.30;
-		applyDirs({
-			w: dy < -dead, s: dy > dead,
-			a: dx < -dead, d: dx > dead
-		});
-	});
-	stick.addEventListener('pointerup', resetStick);
-	stick.addEventListener('pointercancel', resetStick);
+		stickCompute(e.clientX, e.clientY);
+	}, { passive:false });
+	function stickEnd(e){
+		if (stickId === null || (e && e.pointerId !== stickId)) return;
+		resetStick();
+	}
+	window.addEventListener('pointerup', stickEnd);
+	window.addEventListener('pointercancel', stickEnd);
+	window.addEventListener('lostpointercapture', stickEnd);
+
+	// Watchdog: haengende Tasten aufraeumen + Richtung idempotent aktuell halten,
+	// falls ein pointermove verschluckt wurde.
+	setInterval(function(){
+		if (stickId === null){
+			if (held.w || held.a || held.s || held.d)
+				applyDirs({ w:false, s:false, a:false, d:false });
+		} else {
+			applyDirs(lastDirs);
+		}
+	}, 120);
+
+	// --- Sichtbarkeit: HUD nur im Spiel (Engine meldet Menue<->Spiel via Print-
+	// Bruecke, siehe Module.print + menu/main.qc) und nur im Querformat. ---
+	var inGame = false, bridgeSeen = false;
+	function releaseAll(){
+		resetStick();
+		for (var j = 0; j < releasers.length; j++){ try { releasers[j](); } catch(err){} }
+	}
+	function applyVisibility(){
+		var portrait = window.matchMedia('(orientation: portrait)').matches;
+		var show = inGame && !portrait;
+		ui.style.display = show ? 'block' : 'none';
+		if (!show) releaseAll();
+	}
+	window.TS_CTRL = {
+		setInGame: function(b){ bridgeSeen = true; b = !!b; if (inGame === b) return; inGame = b; applyVisibility(); },
+		applyVisibility: applyVisibility,
+		releaseAll: releaseAll
+	};
+	applyVisibility();   // Boot -> Hauptmenue: HUD aus, bis die Engine "im Spiel" meldet.
+
+	// Taste nie haengen lassen: Fokusverlust / App-Wechsel -> alles freigeben.
+	window.addEventListener('blur', releaseAll);
+	window.addEventListener('pagehide', releaseAll);
+	document.addEventListener('visibilitychange', function(){ if (document.hidden) releaseAll(); });
+
+	// Ausfallsicherung: sollte die QuakeC-Print-Bruecke je fehlen, HUD trotzdem
+	// einblenden sobald das Spiel laeuft -> Steuerung geht nie komplett verloren.
+	setTimeout(function failopen(){
+		if (bridgeSeen) return;
+		if (window.Module && Module.began){ inGame = true; applyVisibility(); return; }
+		setTimeout(failopen, 2000);
+	}, 10000);
 })();
     </script>  
   </body>

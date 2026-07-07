@@ -6,7 +6,7 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v2';                 // Rebrand -> alte endzeit-*-Caches werden im activate gepurgt
+const SW_VERSION = 'v3';                 // v3: Controls-Fix + DE-Menue + NZP raus; alte Caches im activate gepurgt
 const SHELL = 'totes-shell-' + SW_VERSION;
 const DATA  = 'totes-data-'  + SW_VERSION;
 const ALLOW = [SHELL, DATA];

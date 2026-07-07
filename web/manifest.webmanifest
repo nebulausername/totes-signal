@@ -1,7 +1,7 @@
 {
   "name": "Totes Signal",
   "short_name": "Signal",
-  "description": "Totes Signal - Koop-Zombie-Shooter im Browser. Ein Fan-Fork von Nazi Zombies: Portable.",
+  "description": "Totes Signal - Koop-Zombie-Shooter im Browser. Kein Empfang. Nur Untote.",
   "id": "/zombie/",
   "start_url": "./",
   "scope": "./",
