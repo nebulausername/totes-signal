@@ -123,6 +123,9 @@
 	}
 	@keyframes tsnoise { 0%{transform:translate(0,0)} 25%{transform:translate(-4%,3%)} 50%{transform:translate(3%,-2%)} 75%{transform:translate(-2%,-4%)} 100%{transform:translate(0,0)} }
 	#mstart .box, #rotate .box, #loadscreen .box, #deathui .box { position:relative; z-index:2; max-width:92%; }
+	/* Gate-Backdrop (Still via poster, Loop lazy) — liegt UNTER Scanlines/Grain */
+	#mstart #gatevid { position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+		z-index:0; opacity:0.5; filter:brightness(1.2) saturate(0.85); }
 	.ts-skull { width:min(20vw,92px); height:auto; margin:0 auto 8px; display:block; filter:drop-shadow(0 0 14px rgba(180,20,0,0.6)); opacity:0.95; }
 	.ts-mark { color:#c21500; font-size:min(11vw,60px); font-weight:bold; margin:0; letter-spacing:6px;
 		text-shadow:0 0 4px #c21500, 0 0 22px rgba(194,21,0,0.55); animation:tsflk 4.5s infinite; }
@@ -209,7 +212,12 @@
 		<p data-i18n="hint3"></p>
 		<p class="hint-ok" data-i18n="hintOk"></p>
 	</div></div>
-	<div id="mstart"><div class="box">
+	<div id="mstart">
+		<!-- Atmosphaerischer Loop hinterm Gate: poster zeigt sofort das Still,
+		     das eigentliche Video laedt lazy in mobileStart() (nie bei
+		     prefers-reduced-motion); beim Start wird es pausiert+entladen. -->
+		<video id="gatevid" muted loop playsinline preload="none" poster="img/gate-poster.jpg"></video>
+	<div class="box">
 		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
 		<p class="ts-mark">TOTES SIGNAL</p>
 		<p class="ts-sub" data-i18n="sub"></p>
@@ -625,9 +633,16 @@ window.addEventListener('orientationchange', updateOrient);
 function mobileStart()
 {	var g = document.getElementById('mstart');
 	g.style.display = 'flex';
+	// Gate-Loop lazy nachladen (nicht bei reduzierter Bewegung; poster bleibt)
+	var v = document.getElementById('gatevid');
+	if (v && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){
+		v.src = 'img/gate-loop.mp4';
+		if (v.play) v.play().catch(function(){});
+	}
 	g.addEventListener('click', function once(){
 		g.removeEventListener('click', once);
 		g.style.display = 'none';
+		if (v){ try { v.pause(); v.removeAttribute('src'); v.load(); } catch(e){} }   // Decoder freigeben
 		var ib = document.getElementById('installbtn'); if (ib) ib.style.display = 'none';
 		enterImmersive();
 		begin();
