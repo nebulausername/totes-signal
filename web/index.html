@@ -48,18 +48,43 @@
 		height:calc(var(--th)*1.55); min-width:calc(var(--tb)*1.55); border-radius:15px;
 		font-size:clamp(13px,2.6vmin,19px); background:rgba(150,18,4,0.5);
 		border-color:rgba(232,42,16,0.8); color:#fff; }
-	#touchui .tbtn.round {                                  /* Icon-Buttons (Vollbild) */
+	#touchui .tbtn.round {                                  /* Icon-Buttons (Zahnrad) */
 		min-width:0; width:var(--tb); height:var(--tb); border-radius:50%; padding:0;
 		font-size:clamp(15px,2.8vmin,22px); }
-	#touchui .tbtn.pill {                                   /* AUTO-Umschalter */
-		height:calc(var(--th)*0.72); border-radius:8px; font-size:clamp(9px,1.7vmin,12px);
-		letter-spacing:1px; }
 	#touchui .tbtn:active, #touchui .tbtn.held {
 		background:rgba(156,20,5,0.66); border-color:#e6431f; color:#fff;
 		box-shadow:0 0 16px rgba(224,46,18,0.6), inset 0 0 12px rgba(0,0,0,0.4); }
 	#touchui .tbtn.big:active, #touchui .tbtn.big.held { background:rgba(214,34,12,0.82); }
-	#touchui #autobtn.on { background:rgba(40,150,60,0.62); border-color:#3ad16a; color:#eaffea;
-		box-shadow:0 0 15px rgba(40,170,70,0.5); }
+	/* Schnell-Einstellungen (Slide-in links) */
+	#gearsheet {
+		position:absolute; left:0; top:0; bottom:0; width:clamp(230px, 46vmin, 360px);
+		display:none; pointer-events:auto; touch-action:none; z-index:12; overflow-y:auto;
+		background:rgba(8,6,5,0.94); border-right:1px solid rgba(210,60,30,0.55);
+		padding:calc(3vmin + env(safe-area-inset-top)) 2vmin 3vmin calc(2vmin + env(safe-area-inset-left));
+		box-shadow:8px 0 30px rgba(0,0,0,0.6); }
+	#gearsheet .gs-title { color:#e2361a; font-weight:bold; letter-spacing:2px;
+		font-size:clamp(11px,2vmin,14px); margin:2px 6px 12px; text-shadow:0 0 12px rgba(211,22,0,0.5); }
+	#gearsheet .gs-row {
+		display:flex; justify-content:space-between; align-items:center; gap:10px;
+		margin:8px 4px; padding:13px 14px; border-radius:10px;
+		background:rgba(28,21,18,0.85); border:1px solid rgba(200,60,30,0.4);
+		color:#ece5d7; font-weight:bold; font-size:clamp(11px,2vmin,14px); letter-spacing:0.5px; }
+	#gearsheet .gs-row:active { background:rgba(156,20,5,0.6); border-color:#e6431f; }
+	#gearsheet .gs-state { color:#b8a488; }
+	#gearsheet .gs-state.on { color:#3ad16a; text-shadow:0 0 10px rgba(40,170,70,0.6); }
+	#gearsheet .gs-close { justify-content:center; background:rgba(60,14,6,0.7); margin-top:14px; }
+	/* Auto-Sprint-Feedback am Stick */
+	#stick.sprint { border-color:rgba(255,84,40,0.95);
+		box-shadow:inset 0 0 24px rgba(0,0,0,0.55), 0 0 26px rgba(230,52,20,0.6); }
+	#stick.sprint #stickthumb { box-shadow:0 0 22px rgba(255,74,32,0.85); }
+	/* Erste-Runde-Hinweise */
+	#hints { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center;
+		background:rgba(0,0,0,0.64); font-family:monospace; -webkit-user-select:none; user-select:none; }
+	#hints .hint-card { max-width:min(600px, 86vw); text-align:center; padding:20px 26px;
+		background:rgba(10,8,7,0.92); border:1px solid rgba(210,22,0,0.55); border-radius:14px;
+		color:#ece5d7; box-shadow:0 0 44px rgba(211,22,0,0.28); }
+	#hints p { margin:10px 0; font-size:clamp(13px,2.5vmin,17px); letter-spacing:0.4px; }
+	#hints .hint-ok { color:#ff5030; font-weight:bold; margin-top:16px; letter-spacing:1.5px; }
 	#stick {
 		position:absolute; pointer-events:auto; touch-action:none;
 		left:calc(4vmin + env(safe-area-inset-left)); bottom:calc(5vmin + env(safe-area-inset-bottom));
@@ -143,25 +168,39 @@
 	</div>
 	<canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" hidden=1></canvas>
 	<div id="touchui">
-		<!-- Linker Bewegungs-Cluster: Joystick + Sprint/Ducken. -->
+		<!-- Links: grosser Bewegungs-Stick. Voll nach vorn = Auto-Sprint,
+		     lange halten ohne Auslenkung = Haltung/Ducken (Longpress). -->
 		<div id="stick"><div id="stickthumb"></div></div>
-		<div class="tbtn" data-key="16" data-code="ShiftLeft" data-tap="1" style="left:calc(38vmin + env(safe-area-inset-left)); bottom:calc(5vmin + env(safe-area-inset-bottom));">SPRINT</div>
-		<div class="tbtn" data-key="18" data-code="AltLeft"   data-tap="1" style="left:calc(38vmin + env(safe-area-inset-left)); bottom:calc(19vmin + env(safe-area-inset-bottom));">DUCKEN</div>
-		<!-- Rechter Kampf-Cluster; Umsehen + Zielen = direkt auf dem Bildschirm wischen. -->
+		<!-- Rechter Kampf-Cluster (9er-Set); Umsehen/Zielen = direkt auf dem Bildschirm wischen. -->
 		<div class="tbtn big" id="firebtn"                    style="right:calc(4vmin + env(safe-area-inset-right));  bottom:calc(4vmin + env(safe-area-inset-bottom));">FEUER</div>
-		<div class="tbtn pill" id="autobtn"                   style="right:calc(6vmin + env(safe-area-inset-right));  bottom:calc(25vmin + env(safe-area-inset-bottom));">AUTO</div>
 		<div class="tbtn" data-key="82" data-code="KeyR"      style="right:calc(24vmin + env(safe-area-inset-right)); bottom:calc(5vmin + env(safe-area-inset-bottom));">LADEN</div>
 		<div class="tbtn" data-key="81" data-code="KeyQ"      style="right:calc(23vmin + env(safe-area-inset-right)); bottom:calc(20vmin + env(safe-area-inset-bottom));">ZIELEN</div>
 		<div class="tbtn" data-key="32" data-code="Space"     style="right:calc(4vmin + env(safe-area-inset-right));  bottom:calc(40vmin + env(safe-area-inset-bottom));">SPRUNG</div>
 		<div class="tbtn" data-key="86" data-code="KeyV"      style="right:calc(42vmin + env(safe-area-inset-right)); bottom:calc(6vmin + env(safe-area-inset-bottom));">MESSER</div>
 		<div class="tbtn" data-key="71" data-code="KeyG"      style="right:calc(41vmin + env(safe-area-inset-right)); bottom:calc(21vmin + env(safe-area-inset-bottom));">GRANATE</div>
-		<div class="tbtn" data-key="52" data-code="Digit4" data-tap="1" style="right:calc(23vmin + env(safe-area-inset-right)); bottom:calc(35vmin + env(safe-area-inset-bottom));">GR. 2</div>
 		<div class="tbtn" data-key="17" data-code="ControlLeft" style="right:calc(41vmin + env(safe-area-inset-right)); bottom:calc(36vmin + env(safe-area-inset-bottom));">WAFFE</div>
 		<div class="tbtn" data-key="69" data-code="KeyE"      style="right:calc(6vmin + env(safe-area-inset-right));  bottom:calc(55vmin + env(safe-area-inset-bottom));">AKTION</div>
-		<!-- Ecken: Menue oben rechts, Vollbild oben links. -->
+		<!-- Ecken: Menue oben rechts, Schnell-Einstellungen (Zahnrad) oben links. -->
 		<div class="tbtn" data-key="27" data-code="Escape" data-tap="1" style="right:calc(4vmin + env(safe-area-inset-right)); top:calc(4vmin + env(safe-area-inset-top));">MENÜ</div>
-		<div class="tbtn" id="fsbtn" data-tap="1"             style="left:calc(4vmin + env(safe-area-inset-left)); top:calc(4vmin + env(safe-area-inset-top));">VOLLBILD</div>
+		<div class="tbtn round" id="gearbtn"                  style="left:calc(4vmin + env(safe-area-inset-left)); top:calc(4vmin + env(safe-area-inset-top));">⚙</div>
+		<!-- Schnell-Einstellungen: alles, was keinen eigenen HUD-Button mehr braucht. -->
+		<div id="gearsheet">
+			<div class="gs-title" data-i18n="gsTitle"></div>
+			<div class="gs-row" id="gs-auto"><span data-i18n="gsAuto"></span><span class="gs-state" id="gs-auto-state"></span></div>
+			<div class="gs-row" id="gs-duck"><span data-i18n="gsDuck"></span></div>
+			<div class="gs-row" id="gs-nade"><span data-i18n="gsNade"></span></div>
+			<div class="gs-row" id="gs-fs"><span data-i18n="gsFs"></span></div>
+			<div class="gs-row" id="gs-help"><span data-i18n="gsHelp"></span></div>
+			<div class="gs-row gs-close" id="gs-close"><span data-i18n="gsClose"></span></div>
+		</div>
 	</div>
+	<!-- Erste-Runde-Hinweise (eigener Layer: ueberlebt HUD-Hide, tippen schliesst) -->
+	<div id="hints"><div class="hint-card">
+		<p data-i18n="hint1"></p>
+		<p data-i18n="hint2"></p>
+		<p data-i18n="hint3"></p>
+		<p class="hint-ok" data-i18n="hintOk"></p>
+	</div></div>
 	<div id="mstart"><div class="box">
 		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
 		<p class="ts-mark">TOTES SIGNAL</p>
@@ -203,6 +242,22 @@ function tsMarker(msg)
 		return orig.apply(null, arguments);
 	};
 })();
+
+// JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
+// exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
+// cbufadd erwartet sie aber als Globals -> vor dem Aufruf shimen.
+function tsCmd(cmd)
+{
+	try {
+		if (!window.FTEC || !FTEC.cbufadd || !window.Module) return false;
+		if (typeof window._malloc === 'undefined')
+			window._malloc = Module._malloc || Module._emscripten_builtin_malloc;
+		if (typeof window._free === 'undefined')
+			window._free = Module._free || Module._emscripten_builtin_free || function(){};
+		FTEC.cbufadd(cmd);
+		return true;
+	} catch(e) { return false; }
+}
 
 // connect to canvas
 var Module = {
@@ -379,11 +434,19 @@ var I18N = {
 		ldRecv:'Signal wird empfangen', ldPrep:'Daten werden entschlüsselt',
 		ldDone:'Signal empfangen.', ldEngErr:'Engine-Daten konnten nicht geladen werden.',
 		initErr:'Start fehlgeschlagen. Bitte Browser neu starten (64-Bit-Browser empfohlen).',
+		gsTitle:'▚ SCHNELL-EINSTELLUNGEN ▚', gsAuto:'AUTO-FEUER', gsDuck:'HALTUNG WECHSELN',
+		gsNade:'GRANATE WECHSELN', gsFs:'VOLLBILD', gsHelp:'HILFE ANZEIGEN', gsClose:'SCHLIESSEN',
+		on:'AN', off:'AUS',
+		hint1:'⟵ Stick: Bewegen — voll nach vorn = SPRINT',
+		hint2:'Rechts über den Bildschirm wischen = Umsehen ⟶',
+		hint3:'FEUER gedrückt halten · Stick lange halten = Ducken',
+		hintOk:'▶ TIPPEN ZUM START',
 		tips:[
 			'Erstkontakt lädt ~90 MB — danach läuft es offline aus dem Cache.',
 			'Quer halten: links laufen, rechts über den Bildschirm wischen zum Zielen.',
-			'FEUER halten — oder AUTO für Dauerfeuer aktivieren.',
-			'HALTUNG schaltet Stehen → Hocke → Liegen durch.',
+			'Stick voll nach vorn drücken = Sprint.',
+			'Stick lange halten ohne Bewegung = Ducken.',
+			'FEUER halten — Dauerfeuer gibt es im ⚙-Menü.',
 			'Kopfschüsse geben mehr Punkte. Ziel höher.',
 			'Die Mystery Box ist Glückssache — manchmal die Rettung.',
 			'Kein Empfang. Nur Untote.'
@@ -398,11 +461,19 @@ var I18N = {
 		ldRecv:'Receiving signal', ldPrep:'Decrypting data',
 		ldDone:'Signal received.', ldEngErr:'Failed to load engine data.',
 		initErr:'Startup failed. Please restart your browser (a 64-bit browser is recommended).',
+		gsTitle:'▚ QUICK SETTINGS ▚', gsAuto:'AUTO-FIRE', gsDuck:'CHANGE STANCE',
+		gsNade:'SWITCH GRENADE', gsFs:'FULLSCREEN', gsHelp:'SHOW HELP', gsClose:'CLOSE',
+		on:'ON', off:'OFF',
+		hint1:'⟵ Stick: move — push fully forward = SPRINT',
+		hint2:'Swipe the right side of the screen = look around ⟶',
+		hint3:'Hold FIRE to shoot · hold the stick still = crouch',
+		hintOk:'▶ TAP TO START',
 		tips:[
 			'First contact downloads ~90 MB — then it runs offline from cache.',
 			'Hold landscape: left to move, swipe the right side to aim.',
-			'Hold FIRE — or enable AUTO for continuous fire.',
-			'STANCE cycles standing → crouch → prone.',
+			'Push the stick fully forward to sprint.',
+			'Hold the stick without moving to crouch.',
+			'Hold FIRE — continuous fire lives in the ⚙ menu.',
 			'Headshots score more. Aim higher.',
 			'The Mystery Box is a gamble — sometimes a lifesaver.',
 			'No signal. Only the undead.'
@@ -539,10 +610,17 @@ function startDynRes()
 	var ema = 60, last = 0, lowSince = 0, highSince = 0;
 	function apply(){
 		M9.eff = STEPS[idx];
-		// Nicht mitten in der Bewegung resizen: ein Canvas-Resize kann ein
-		// pointercancel auf den gehaltenen Joystick-Finger ausloesen (genau der
-		// beruechtigte "nach paar Sekunden tot"-Bug). Warten bis Stick los ist.
-		if (window.__ts_stick_active) { M9.pendingResize = true; return; }
+		// Nicht mitten in der Beruehrung resizen: ein Canvas-Resize kann ein
+		// pointercancel auf JEDEN gehaltenen Finger ausloesen (Joystick UND
+		// Look/Feuer) — der beruechtigte "nach paar Sekunden tot"-Bug. Warten,
+		// bis kein Finger mehr aufliegt; der Touch-Watchdog holt den Wechsel
+		// via flushPendingResize() nach (max. 2s Verzoegerung).
+		if (window.__ts_stick_active || (window.__ts_busy && window.__ts_busy())){
+			M9.pendingResize = true;
+			if (!M9.pendingSince) M9.pendingSince = Date.now();
+			return;
+		}
+		M9.pendingSince = 0;
 		if (typeof window.onresize === 'function') window.onresize();  // engine-Resize-Pfad erneut auslösen
 	}
 	function tick(now){
@@ -646,10 +724,15 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		})(btns[i]);
 	}
 
-	// --- dedicated FIRE button + AUTO-fire toggle. Drives the native MOUSE1
-	// (+attack) path so the look-drag on the canvas never fires by accident
-	// (touch is captured on the button). AUTO on: tap FEUER to start/stop a
-	// pulsed fire loop (no holding) — works for semi- and full-autos. ---
+	// --- Auto-Feuer-Zustand lebt auf IIFE-Ebene (FEUER-Block + ⚙-Sheet teilen ihn) ---
+	var autoFire = false;
+	try { autoFire = localStorage.getItem('ts_autofire') === '1'; } catch(e){}
+	var fireStop = null;                                    // vom FEUER-Block gesetzt
+
+	// --- dedicated FIRE button. Drives the native MOUSE1 (+attack) path so the
+	// look-drag on the canvas never fires by accident (touch is captured on the
+	// button). AUTO on (via ⚙-Sheet): tap FEUER to start/stop a pulsed fire
+	// loop (no holding) — works for semi- and full-autos. ---
 	(function(){
 		var fire = document.getElementById('firebtn');
 		if (!fire) return;
@@ -660,8 +743,6 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 				clientX: r.left + r.width/2, clientY: r.top + r.height/2 });
 			canvas.dispatchEvent(ev);
 		}
-		var autoFire = false;
-		try { autoFire = localStorage.getItem('ts_autofire') === '1'; } catch(e){}
 		var loop = 0, looping = false;
 		function startLoop(){
 			if (looping) return; looping = true; fire.classList.add('held');
@@ -672,6 +753,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			if (!looping) return; looping = false; clearInterval(loop); loop = 0;
 			fire.classList.remove('held'); mouse('mouseup', false);
 		}
+		fireStop = stopLoop;
 		fire.addEventListener('pointerdown', function(e){
 			e.preventDefault();
 			try { fire.setPointerCapture(e.pointerId); } catch(err){}
@@ -686,43 +768,105 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		fire.addEventListener('pointerup', rel);
 		fire.addEventListener('pointercancel', rel);
 		fire.addEventListener('lostpointercapture', rel);
-
-		// AUTO toggle
-		var ab = document.getElementById('autobtn');
-		if (ab){
-			if (autoFire) ab.classList.add('on');
-			ab.addEventListener('pointerdown', function(e){
-				e.preventDefault();
-				autoFire = !autoFire;
-				try { localStorage.setItem('ts_autofire', autoFire ? '1' : '0'); } catch(err){}
-				ab.classList.toggle('on', autoFire);
-				if (!autoFire) stopLoop();
-			});
-		}
 		// bei Menue/Blur: Dauerfeuer stoppen + Feuer freigeben
 		releasers.push(function(){ stopLoop(); if (fire.classList.contains('held')){ fire.classList.remove('held'); mouse('mouseup', false); } });
 	})();
 
-	// --- fullscreen + landscape ---
-	document.getElementById('fsbtn').addEventListener('pointerdown', function(e){
-		e.preventDefault();
+	// --- Vollbild + Landscape-Lock (aus dem ⚙-Sheet; beim Start uebernimmt das Gate) ---
+	function fsToggle(){
 		var el = document.documentElement;
 		var req = el.requestFullscreen || el.webkitRequestFullscreen;
-		if (req)
-			req.call(el).catch(function(){});
+		if (req) { try { var p = req.call(el); if (p && p.catch) p.catch(function(){}); } catch(e){} }
 		if (screen.orientation && screen.orientation.lock)
 			screen.orientation.lock('landscape').catch(function(){});
+	}
+
+	// --- Erste-Runde-Hinweise (Onboarding; via ⚙ > HILFE jederzeit wieder) ---
+	var hintsEl = document.getElementById('hints');
+	function showHints(force){
+		if (!hintsEl) return;
+		if (!force){ try { if (localStorage.getItem('ts_seen_hints') === '1') return; } catch(e){} }
+		hintsEl.style.display = 'flex';
+	}
+	if (hintsEl) hintsEl.addEventListener('pointerdown', function(e){
+		e.preventDefault(); hintsEl.style.display = 'none';
+		try { localStorage.setItem('ts_seen_hints', '1'); } catch(err){}
 	});
 
-	// --- Virtueller Joystick -> WASD. Robust: KEIN setPointerCapture, Listener am
-	// window (Finger geht nie verloren), Re-Acquire bei jedem Tippen, Watchdog
-	// gegen haengende Tasten. Behebt "Bewegung stirbt nach paar Sekunden". ---
+	// --- Zahnrad + Schnell-Einstellungen-Sheet (ersetzt die HUD-Buttons
+	// SPRINT/DUCKEN/GR.2/AUTO/VOLLBILD -> weniger Controls, gleiche Funktion) ---
+	var sheet = document.getElementById('gearsheet');
+	function sheetShow(v){ if (sheet) sheet.style.display = v ? 'block' : 'none'; }
+	function updateGsAuto(){
+		var st = document.getElementById('gs-auto-state');
+		if (st){ st.textContent = T(autoFire ? 'on' : 'off'); st.classList.toggle('on', autoFire); }
+	}
+	(function(){
+		var gear = document.getElementById('gearbtn');
+		if (!gear || !sheet) return;
+		updateGsAuto();
+		gear.addEventListener('pointerdown', function(e){
+			e.preventDefault(); sheetShow(sheet.style.display !== 'block');
+		});
+		function row(id, fn){
+			var el = document.getElementById(id);
+			if (el) el.addEventListener('pointerdown', function(e){ e.preventDefault(); e.stopPropagation(); fn(); });
+		}
+		row('gs-auto', function(){
+			autoFire = !autoFire;
+			try { localStorage.setItem('ts_autofire', autoFire ? '1' : '0'); } catch(err){}
+			if (!autoFire && fireStop) fireStop();
+			updateGsAuto();
+		});
+		row('gs-duck', function(){ sendKey('keydown', 18, 'AltLeft'); sendKey('keyup', 18, 'AltLeft'); });  // impulse 30
+		row('gs-nade', function(){ tsCmd('impulse 25\n'); });   // 2. Granate waehlen
+		row('gs-fs',   fsToggle);
+		row('gs-help', function(){ sheetShow(false); showHints(true); });
+		row('gs-close', function(){ sheetShow(false); });
+		releasers.push(function(){ sheetShow(false); });
+	})();
+
+	// --- Virtueller Joystick -> WASD (M1-gehaertet). Grundsaetze:
+	//  * window-weite Listener, KEIN setPointerCapture (Finger geht nie verloren)
+	//  * Active-Pointer-Registry = Quelle der Wahrheit: NUR echtes pointerup/
+	//    pointercancel entfernt einen Finger — Blur-/Menue-Blips nicht
+	//  * Soft-Release (Tasten los, Stick-Besitz bleibt) vs. Hard-Release
+	//  * Watchdog re-presst nach Soft-Release und adoptiert lebende Finger
+	// Der alte Killer: releaseAll() bei JEDEM blur nullte stickId, waehrend der
+	// Finger noch auflag (Engine ruft window.focus() bei jedem mousedown/cbufadd
+	// -> im iframe Dauer-Blur-Rauschen) -> Bewegung tot bis zum Neu-Tippen.
 	var stick = document.getElementById('stick');
 	var thumb = document.getElementById('stickthumb');
 	var KEYS = { w:[87,'KeyW'], a:[65,'KeyA'], s:[83,'KeyS'], d:[68,'KeyD'] };
 	var held = { w:false, a:false, s:false, d:false };
 	var stickId = null;
 	var lastDirs = { w:false, s:false, a:false, d:false };
+
+	// Active-Pointer-Registry (Capture-Phase: sieht auch Finger auf Buttons/Canvas)
+	var activePtrs = new Map();
+	function inStickZone(x, y){
+		var r = stick.getBoundingClientRect();
+		if (!r.width) return false;
+		var cx = r.left + r.width/2, cy = r.top + r.height/2;
+		var half = (r.width/2) * 1.4;
+		return Math.abs(x - cx) <= half && Math.abs(y - cy) <= half;
+	}
+	window.addEventListener('pointerdown', function(e){
+		activePtrs.set(e.pointerId, { x:e.clientX, y:e.clientY, onStick: inStickZone(e.clientX, e.clientY) });
+	}, true);
+	window.addEventListener('pointermove', function(e){
+		var p = activePtrs.get(e.pointerId);
+		if (p){ p.x = e.clientX; p.y = e.clientY; }
+		else if (e.buttons){
+			// Unbekannter, aber gedrueckter Finger (Registry wurde hart geleert,
+			// Kontakt besteht aber noch) -> wieder aufnehmen, Watchdog adoptiert.
+			activePtrs.set(e.pointerId, { x:e.clientX, y:e.clientY, onStick: inStickZone(e.clientX, e.clientY) });
+		}
+	}, true);
+	function dropPtr(e){ activePtrs.delete(e.pointerId); }
+	window.addEventListener('pointerup', dropPtr, true);
+	window.addEventListener('pointercancel', dropPtr, true);
+	window.__ts_busy = function(){ return activePtrs.size > 0; };
 
 	function applyDirs(next)
 	{
@@ -737,15 +881,39 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	function moveThumb(dx, dy){
 		thumb.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
 	}
+	function flushPendingResize(){
+		// aufgestauten M9-Aufloesungswechsel nachholen: wenn kein Finger mehr
+		// aufliegt ODER der Wechsel schon >2s haengt (nie unendlich deferren)
+		if (!(window.M9 && M9.pendingResize)) return;
+		var stale = M9.pendingSince && (Date.now() - M9.pendingSince > 2000);
+		if (activePtrs.size === 0 || stale){
+			M9.pendingResize = false;
+			M9.pendingSince = 0;
+			if (typeof window.onresize === 'function') window.onresize();
+		}
+	}
+
+	// Auto-Sprint + Longpress-Ducken (Tuning-Konstanten; live pruefen via ?tsdebug=1)
+	var SPRINT_DEFLECT = 0.90;    // Anteil Vollausschlag, ab dem gesprintet wird
+	var SPRINT_RETAP_MS = 3000;   // QC beendet Sprint selbst (Stamina/Richtung) -> solange gehalten, re-tippen
+	var DUCK_HOLD_MS = 350;       // Stick so lange ruhig halten = Haltung wechseln
+	var lastSprintTap = 0;
+	var duckTimer = 0, duckMaxLen = 0;
+	function aimHeld(){
+		var z = ui.querySelector('[data-key="81"]');
+		return !!(z && z.classList.contains('held'));
+	}
+
 	function resetStick()
 	{
 		stickId = null;
 		window.__ts_stick_active = false;
+		if (duckTimer){ clearTimeout(duckTimer); duckTimer = 0; }
+		stick.classList.remove('sprint');
+		lastSprintTap = 0;
 		moveThumb(0, 0);
 		applyDirs({ w:false, s:false, a:false, d:false });
-		// aufgestauten M9-Aufloesungswechsel jetzt sicher nachholen
-		if (window.M9 && M9.pendingResize){ M9.pendingResize = false;
-			if (typeof window.onresize === 'function') window.onresize(); }
+		flushPendingResize();
 	}
 	function stickCompute(clientX, clientY)
 	{
@@ -753,11 +921,30 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		var cx = r.left + r.width/2, cy = r.top + r.height/2;
 		var dx = clientX - cx, dy = clientY - cy;
 		var max = r.width/2;
-		var len = Math.sqrt(dx*dx + dy*dy) || 1;
-		if (len > max){ dx *= max/len; dy *= max/len; }
+		var rawLen = Math.sqrt(dx*dx + dy*dy) || 1;
+		if (rawLen > max){ dx *= max/rawLen; dy *= max/rawLen; }
 		moveThumb(dx, dy);
 		var dead = max * 0.28;
 		applyDirs({ w: dy < -dead, s: dy > dead, a: dx < -dead, d: dx > dead });
+		var frac = Math.min(rawLen, max) / max;
+		if (frac > duckMaxLen) duckMaxLen = frac;
+		// Auto-Sprint: Vollausschlag im Vorwaerts-Kegel (nicht beim Zielen).
+		// impulse 23 STARTET den Sprint; stoppen macht die QC selbst (Stamina,
+		// Richtungswechsel, Feuern) -> wir senden nur zeit-gedrosselte Start-Taps.
+		var forward = dy < -dead && Math.abs(dy) >= Math.abs(dx);
+		var full = rawLen >= max * SPRINT_DEFLECT;
+		if (forward && full && !aimHeld()){
+			var now = Date.now();
+			if (now - lastSprintTap > SPRINT_RETAP_MS){
+				lastSprintTap = now;
+				sendKey('keydown', 16, 'ShiftLeft');   // LSHIFT-Tap = impulse 23
+				sendKey('keyup', 16, 'ShiftLeft');
+			}
+			stick.classList.add('sprint');
+		} else {
+			stick.classList.remove('sprint');
+			lastSprintTap = 0;
+		}
 	}
 	stick.addEventListener('pointerdown', function(e){
 		e.preventDefault();
@@ -765,6 +952,16 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		// aufliegender, vom Browser ge-cancelter Finger greift sofort wieder.
 		stickId = e.pointerId;
 		window.__ts_stick_active = true;
+		duckMaxLen = 0;
+		if (duckTimer) clearTimeout(duckTimer);
+		duckTimer = setTimeout(function(){
+			duckTimer = 0;
+			if (stickId !== null && duckMaxLen < 0.28){       // Deadzone nie verlassen = bewusstes Halten
+				sendKey('keydown', 18, 'AltLeft');            // LALT-Tap = impulse 30 (Haltung)
+				sendKey('keyup', 18, 'AltLeft');
+				if (navigator.vibrate) try { navigator.vibrate(30); } catch(err){}
+			}
+		}, DUCK_HOLD_MS);
 		stickCompute(e.clientX, e.clientY);
 	});
 	// window-weit lauschen (kein Capture): Finger wird auch ausserhalb der Box verfolgt.
@@ -781,39 +978,84 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	window.addEventListener('pointercancel', stickEnd);
 	window.addEventListener('lostpointercapture', stickEnd);
 
-	// Watchdog: haengende Tasten aufraeumen + Richtung idempotent aktuell halten,
-	// falls ein pointermove verschluckt wurde.
+	// Watchdog (120ms): heilt verschluckte pointermoves, re-presst Tasten nach
+	// einem Soft-Release und ADOPTIERT einen lebenden Stick-Finger, dessen
+	// Besitz durch einen Hard-Release verloren ging.
 	setInterval(function(){
-		if (stickId === null){
-			if (held.w || held.a || held.s || held.d)
-				applyDirs({ w:false, s:false, a:false, d:false });
+		if (stickId !== null){
+			var p = activePtrs.get(stickId);
+			if (!p) resetStick();                             // Finger ist real weg
+			else stickCompute(p.x, p.y);
 		} else {
-			applyDirs(lastDirs);
+			var adoptId = null, adopt = null;
+			activePtrs.forEach(function(pp, id){ if (adopt === null && pp.onStick){ adoptId = id; adopt = pp; } });
+			if (adopt && inGame){
+				stickId = adoptId;
+				window.__ts_stick_active = true;
+				stickCompute(adopt.x, adopt.y);
+			}
+			else if (held.w || held.a || held.s || held.d)
+				applyDirs({ w:false, s:false, a:false, d:false });
 		}
+		flushPendingResize();
 	}, 120);
 
-	// --- Sichtbarkeit: HUD nur im Spiel (Engine meldet Menue<->Spiel via Print-
-	// Bruecke, siehe Module.print + menu/main.qc) und nur im Querformat. ---
-	var inGame = false, bridgeSeen = false;
-	function releaseAll(){
-		resetStick();
+	// --- Sichtbarkeit: HUD nur im Spiel (TSUI-Print-Bruecke) + Querformat.
+	// M1: Hide laeuft ueber visibility (nicht display) und ist 500ms debounced ->
+	// ein transienter Portrait-/Menue-Blip toetet den Stick nicht mehr. Input
+	// wird nur bei NACHHALTIGEM Hide freigegeben (soft), nie hart resettet. ---
+	var inGame = false, bridgeSeen = false, hintsShown = false;
+	var hideTimer = 0;
+	ui.style.display = 'block';                // Sichtbarkeit laeuft ab jetzt ueber visibility
+	ui.style.visibility = 'hidden';
+	function releaseKeys(){
+		// Soft-Release: Engine-Tasten loslassen; stickId/Registry BLEIBEN ->
+		// ein noch aufliegender Finger wird vom Watchdog nahtlos re-presst.
+		applyDirs({ w:false, s:false, a:false, d:false });
 		for (var j = 0; j < releasers.length; j++){ try { releasers[j](); } catch(err){} }
+	}
+	function releaseAll(){
+		// Hard-Release: Finger sind sicher weg (App-Wechsel, pagehide).
+		releaseKeys();
+		resetStick();
+		activePtrs.clear();
 	}
 	function applyVisibility(){
 		var portrait = window.matchMedia('(orientation: portrait)').matches;
 		var show = inGame && !portrait;
-		ui.style.display = show ? 'block' : 'none';
-		if (!show) releaseAll();
+		if (show){
+			if (hideTimer){ clearTimeout(hideTimer); hideTimer = 0; }
+			ui.style.visibility = 'visible';
+		} else if (!hideTimer){
+			hideTimer = setTimeout(function(){
+				hideTimer = 0;
+				ui.style.visibility = 'hidden';
+				releaseKeys();
+			}, 500);
+		}
 	}
 	window.TS_CTRL = {
-		setInGame: function(b){ bridgeSeen = true; b = !!b; if (inGame === b) return; inGame = b; applyVisibility(); },
+		setInGame: function(b){
+			bridgeSeen = true; b = !!b;
+			if (b && !hintsShown){
+				hintsShown = true;
+				setTimeout(function(){ if (inGame) showHints(false); }, 4000);
+			}
+			if (inGame === b) return;
+			inGame = b;
+			applyVisibility();
+		},
 		applyVisibility: applyVisibility,
 		releaseAll: releaseAll
 	};
 	applyVisibility();   // Boot -> Hauptmenue: HUD aus, bis die Engine "im Spiel" meldet.
 
-	// Taste nie haengen lassen: Fokusverlust / App-Wechsel -> alles freigeben.
-	window.addEventListener('blur', releaseAll);
+	// Fokus-Handling: Engine ruft window.focus() bei jedem mousedown/cbufadd ->
+	// blur ist (v. a. im iframe) Dauerrauschen. Nur bei ECHTEM Fokusverlust
+	// soft-releasen; hart nur, wenn die Seite wirklich in den Hintergrund geht.
+	window.addEventListener('blur', function(){
+		setTimeout(function(){ if (!document.hasFocus()) releaseKeys(); }, 0);
+	});
 	window.addEventListener('pagehide', releaseAll);
 	document.addEventListener('visibilitychange', function(){ if (document.hidden) releaseAll(); });
 
@@ -824,6 +1066,28 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		if (window.Module && Module.began){ inGame = true; applyVisibility(); return; }
 		setTimeout(failopen, 2000);
 	}, 10000);
+
+	// --- Soak-Hook + Debug-Overlay (?tsdebug=1 oder localStorage.ts_debug=1) ---
+	window.__ts_state = function(){
+		return { stickId: stickId, held: { w:held.w, a:held.a, s:held.s, d:held.d },
+			inGame: inGame, hasFocus: document.hasFocus(), ptrs: activePtrs.size,
+			vis: ui.style.visibility, sprint: stick.classList.contains('sprint') };
+	};
+	(function(){
+		var dbgOn = false;
+		try { dbgOn = /[?&]tsdebug=1/.test(location.search) || localStorage.getItem('ts_debug') === '1'; } catch(e){}
+		if (!dbgOn) return;
+		var d = document.createElement('div');
+		d.style.cssText = 'position:fixed;left:4px;bottom:4px;z-index:99;background:rgba(0,0,0,0.72);color:#7f7;font:10px/1.4 monospace;padding:3px 6px;pointer-events:none;white-space:pre';
+		document.body.appendChild(d);
+		setInterval(function(){
+			var s = window.__ts_state();
+			d.textContent = 'stick:' + s.stickId + ' ptrs:' + s.ptrs +
+				' wasd:' + (s.held.w?'W':'-') + (s.held.a?'A':'-') + (s.held.s?'S':'-') + (s.held.d?'D':'-') +
+				' inGame:' + (s.inGame?1:0) + ' focus:' + (s.hasFocus?1:0) +
+				' vis:' + s.vis + (s.sprint ? ' SPRINT' : '');
+		}, 250);
+	})();
 })();
     </script>  
   </body>
