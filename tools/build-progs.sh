@@ -23,7 +23,7 @@ zip -9 "${REPO_ROOT}/web/nzp/progs.pk3" ./*.cfg
 # here OVERRIDE the pinned game.pk3 without touching it.
 if [ -d "${REPO_ROOT}/assets" ]; then
     cd "${REPO_ROOT}/assets"
-    zip -9 -r "${REPO_ROOT}/web/nzp/progs.pk3" gfx
+    zip -9 -r "${REPO_ROOT}/web/nzp/progs.pk3" gfx maps
 fi
 
 echo "[OK] web/nzp/progs.pk3:"
