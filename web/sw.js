@@ -6,7 +6,7 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v7';                 // v7: Install-Button-Redesign + Cache-Header-Fix (Caddy no-cache Shell)
+const SW_VERSION = 'v8';                 // v8: Update-Erkennung (version.json network-only) + Build-Tag
 const SHELL = 'totes-shell-' + SW_VERSION;
 const DATA  = 'totes-data-'  + SW_VERSION;
 const ALLOW = [SHELL, DATA];
@@ -61,6 +61,14 @@ self.addEventListener('fetch', function (event) {
   // Range-Requests NIE aus dem Cache bedienen — die Cache API kann kein 206;
   // ein volles 200-aus-Cache wuerde den 90-MB-Stream korrumpieren.
   if (req.headers.has('range')) { event.respondWith(fetch(req)); return; }
+
+  // version.json: IMMER frisch vom Netz (Update-Erkennung) — nie aus dem Cache.
+  if (/\/version\.json$/.test(url.pathname)) {
+    event.respondWith(fetch(req).catch(function () {
+      return new Response('{}', { headers: { 'Content-Type': 'application/json' } });
+    }));
+    return;
+  }
 
   // game.pk3 (~90 MB, immutable) -> cache-first, lazy put on miss (offline replay).
   if (/\/nzp\/game\.pk3$/.test(url.pathname)) {
