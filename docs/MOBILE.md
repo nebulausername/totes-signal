@@ -15,19 +15,27 @@ Touch-Geräten eingeblendet wird (`pointer: coarse` bzw. `ontouchstart`).
 
 ## Steuerung
 
+Das HUD ist nur **im Spiel** sichtbar (QuakeC→JS-Marker `TSUI:menu/game` via
+`console.log`-Wrapper) — im Menü/der Lobby ist der Bildschirm frei. Sichtbar
+sind **9 Controls** (Controls 2.0); alles Weitere steckt im ⚙-Sheet.
+
 | Element | Funktion | Technik |
 | --- | --- | --- |
-| Virtueller Joystick (links unten) | Bewegung | synthetische `keydown`/`keyup`-Events für W/A/S/D (30 % Deadzone, 8 Richtungen) |
+| Virtueller Joystick (links, groß) | Bewegung | synthetische `keydown`/`keyup` für W/A/S/D (28 % Deadzone); **Pointer-Registry + Watchdog** re-adoptieren einen lebenden Finger nach Blur/Resize (M1-Fix) |
+| Joystick **voll nach vorn** | Auto-Sprint | zeit-gedrosselte Shift-Taps (keyCode 16 → `impulse 23`); QC stoppt selbst (Stamina/Richtung); roter Stick-Glow |
+| Joystick **lange halten** (350 ms, in der Deadzone) | Ducken/Haltung | Alt-Tap (keyCode 18 → `impulse 30`) + Haptik |
 | Drag auf dem Spielfeld | Umsehen | native Touch-Behandlung der FTEQW-Engine (`touchmove`/`changedTouches`) |
-| **FEUER** (großer Button) | Feuern | synthetischer `mousedown`/`mouseup` auf dem Canvas → nativer `MOUSE1`/`+attack`-Pfad; halten = Dauerfeuer. Touch ist auf dem Button gecaptured → kein Doppelfeuer mit Look-Drag |
-| JUMP / RLD / USE / KNF / NADE | Springen, Nachladen, Benutzen, Messer, Granate | Key-Events auf die in `nzportable.cfg` (in `game.pk3`) gebundenen Tasten (SPACE, R, E, V, G) |
-| **SPRT** | Sprinten | Key-Event `Shift` (keyCode 16 → `impulse 23`) |
-| **DUCK** | Ducken/Stance | Key-Event `Alt` (keyCode 18 → `impulse 30`) |
-| **NAD2** | Zweite Granate | Key-Event `4` (keyCode 52 → `impulse 33`) |
-| AIM | Zielen (ADS) | Key-Event `Q`; Bind `q +button8` kommt aus `config/autoexec.cfg` (wird von `tools/build-progs.sh` ins `progs.pk3` gepackt) |
-| SWAP | Waffe wechseln | Key-Event CTRL (`+button4`) |
-| MENU | Pausemenü | Key-Event ESCAPE (tap) |
-| ⛶ (links oben) | Vollbild + Landscape-Lock | Fullscreen API + `screen.orientation.lock('landscape')` |
+| **FEUER** (großer Button) | Feuern | synthetischer `mousedown`/`mouseup` → nativer `MOUSE1`/`+attack`; halten = Dauerfeuer; AUTO-Modus (⚙) = Tap-Latch mit 110-ms-Puls |
+| LADEN / AKTION / MESSER / GRANATE / SPRUNG | Nachladen, Benutzen, Messer, Granate, Springen | Key-Events auf die `nzportable.cfg`-Binds (R, E, V, G, SPACE) |
+| ZIELEN | ADS | Key-Event `Q`; Bind `q +button8` aus `config/autoexec.cfg` |
+| WAFFE | Waffe wechseln | Key-Event CTRL (`+button4`) |
+| MENÜ (oben rechts) | Pausemenü | Key-Event ESCAPE (tap) |
+| ⚙ (oben links) | Schnell-Einstellungen | Sheet: AUTO-FEUER an/aus, HALTUNG, GRANATE WECHSELN (`impulse 25` via `tsCmd`), VOLLBILD, HILFE |
+
+Einmaliges **Onboarding-Overlay** (localStorage `ts_seen_hints`) erklärt
+Stick/Sprint/Ducken/Look/Feuer; über ⚙ → HILFE jederzeit wieder aufrufbar.
+Nach dem Tod erscheint das **SIGNAL-VERLOREN-Overlay** (`TSUI:dead:<runden>`)
+mit NOCHMAL (`restart`) und ZUR LOBBY (`disconnect` + `ts_maps`).
 
 ## Implementierungsdetails
 
@@ -86,10 +94,10 @@ relativ → funktioniert auch auf GitHub Pages + local dev). **Kein COOP/COEP.**
   `#6e0d00`, 3 Icons (192/512/maskable), `scope`/`start_url` relativ (`./`).
 - `web/icons/`: gerendertes rot/schwarzes Skull-Icon (Quelle `icon-source.svg`).
 - `web/sw.js` — Zwei-Tier-Cache (`SW_VERSION` bumpen bei Engine/pk3-Änderung):
-  - `endzeit-shell-v1`: ~5,4-MB-Boot-Shell wird beim `install` precached
+  - `totes-shell-vN (SW_VERSION in web/sw.js)`: ~5,4-MB-Boot-Shell wird beim `install` precached
     (index.html, ftewebgl.js/.wasm, default.fmf, manifest, icons, favicon).
     **`game.pk3` NICHT im Install** — ein Fehlbyte würde ihn scheitern lassen.
-  - `endzeit-data-v1`: `nzp/*.pk3` **cache-first, lazy put-on-miss** (nach dem
+  - `totes-data-vN`: `nzp/*.pk3` **cache-first, lazy put-on-miss** (nach dem
     ersten Spiel offline verfügbar).
   - Navigation **network-first** (Rebrand-Updates shippen), Shell-Assets
     cache-first (instant offline boot), **Range-Requests → Netz-Bypass** (Cache

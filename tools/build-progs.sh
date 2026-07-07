@@ -18,5 +18,13 @@ zip -9 "${REPO_ROOT}/web/nzp/progs.pk3" ./*.dat ./*.lno
 cd "${REPO_ROOT}/config"
 zip -9 "${REPO_ROOT}/web/nzp/progs.pk3" ./*.cfg
 
+# Ship custom art overrides (menu backgrounds, portraits) in the same pk3.
+# pk3s merge in the VFS and progs.pk3 sorts after game.pk3 -> same-path files
+# here OVERRIDE the pinned game.pk3 without touching it.
+if [ -d "${REPO_ROOT}/assets" ]; then
+    cd "${REPO_ROOT}/assets"
+    zip -9 -r "${REPO_ROOT}/web/nzp/progs.pk3" gfx
+fi
+
 echo "[OK] web/nzp/progs.pk3:"
 unzip -l "${REPO_ROOT}/web/nzp/progs.pk3"

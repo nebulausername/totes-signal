@@ -114,7 +114,7 @@ float() GenerateAlphaTransparencyQ3Shaders =
 		// Body of our shader file we're writing.
 		string shader_content = sprintf(
 			"//\n"
-			"// Quake III Shader generated automatically by Nazi Zombies: Portable. Do not modify.\n"
+			"// Quake III Shader generated automatically by TOTES SIGNAL. Do not modify.\n"
 			"//\n"
 			"\n"
 			"%s_0.lmp\n" // full_path

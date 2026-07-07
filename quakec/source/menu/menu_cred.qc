@@ -23,9 +23,9 @@ string credits_tech[4] =
 string credits_license[4] =
 {
     "Freie Software unter GPL-2.0",
-    "Vollstaendige Credits: CREDITS.md im Projekt",
-    "",
-    ""
+    "Basiert auf dem Open-Source-Projekt Nazi Zombies: Portable",
+    "Inoffizielles Fanprojekt - nicht kommerziell",
+    "Vollstaendige Credits: CREDITS.md im Projekt"
 };
 
 string credits_thx[4] =

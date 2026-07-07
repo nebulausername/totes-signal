@@ -379,10 +379,10 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 
 		switch(map_category) {
 			case MAP_CATEGORY_NZPBETA: coords_pos = [0, 0]; badge_name = "KLASSIK (2011)"; break;
-			case MAP_CATEGORY_WAW: coords_pos = [0.25, 0]; badge_name = "WORLD AT WAR"; break;
+			case MAP_CATEGORY_WAW: coords_pos = [0.25, 0]; badge_name = "FRONT-KLASSIKER"; break;
 			case MAP_CATEGORY_NZP: coords_pos = [0, 0.5]; badge_name = "ORIGINAL"; break;
-			case MAP_CATEGORY_BLACKOPSDS: coords_pos = [0.25, 0.5]; badge_name = "BLACK OPS (DS)"; break;
-			case MAP_CATEGORY_USER: coords_pos = [0.5, 0]; badge_name = "USERMAP"; break;
+			case MAP_CATEGORY_BLACKOPSDS: coords_pos = [0.25, 0.5]; badge_name = "HANDHELD-AERA"; break;
+			case MAP_CATEGORY_USER: coords_pos = [0.5, 0]; badge_name = "EIGENE KARTE"; break;
 		}
 
 		sui_text([30 + (getTextWidth(badge_name, MENU_TEXT_SUPERSMALL_x)/2), 5], MENU_TEXT_SUPERSMALL, badge_name, [1, 1, 0], 1, 0);
@@ -582,7 +582,7 @@ void() Menu_DrawBackground =
 	float x_pos = 0 - (((sui_current_frame_size()[0] * 1.05) - sui_current_frame_size()[0]) * (elapsed_background_time/7));
 
 	sui_pic([x_pos, 0], [sui_current_frame_size()[0] * 1.05, sui_current_frame_size()[1]], menu_background, [0.85, 0.8, 0.78], 1, 1);
-	sui_fill([0, 0], sui_current_frame_size(), [0.03, 0.0, 0.0], 0.80, 0);
+	sui_fill([0, 0], sui_current_frame_size(), [0.03, 0.0, 0.0], 0.58, 0);   // Waschung: dunkel genug fuer Text, hell genug fuer die neuen BGs
 
 	//
 	// Fade new images in/out
@@ -616,7 +616,7 @@ void() Menu_DrawBackground =
 	// Persistente TOTES-SIGNAL-Wortmarke, zentriert in der Unterleiste (jeder Screen).
 	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
 	sui_text([0, -21], MENU_TEXT_SMALL, "TOTES SIGNAL", [0.85, 0.12, 0.04], 0.9, 0);
-	sui_text([0, -9],  MENU_TEXT_SUPERSMALL, "KEIN SIGNAL", [0.5, 0.46, 0.42], 0.75, 0);
+	sui_text([0, -9],  MENU_TEXT_SUPERSMALL, "TOTERSIGNAL.DE", [0.5, 0.46, 0.42], 0.75, 0);
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 };
 

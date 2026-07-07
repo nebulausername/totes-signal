@@ -51,8 +51,8 @@ string(string english) T =
 	case "Play with up to Four Players.": return "Mit bis zu vier Spielern spielen.";
 	case "CONFIGURATION": return "EINSTELLUNGEN";
 	case "Tweak Game related Options.": return "Spieloptionen anpassen.";
-	case "CHARACTER BIOS": return "CHARAKTER-BIOS";
-	case "View Character Bios.": return "Charakter-Biografien ansehen.";
+	case "CHARACTER BIOS": return "DIE UEBERLEBENDEN";
+	case "View Character Bios.": return "Wer im Funkloch noch lebt.";
 	case "CREDITS": return "CREDITS";
 	case "A free open-source fan project.": return "Ein freies Open-Source-Fanprojekt.";
 	case "QUIT GAME": return "SPIEL BEENDEN";
@@ -305,17 +305,17 @@ string(string english) T =
 	case "Enter an (optional) password to limit who can join.": return "Optionales Passwort setzen, um Beitritte zu beschraenken.";
 	case "MAX PLAYERS": return "MAX. SPIELER";
 	case "Change the maximum number of players who can join your server.": return "Maximale Spielerzahl fuer deinen Server aendern.";
-	case "CHOOSE MAP": return "MAP WAEHLEN";
+	case "CHOOSE MAP": return "KARTE WAEHLEN";
 	case "Select a Map to start the Game.": return "Eine Map zum Starten des Spiels waehlen.";
 
 	// === map selection menu ===
-	case "SELECT MAP: SOLO": return "MAP WAEHLEN: SOLO";
-	case "SELECT MAP: COOP": return "MAP WAEHLEN: KOOP";
-	case "USER MAPS: SOLO": return "USERMAPS: SOLO";
-	case "USER MAPS: COOP": return "USERMAPS: KOOP";
+	case "SELECT MAP: SOLO": return "KARTE WAEHLEN: SOLO";
+	case "SELECT MAP: COOP": return "KARTE WAEHLEN: KOOP";
+	case "USER MAPS: SOLO": return "EIGENE KARTEN: SOLO";
+	case "USER MAPS: COOP": return "EIGENE KARTEN: KOOP";
 	case "Return to Stock Map selection.": return "Zurueck zur Standard-Map-Auswahl.";
 	case "Return to Create Game Menu.": return "Zurueck zum Spiel-Erstellen-Menue.";
-	case "USER MAPS": return "USERMAPS";
+	case "USER MAPS": return "EIGENE KARTEN";
 	case "View User-Created Maps.": return "Von Nutzern erstellte Maps ansehen.";
 	case "RANDOM": return "ZUFALL";
 	case "Feeling indecisive? Try rolling the dice.": return "Unentschlossen? Lass den Zufall entscheiden.";

@@ -27,8 +27,16 @@ string() Menu_PickBackground =
 	searchhandle 	pics;
 	float 			pic_count;
 
-	pics 			= search_begin("gfx/menu/custom/*", 0, 0);
+	// Eigene TOTES-SIGNAL-Hintergruende (gfx/menu/bg/*, via progs.pk3) haben
+	// Vorrang; nur wenn keine da sind, fallen wir auf die gemischten
+	// Usermap-Screenshots aus game.pk3 (gfx/menu/custom/*) zurueck.
+	pics 			= search_begin("gfx/menu/bg/*", 0, 0);
 	pic_count 		= search_getsize(pics);
+	if (pic_count == 0) {
+		search_end(pics);
+		pics 		= search_begin("gfx/menu/custom/*", 0, 0);
+		pic_count 	= search_getsize(pics);
+	}
 
 	string image = "";
 
@@ -189,6 +197,11 @@ void() m_init =
 	setcursormode(TRUE,"gfx/xhair", [16, 16], cvar("vid_conautoscale"));
 	current_menu = last_menu = MENU_MAIN;
 	ts_ui_state = -1;   // erzwingt beim ersten m_draw einen frischen Menue/Spiel-Marker an die Web-Shell
+
+	// Engine-Default "Unknown Soldier" -> deutscher Standardname ("Willkommen,
+	// Ueberlebender"). Greift nur, solange der Spieler keinen eigenen Namen hat.
+	if (cvar_string("name") == "Unknown Soldier")
+		localcmd("seta name Ueberlebender\n");
 
 	// Cvars for controlable/modifiable menu music
 	autocvar(menu_trackname, "tensioned_by_the_damned");
