@@ -183,6 +183,27 @@
 	</div></div>
 	<button id="installbtn" type="button" data-i18n="install"></button>
 	<script type='text/javascript'>
+// QuakeC->JS-Bruecke: das Menue druckt bei jedem Menue<->Spiel-Wechsel einen
+// TSUI-Marker (menu/main.qc m_draw). VERIFIZIERT (07/2026): die Engine gibt
+// QuakeC-stdout DIREKT ueber console.log aus, NICHT ueber Module.print ->
+// console.log wird hier (vor dem Engine-Script, das erst in begin() injiziert
+// wird) gewrappt, damit die Engine unseren Wrapper bindet. Module.print bleibt
+// als zweiter Kanal angeschlossen (schadet nicht, setInGame dedupliziert).
+function tsMarker(msg)
+{
+	if (typeof msg !== 'string' || msg.indexOf('TSUI:') === -1 || !window.TS_CTRL)
+		return;
+	if (msg.indexOf('TSUI:game') !== -1) TS_CTRL.setInGame(true);
+	else if (msg.indexOf('TSUI:menu') !== -1) TS_CTRL.setInGame(false);
+}
+(function(){
+	var orig = console.log.bind(console);
+	console.log = function(){
+		try { for (var i = 0; i < arguments.length; i++) tsMarker(String(arguments[i])); } catch(e){}
+		return orig.apply(null, arguments);
+	};
+})();
+
 // connect to canvas
 var Module = {
 	files:
@@ -194,13 +215,7 @@ var Module = {
 	print: function(msg)
 	{	//stdout...
 		console.log(msg);
-		// QuakeC->JS bridge: the menu prints a marker on every menu<->game
-		// transition (see menu/main.qc m_draw). Show the touch HUD only in-game.
-		if (typeof msg === 'string' && window.TS_CTRL)
-		{
-			if (msg.indexOf('TSUI:game') !== -1) TS_CTRL.setInGame(true);
-			else if (msg.indexOf('TSUI:menu') !== -1) TS_CTRL.setInGame(false);
-		}
+		tsMarker(msg);
 	},
 	printErr: function(text)
 	{	//stderr...
