@@ -159,15 +159,26 @@
 	#loadtip { z-index:2; position:relative; margin-top:16px; font-size:min(3.4vw,13px); color:#9a9384; opacity:0.85; min-height:2.8em; max-width:min(82vw,440px); }
 	#loadscreen.fade { opacity:0; transition:opacity 0.6s ease; }
 
-	/* ---- PWA install affordance (nur wenn installierbar, erst nach Load) ---- */
+	/* ---- PWA install affordance (nur wenn installierbar, erst nach Load) ----
+	   Dead-Signal-Look: pulsierender roter Glow, passt zum TIPPEN-ZUM-SPIELEN-Panel. */
 	#installbtn {
 		position:fixed; left:50%; transform:translateX(-50%);
-		bottom:calc(16px + env(safe-area-inset-bottom)); z-index:60; display:none;
-		padding:10px 18px; border:1px solid #8a1200; border-radius:9px; cursor:pointer;
-		background:rgba(138,18,0,0.30); color:#f2ede0; font-family:monospace; font-size:13px;
+		bottom:calc(18px + env(safe-area-inset-bottom)); z-index:60; display:none;
+		padding:12px 22px; cursor:pointer;
+		border:1.5px solid #c21500; border-radius:11px;
+		background:rgba(20,6,2,0.74); color:#f2ede0;
+		font-family:monospace; font-size:13px; font-weight:bold;
+		letter-spacing:1.6px; text-transform:uppercase;
+		text-shadow:0 0 8px rgba(194,21,0,0.55);
+		box-shadow:0 0 18px rgba(194,21,0,0.35), inset 0 0 14px rgba(0,0,0,0.5);
+		animation:tspulse 2.6s ease-in-out infinite;
 		-webkit-user-select:none; user-select:none;
 	}
-	#installbtn:active { background:rgba(138,18,0,0.55); }
+	#installbtn:active { background:rgba(194,21,0,0.5); }
+	@keyframes tspulse {
+		0%, 100% { box-shadow:0 0 10px rgba(194,21,0,0.22), inset 0 0 14px rgba(0,0,0,0.5); border-color:rgba(194,21,0,0.7); }
+		50%      { box-shadow:0 0 26px rgba(194,21,0,0.6),  inset 0 0 14px rgba(0,0,0,0.5); border-color:#e2361a; }
+	}
 	</style>
   </head>
   <body ondrop="gotdrop(event);" ondragover="event.preventDefault()">

@@ -6,7 +6,7 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v6';                 // v6: SIGNAL-VERLOREN-Overlay + Gate-Video-Loop + De-NZP/Art-Refresh
+const SW_VERSION = 'v7';                 // v7: Install-Button-Redesign + Cache-Header-Fix (Caddy no-cache Shell)
 const SHELL = 'totes-shell-' + SW_VERSION;
 const DATA  = 'totes-data-'  + SW_VERSION;
 const ALLOW = [SHELL, DATA];
