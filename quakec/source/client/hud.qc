@@ -1905,7 +1905,7 @@ void() HUD_Scores =
 }
 
 void() HUD_Endgame = {
-	string game_over = "GAME OVER";
+	string game_over = T("SIGNAL LOST");
 	string survive;
 
 	if (rounds == 1)

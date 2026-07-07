@@ -99,8 +99,8 @@
 		border:1px solid rgba(232,226,212,0.5); box-shadow:0 0 14px rgba(224,52,26,0.45);
 	}
 
-	/* ---- TOTES SIGNAL: dead-radio-signal theme (start gate + loading + rotate) ---- */
-	#mstart, #rotate, #loadscreen {
+	/* ---- TOTES SIGNAL: dead-radio-signal theme (start gate + loading + rotate + death) ---- */
+	#mstart, #rotate, #loadscreen, #deathui {
 		position:fixed; inset:0; z-index:50; display:none;
 		background:radial-gradient(120% 90% at 50% 35%, #12100e 0%, #070605 55%, #000 100%);
 		color:#e6e1d2; font-family:monospace;
@@ -108,32 +108,40 @@
 		-webkit-user-select:none; user-select:none; overflow:hidden;
 	}
 	#loadscreen { z-index:52; }
+	/* Death-Overlay: unter Gate/Ladescreen, ueber Touch-HUD; Spiel bleibt leicht sichtbar */
+	#deathui { z-index:45; background:radial-gradient(120% 90% at 50% 35%, rgba(18,10,8,0.93) 0%, rgba(7,4,3,0.95) 55%, rgba(0,0,0,0.97) 100%); }
 	/* CRT scanlines */
-	#mstart::before, #rotate::before, #loadscreen::before {
+	#mstart::before, #rotate::before, #loadscreen::before, #deathui::before {
 		content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
 		background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.30) 2px 3px);
 	}
 	/* rolling static grain + gentle flicker */
-	#mstart::after, #rotate::after, #loadscreen::after {
+	#mstart::after, #rotate::after, #loadscreen::after, #deathui::after {
 		content:''; position:absolute; inset:-60%; pointer-events:none; z-index:1; opacity:0.06;
 		background-image:radial-gradient(rgba(255,255,255,0.9) 0.5px, transparent 0.7px);
 		background-size:3px 3px; animation:tsnoise 0.9s steps(4) infinite;
 	}
 	@keyframes tsnoise { 0%{transform:translate(0,0)} 25%{transform:translate(-4%,3%)} 50%{transform:translate(3%,-2%)} 75%{transform:translate(-2%,-4%)} 100%{transform:translate(0,0)} }
-	#mstart .box, #rotate .box, #loadscreen .box { position:relative; z-index:2; max-width:92%; }
+	#mstart .box, #rotate .box, #loadscreen .box, #deathui .box { position:relative; z-index:2; max-width:92%; }
 	.ts-skull { width:min(20vw,92px); height:auto; margin:0 auto 8px; display:block; filter:drop-shadow(0 0 14px rgba(180,20,0,0.6)); opacity:0.95; }
 	.ts-mark { color:#c21500; font-size:min(11vw,60px); font-weight:bold; margin:0; letter-spacing:6px;
 		text-shadow:0 0 4px #c21500, 0 0 22px rgba(194,21,0,0.55); animation:tsflk 4.5s infinite; }
 	.ts-sub { color:#9a9384; font-size:min(3.2vw,14px); letter-spacing:5px; margin:3px 0 0; opacity:0.85; }
 	@keyframes tsflk { 0%,92%,100%{opacity:1} 93%{opacity:0.35} 94%{opacity:1} 96%{opacity:0.55} 97%{opacity:1} }
 	#mstart p.hint, #rotate p, #loadscreen p.hint { font-size:min(4.2vw,17px); line-height:1.55; opacity:0.82; margin:12px 0 0; }
-	#mstart .play {
+	#mstart .play, #deathui .play {
 		margin-top:26px; display:inline-block; padding:16px 32px; cursor:pointer;
 		border:2px solid #c21500; border-radius:12px; color:#f2ede0;
 		font-size:min(6vw,24px); font-weight:bold; letter-spacing:1px;
 		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(194,21,0,0.4);
 	}
-	#mstart .play:active { background:rgba(194,21,0,0.55); }
+	#mstart .play:active, #deathui .play:active { background:rgba(194,21,0,0.55); }
+	#deathui .death-actions { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
+	#deathui .play { margin-top:24px; font-size:min(5vw,21px); padding:14px 26px; }
+	#deathui .play.alt { border-color:rgba(210,200,180,0.55); background:rgba(40,36,32,0.4);
+		box-shadow:0 0 18px rgba(0,0,0,0.5); color:#e0d9c8; }
+	#deathui .play.alt:active { background:rgba(90,80,70,0.5); }
+	#deathui .ts-mark { font-size:min(9vw,52px); }
 	#rotate .rot { font-size:min(16vw,90px); margin-bottom:14px; display:block; color:#c21500; animation:rotwig 1.7s ease-in-out infinite; }
 	@keyframes rotwig { 0%,100%{transform:rotate(6deg)} 50%{transform:rotate(-84deg)} }
 	/* loading bar */
@@ -212,6 +220,16 @@
 		<span class="rot">⟳</span>
 		<p data-i18n="rotate"></p>
 	</div></div>
+	<!-- Post-Death: SIGNAL VERLOREN + Auswahl (Marker TSUI:dead:<runden> aus CSQC) -->
+	<div id="deathui"><div class="box">
+		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
+		<p class="ts-mark" data-i18n="deadTitle"></p>
+		<p class="ts-sub" id="deathround"></p>
+		<div class="death-actions">
+			<span class="play" id="deathagain" data-i18n="again"></span>
+			<span class="play alt" id="deathlobby" data-i18n="lobby"></span>
+		</div>
+	</div></div>
 	<div id="loadscreen"><div class="box">
 		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
 		<p class="ts-mark">TOTES SIGNAL</p>
@@ -230,10 +248,16 @@
 // als zweiter Kanal angeschlossen (schadet nicht, setInGame dedupliziert).
 function tsMarker(msg)
 {
-	if (typeof msg !== 'string' || msg.indexOf('TSUI:') === -1 || !window.TS_CTRL)
+	if (typeof msg !== 'string' || msg.indexOf('TSUI:') === -1)
 		return;
-	if (msg.indexOf('TSUI:game') !== -1) TS_CTRL.setInGame(true);
-	else if (msg.indexOf('TSUI:menu') !== -1) TS_CTRL.setInGame(false);
+	var stateChange = msg.indexOf('TSUI:game') !== -1 || msg.indexOf('TSUI:menu') !== -1;
+	if (window.TS_CTRL && stateChange)                       // Touch-HUD (nur Touch-Geraete)
+		TS_CTRL.setInGame(msg.indexOf('TSUI:game') !== -1);
+	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
+		var m = msg.match(/TSUI:dead:(-?\d+)/);
+		if (m) TS_DEATH.show(parseInt(m[1], 10));
+		else if (stateChange) TS_DEATH.hide();
+	}
 }
 (function(){
 	var orig = console.log.bind(console);
@@ -441,6 +465,8 @@ var I18N = {
 		hint2:'Rechts über den Bildschirm wischen = Umsehen ⟶',
 		hint3:'FEUER gedrückt halten · Stick lange halten = Ducken',
 		hintOk:'▶ TIPPEN ZUM START',
+		deadTitle:'SIGNAL VERLOREN', deadRound:'RUNDE %d ERREICHT',
+		again:'▶ NOCHMAL', lobby:'⌂ ZUR LOBBY',
 		tips:[
 			'Erstkontakt lädt ~90 MB — danach läuft es offline aus dem Cache.',
 			'Quer halten: links laufen, rechts über den Bildschirm wischen zum Zielen.',
@@ -468,6 +494,8 @@ var I18N = {
 		hint2:'Swipe the right side of the screen = look around ⟶',
 		hint3:'Hold FIRE to shoot · hold the stick still = crouch',
 		hintOk:'▶ TAP TO START',
+		deadTitle:'SIGNAL LOST', deadRound:'REACHED ROUND %d',
+		again:'▶ PLAY AGAIN', lobby:'⌂ TO LOBBY',
 		tips:[
 			'First contact downloads ~90 MB — then it runs offline from cache.',
 			'Hold landscape: left to move, swipe the right side to aim.',
@@ -541,6 +569,39 @@ var TS_LOAD = {
 		if (s){ s.classList.add('fade'); setTimeout(function(){ s.style.display = 'none'; }, 650); }
 	}
 };
+
+// ---- Post-Death-Overlay "SIGNAL VERLOREN" (Marker TSUI:dead:<runden>) ----
+// 3,5s Verzoegerung: Death-Cam + Musik atmen lassen, dann Auswahl anbieten.
+// NOCHMAL = restart (gleiche Karte), ZUR LOBBY = disconnect + ts_maps
+// (eigenes MenuQC-Konsolenkommando -> springt direkt in die Solo-Kartenwahl).
+var TS_DEATH = {
+	timer: 0,
+	show: function(r){
+		var el = document.getElementById('deathui'); if (!el) return;
+		var rd = document.getElementById('deathround');
+		if (rd) rd.textContent = String(T('deadRound') || 'RUNDE %d ERREICHT').replace('%d', Math.max(1, r));
+		if (this.timer) clearTimeout(this.timer);
+		this.timer = setTimeout(function(){ el.style.display = 'flex'; }, 3500);
+	},
+	hide: function(){
+		if (this.timer){ clearTimeout(this.timer); this.timer = 0; }
+		var el = document.getElementById('deathui'); if (el) el.style.display = 'none';
+	}
+};
+(function(){
+	var again = document.getElementById('deathagain');
+	var lobby = document.getElementById('deathlobby');
+	if (again) again.addEventListener('click', function(){
+		TS_DEATH.hide();
+		tsCmd('restart\n');
+	});
+	if (lobby) lobby.addEventListener('click', function(){
+		TS_DEATH.hide();
+		tsCmd('disconnect\n');
+		// disconnect braucht einen Frame; danach oeffnet ts_maps die Kartenwahl
+		setTimeout(function(){ tsCmd('ts_maps\n'); }, 350);
+	});
+})();
 
 function enterImmersive()
 {	// must run inside a user gesture (fullscreen + orientation lock + iOS audio unlock)
@@ -1041,6 +1102,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 				hintsShown = true;
 				setTimeout(function(){ if (inGame) showHints(false); }, 4000);
 			}
+			if (!b && hintsEl) hintsEl.style.display = 'none';   // Hints beschreiben In-Game-Controls
 			if (inGame === b) return;
 			inGame = b;
 			applyVisibility();

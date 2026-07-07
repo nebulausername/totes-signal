@@ -115,6 +115,7 @@ string(string english) T =
 
 	// === HUD: rounds / game over / spectating ===
 	case "Round": return "Runde";
+	case "SIGNAL LOST": return "SIGNAL VERLOREN";
 	case "You Survived %d Round": return "Du hast %d Runde ueberlebt";
 	case "You Survived %d Rounds": return "Du hast %d Runden ueberlebt";
 	case "SPECTATING": return "ZUSCHAUERMODUS";

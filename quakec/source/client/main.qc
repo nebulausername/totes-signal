@@ -1303,6 +1303,9 @@ noref void() CSQC_Parse_Event =
 			break;
 		case EVENT_ENDGAME:
 			in_endgame_sequence = true;
+			// TSUI-Bruecke: Web-Shell zeigt das SIGNAL-VERLOREN-Overlay
+			// (NOCHMAL / ZUR LOBBY) -- Marker-Format TSUI:dead:<runden>.
+			print(sprintf("\nTSUI:dead:%d\n", rounds));
 			break;
 		case EVENT_DOUBLETAPUPDATE:
 			double_tap_version = readbyte();

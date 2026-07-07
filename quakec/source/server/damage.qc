@@ -56,15 +56,18 @@ void() EndGame_FadePrompt =
 
 #ifdef FTE
 
+	// Web/FTE: Nach dem Tod zeigt die Web-Shell ein Auswahl-Overlay
+	// (NOCHMAL / ZUR LOBBY via TSUI:dead-Marker + restart/disconnect).
+	// MapRotation ist nur noch Dead-Man-Fallback, falls niemand waehlt.
 	self.think = MapRotation_Decide;
+	self.nextthink = time + 120;
 
 #else
 
 	self.think = Soft_Restart;
+	self.nextthink = time + 5;
 
 #endif // FTE
-
-	self.nextthink = time + 5;
 }
 
 //Actual endgame function, all zombies die, music plays
@@ -86,7 +89,9 @@ void() EndGame =
 	}
 	
 	self.think = EndGame_FadePrompt;
-	self.nextthink = time + 28;
+	// Frueher 28s Zwangs-Freeze auf dem GAME-OVER-Screen; die Web-Shell bietet
+	// jetzt nach dem Tod eine echte Auswahl an -> kurz halten, dann Fade.
+	self.nextthink = time + 8;
 }
 
 // when dead and other players exist and are alive, throw user into spectate mode

@@ -185,6 +185,7 @@ float() Menu_GetPlatform =
 void() m_init =
 {
 	registercommand("togglemenu2");
+	registercommand("ts_maps");   // Web-Shell: direkt in die Solo-Kartenwahl (Post-Death-Overlay)
 	setcursormode(TRUE,"gfx/xhair", [16, 16], cvar("vid_conautoscale"));
 	current_menu = last_menu = MENU_MAIN;
 	ts_ui_state = -1;   // erzwingt beim ersten m_draw einen frischen Menue/Spiel-Marker an die Web-Shell
@@ -358,6 +359,15 @@ float(string cmd) m_consolecommand =
 	tokenize(cmd);
 	switch (argv(0))
 	{
+	case "ts_maps":
+		// Post-Death-Overlay der Web-Shell: Menue oeffnen (falls zu) und
+		// direkt in die Solo-Kartenwahl springen -- kein Dead-End nach dem Tod.
+		if (!menu_active) {
+			m_open();
+			setcursormode(TRUE, "gfx/xhair", [16, 16], cvar("vid_conautoscale"));
+		}
+		Menu_StartSolo();
+		return TRUE;
 	default: break;
 	}
 

@@ -879,7 +879,16 @@ void() PlayerPostThink =
 #endif // QUAKEC_TEST
 };
 
-void() ClientKill = {};
+void(entity victim, entity attacker, float damage, float d_style) DamageHandler;
+
+void() ClientKill = {
+	// 'kill' war ein leerer Stub. Jetzt: Selbstaufgabe ueber den normalen
+	// Schadens-Pfad (Down -> Solo ohne Quick Revive = Endgame-Sequenz).
+	// Nuetzlich fuer Spieler UND fuers automatisierte QA der Web-Shell.
+	if (self.classname != "player" || self.downed || self.health <= 0 || in_endgame_sequence)
+		return;
+	DamageHandler(self, self, self.health + 500, DMG_TYPE_OTHER);
+};
 
 //called when a client connects to the server
 void() ClientConnect =
