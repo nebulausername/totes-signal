@@ -20,10 +20,15 @@ float() Localization_IsGerman =
 
 void() Localization_Init =
 {
-	// Register once with the archive flag; config.cfg then persists the
-	// user's choice, and we never override it on later boots.
-	if (!cvar_type("cl_language"))
-		localcmd("seta cl_language 1\n");   // Default Deutsch (deutsch-first); Englisch per LANGUAGE-Toggle
+	// cl_language ist eine native FTE-Cvar (immer registriert) -> die alte
+	// !cvar_type()-Pruefung war IMMER falsch, der Deutsch-Default griff nie und
+	// das Menue blieb englisch. Deshalb eine EIGENE Sentinel-Cvar: setzt Deutsch
+	// beim ersten Start UND migriert Bestandsspieler mit haengendem Englisch
+	// einmalig. Der LANGUAGE-Toggle (menu_opts.qc) bleibt danach frei nutzbar.
+	if (!cvar_type("ts_lang_set")) {
+		localcmd("seta cl_language 1\n");   // Default Deutsch (deutsch-first)
+		localcmd("seta ts_lang_set 1\n");
+	}
 };
 
 string(string english) T =
@@ -49,7 +54,7 @@ string(string english) T =
 	case "CHARACTER BIOS": return "CHARAKTER-BIOS";
 	case "View Character Bios.": return "Charakter-Biografien ansehen.";
 	case "CREDITS": return "CREDITS";
-	case "Based on NZ:P by the NZ:P Team.": return "Basiert auf NZ:P vom NZ:P-Team.";
+	case "A free open-source fan project.": return "Ein freies Open-Source-Fanprojekt.";
 	case "QUIT GAME": return "SPIEL BEENDEN";
 	case "Return to %s.": return "Zurueck zu %s.";
 
@@ -106,8 +111,6 @@ string(string english) T =
 	case "Open Source!": return "Open Source!";
 	case "Free software!": return "Freie Software!";
 	case "Now with less bugs!": return "Jetzt mit weniger Bugs!";
-	case "Based on NZ:P - a game on too many platforms to count.": return "Basiert auf NZ:P - einem Spiel auf unzaehlbar vielen Plattformen.";
-	case "Our upstream, NZ:P, has been in development since 2009.": return "Unser Upstream NZ:P wird seit 2009 entwickelt.";
 	case "Support the Internet Archive!": return "Unterstuetze das Internet Archive!";
 
 	// === HUD: rounds / game over / spectating ===

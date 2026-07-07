@@ -1,5 +1,6 @@
 
 float menu_active;
+float ts_ui_state;   // letzter an die Web-Shell gemeldeter Menue/Spiel-Zustand (-1 = noch keiner)
 
 //
 // Menu_GetBuildDate()
@@ -186,6 +187,7 @@ void() m_init =
 	registercommand("togglemenu2");
 	setcursormode(TRUE,"gfx/xhair", [16, 16], cvar("vid_conautoscale"));
 	current_menu = last_menu = MENU_MAIN;
+	ts_ui_state = -1;   // erzwingt beim ersten m_draw einen frischen Menue/Spiel-Marker an die Web-Shell
 
 	// Cvars for controlable/modifiable menu music
 	autocvar(menu_trackname, "tensioned_by_the_damned");
@@ -241,6 +243,13 @@ void() m_init =
 
 void(vector screensize) m_draw =
 {
+	// QuakeC->JS-Bruecke: bei jedem Menue<->Spiel-Wechsel einen Marker auf stdout
+	// drucken. Die Web-Shell (Module.print) blendet das Touch-HUD nur im Spiel ein.
+	if (menu_active != ts_ui_state) {
+		ts_ui_state = menu_active;
+		print(menu_active ? "\nTSUI:menu\n" : "\nTSUI:game\n");
+	}
+
 	// In game or connecting.
 	if (!menu_active) {
 		menu_changetime = 0;

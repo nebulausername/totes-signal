@@ -16,4 +16,4 @@
 #define GAME_DEFAULT_CHAPTER "'Kein Signal'"
 
 // Shown in the credits button description.
-#define GAME_CREDITS_BLURB "Based on NZ:P by the NZ:P Team."
+#define GAME_CREDITS_BLURB "A free open-source fan project."

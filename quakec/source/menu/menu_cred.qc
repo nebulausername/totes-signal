@@ -4,102 +4,69 @@ var struct credits_s
 	string contributors[4];
 };
 
-string credits_models[4] =
+string credits_totes[4] =
 {
-    "blubs, Ju[s]tice, Derped_Crusader, cypress,",
-    "BCDeshiG, Revnova, Naievil, Stoohp,",
-    "Jacob Giguere, Lexi",
-    ""
-};
-
-string credits_code[4] =
-{
-    "blubs, Jukki, DR_Mabuse1981, Naievil, cypress,",
-    "Scatterbox, Peter0x44",
-    "",
-    ""
-};
-
-string credits_art[4] =
-{
-    "Ju[s]tice, blubs, cypress, Derped_Crusader",
+    "Deutsche Fassung, Steuerung, UI & Design",
     "",
     "",
     ""
 };
 
-string credits_music[4] =
+string credits_tech[4] =
 {
-    "blubs, Marty P., cypress",
-    "",
+    "FTEQW Engine - Spike & Mitwirkende",
+    "Freie Open-Source-Werkzeuge",
     "",
     ""
 };
 
-string credits_sfx[4] =
+string credits_license[4] =
 {
-    "blubs, Biodude, cypress",
-    "",
+    "Freie Software unter GPL-2.0",
+    "Vollstaendige Credits: CREDITS.md im Projekt",
     "",
     ""
 };
 
 string credits_thx[4] =
 {
-    "Spike, eukara, Shpuld, Crow_Bar, st1x51,",
-    "fgsfdsfgs, MasterFeizz, Rinnegatamante,",
-    "Azenn"
+    "An alle, die freie Spiele moeglich machen.",
+    "Und an dich - fuers Durchhalten.",
+    "",
+    ""
 };
 
 credits_s credits[] =
 {
     {
-        "MODELING, MAPS",
+        "TOTES SIGNAL",
         {
-            credits_models[0],
-            credits_models[1],
-            credits_models[2],
-            credits_models[3]    
+            credits_totes[0],
+            credits_totes[1],
+            credits_totes[2],
+            credits_totes[3]
         }
     },
     {
-        "PROGRAMMING", 
+        "TECHNIK",
         {
-            credits_code[0],
-            credits_code[1],
-            credits_code[2],
-            credits_code[3]
+            credits_tech[0],
+            credits_tech[1],
+            credits_tech[2],
+            credits_tech[3]
         }
     },
     {
-        "2D ART", 
+        "LIZENZ",
         {
-            credits_art[0],
-            credits_art[1],
-            credits_art[2],
-            credits_art[3]
+            credits_license[0],
+            credits_license[1],
+            credits_license[2],
+            credits_license[3]
         }
     },
     {
-        "MUSIC", 
-        {
-            credits_music[0],
-            credits_music[1],
-            credits_music[2],
-            credits_music[3]
-        }
-    },
-    {
-        "SFX", 
-        {
-            credits_sfx[0],
-            credits_sfx[1],
-            credits_sfx[2],
-            credits_sfx[3]
-        }
-    },
-    {
-        "SPECIAL THANKS", 
+        "DANK",
         {
             credits_thx[0],
             credits_thx[1],

@@ -378,9 +378,9 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 		vector coords_pos = [0, 0];
 
 		switch(map_category) {
-			case MAP_CATEGORY_NZPBETA: coords_pos = [0, 0]; badge_name = "NZ:P BETA (2011)"; break;
+			case MAP_CATEGORY_NZPBETA: coords_pos = [0, 0]; badge_name = "KLASSIK (2011)"; break;
 			case MAP_CATEGORY_WAW: coords_pos = [0.25, 0]; badge_name = "WORLD AT WAR"; break;
-			case MAP_CATEGORY_NZP: coords_pos = [0, 0.5]; badge_name = "NZ:P ORIGINAL"; break;
+			case MAP_CATEGORY_NZP: coords_pos = [0, 0.5]; badge_name = "ORIGINAL"; break;
 			case MAP_CATEGORY_BLACKOPSDS: coords_pos = [0.25, 0.5]; badge_name = "BLACK OPS (DS)"; break;
 			case MAP_CATEGORY_USER: coords_pos = [0.5, 0]; badge_name = "USERMAP"; break;
 		}
@@ -557,7 +557,7 @@ void(float order, float sub_order, string header) Menu_DrawCreditContributor =
 void() Menu_DrawBuildDate =
 {
 	sui_set_align([SUI_ALIGN_END, SUI_ALIGN_START]);
-	sui_text([-6, 8], MENU_TEXT_SMALL, build_datetime, [0.70, 0.68, 0.60], 1, 0);
+	sui_text([-6, 8], MENU_TEXT_SMALL, "TOTES SIGNAL  v1.0", [0.70, 0.68, 0.60], 1, 0);
 	sui_text([-6, 22], MENU_TEXT_SMALL, sprintf(T("Welcome, %s"), cvar_string("name")), [0.90, 0.60, 0.15], 1, 0);
 };
 
@@ -627,9 +627,12 @@ void() Menu_DrawBackground =
 //
 void(string menu_title) Menu_DrawTitle =
 {
+	// Der grosse Masthead ("TOTES SIGNAL") steckt in Menu_DrawBackground; hier
+	// nur noch der kleine Sektionsname oben links + rote Signal-Linie darunter.
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
-	sui_text([8, 20], MENU_TEXT_LARGE, menu_title, [0.55, 0.05, 0.02], 0.85, 0);   // Rot-Glow dahinter
-	sui_text([6, 18], MENU_TEXT_LARGE, menu_title, [0.95, 0.90, 0.82], 1, 0);        // Knochenweiss vorne
+	sui_text([9, 37], MENU_TEXT_SMALL, menu_title, [0.55, 0.05, 0.02], 0.8, 0);      // Rot-Glow
+	sui_text([8, 36], MENU_TEXT_SMALL, menu_title, [0.95, 0.90, 0.82], 1, 0);        // Knochenweiss
+	sui_fill([8, 49], [getTextWidth(menu_title, MENU_TEXT_SMALL_x) + 6, 2], [0.8, 0.11, 0.03], 0.9, 0);
 };
 
 void(string id, vector pos, vector size, vector minmaxsteps, __inout float value) my_slider =
