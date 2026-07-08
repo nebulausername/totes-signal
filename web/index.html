@@ -142,12 +142,44 @@
 		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(194,21,0,0.4);
 	}
 	#mstart .play:active, #deathui .play:active { background:rgba(194,21,0,0.55); }
-	#deathui .death-actions { display:flex; gap:18px; justify-content:center; flex-wrap:wrap; }
-	#deathui .play { margin-top:24px; font-size:min(5vw,21px); padding:14px 26px; }
+	#deathui .death-actions { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
+	#deathui .play { margin-top:12px; font-size:min(4vw,17px); padding:11px 20px; }
 	#deathui .play.alt { border-color:rgba(210,200,180,0.55); background:rgba(40,36,32,0.4);
 		box-shadow:0 0 18px rgba(0,0,0,0.5); color:#e0d9c8; }
 	#deathui .play.alt:active { background:rgba(90,80,70,0.5); }
-	#deathui .ts-mark { font-size:min(9vw,52px); }
+	#deathui .box { width:min(680px,94%); max-height:94vh; overflow-y:auto; }
+	#deathui #deathart { position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+		z-index:0; opacity:0.32; filter:saturate(0.8); }
+	#deathui .ts-skull { width:min(9vh,44px); margin-bottom:0; }
+	#deathui .ts-mark { font-size:min(6vw,30px); letter-spacing:4px; }
+	.death-hero { margin-top:2px; }
+	#deathwaves { font-size:min(15vh,64px); font-weight:bold; color:#ff2e12; line-height:1;
+		font-family:monospace; text-shadow:0 0 6px #c21500, 0 0 28px rgba(194,21,0,0.6); }
+	.death-waveslbl { color:#9a9384; letter-spacing:4px; font-size:min(2.6vh,13px); margin-top:2px; }
+	.death-tabs { display:flex; gap:10px; justify-content:center; margin:10px 0 8px; }
+	.dtab { padding:7px 16px; border:1.5px solid rgba(210,200,180,0.4); border-radius:9px; cursor:pointer;
+		color:#cfc8b8; font-weight:bold; font-size:min(2.6vh,13px); letter-spacing:1.5px;
+		background:rgba(30,26,24,0.5); -webkit-user-select:none; user-select:none; }
+	.dtab.active { border-color:#c21500; color:#fff; background:rgba(138,18,0,0.35);
+		box-shadow:0 0 14px rgba(194,21,0,0.4); }
+	.dgrid { display:grid; grid-template-columns:repeat(3, minmax(90px, 1fr)); gap:8px;
+		max-width:520px; margin:0 auto; }
+	@media (orientation: portrait) { .dgrid { grid-template-columns:repeat(2, 1fr); } }
+	.dchip { background:rgba(20,16,14,0.72); border:1px solid rgba(200,60,30,0.35);
+		border-radius:10px; padding:7px 4px; }
+	.dchip b { display:block; color:#ece5d7; font-size:min(4.2vh,20px); font-family:monospace; }
+	.dchip span { color:#8f887a; font-size:min(2vh,10px); letter-spacing:1.2px; }
+	.dfoot { margin-top:8px; color:#9a9384; font-size:min(2.4vh,12px); letter-spacing:1px; }
+	#dpage-board { overflow-x:auto; max-width:100%; }
+	#dpage-board table { margin:0 auto; border-collapse:collapse; font-family:monospace;
+		font-size:min(2.8vh,13px); color:#ece5d7; }
+	#dpage-board th { color:#c9a06a; font-size:min(2.2vh,11px); letter-spacing:1px;
+		padding:3px 10px; border-bottom:1px solid rgba(200,60,30,0.4); text-align:center; }
+	#dpage-board td { padding:4px 10px; border-bottom:1px solid rgba(255,255,255,0.06); text-align:center; }
+	@media (max-height: 430px) {
+		#deathui .ts-skull { display:none; }
+		#deathui .ts-mark { font-size:min(4.5vw,20px); letter-spacing:3px; margin:0; }
+	}
 	#rotate .rot { font-size:min(16vw,90px); margin-bottom:14px; display:block; color:#c21500; animation:rotwig 1.7s ease-in-out infinite; }
 	@keyframes rotwig { 0%,100%{transform:rotate(6deg)} 50%{transform:rotate(-84deg)} }
 	/* loading bar */
@@ -261,10 +293,36 @@
 	<!-- Update-Pille: erscheint, wenn der Server eine neuere Shell hat als diese Seite -->
 	<div id="updatepill" data-i18n="update"></div>
 	<!-- Post-Death: SIGNAL VERLOREN + Auswahl (Marker TSUI:dead:<runden> aus CSQC) -->
-	<div id="deathui"><div class="box">
+	<div id="deathui">
+		<img id="deathart" alt="" hidden>
+		<div class="box">
 		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
 		<p class="ts-mark" data-i18n="deadTitle"></p>
-		<p class="ts-sub" id="deathround"></p>
+		<div class="death-hero">
+			<div id="deathwaves">0</div>
+			<div class="death-waveslbl" id="deathwaveslbl"></div>
+		</div>
+		<div class="death-tabs" id="deathtabs">
+			<span class="dtab active" id="dtab-stats" data-i18n="statTab"></span>
+			<span class="dtab" id="dtab-board" data-i18n="boardTab"></span>
+		</div>
+		<div id="dpage-stats">
+			<div class="dgrid">
+				<div class="dchip"><b id="ds-kills">0</b><span data-i18n="stKills"></span></div>
+				<div class="dchip"><b id="ds-heads">0</b><span data-i18n="stHeads"></span></div>
+				<div class="dchip"><b id="ds-quota">0%</b><span data-i18n="stQuota"></span></div>
+				<div class="dchip"><b id="ds-points">0</b><span data-i18n="stPoints"></span></div>
+				<div class="dchip"><b id="ds-downs">0</b><span data-i18n="stDowns"></span></div>
+				<div class="dchip"><b id="ds-revs">0</b><span data-i18n="stRevs"></span></div>
+			</div>
+			<div class="dfoot" id="deathfoot"></div>
+		</div>
+		<div id="dpage-board" hidden>
+			<table>
+				<thead><tr><th data-i18n="colName"></th><th data-i18n="stPoints"></th><th data-i18n="stKills"></th><th data-i18n="colHeads"></th><th data-i18n="stDowns"></th><th data-i18n="stRevs"></th></tr></thead>
+				<tbody id="dboardrows"></tbody>
+			</table>
+		</div>
 		<div class="death-actions">
 			<span class="play" id="deathagain" data-i18n="again"></span>
 			<span class="play alt" id="deathlobby" data-i18n="lobby"></span>
@@ -300,6 +358,12 @@ function tsMarker(msg)
 	}
 	var ma = msg.match(/TSUI:ads:([01])/);                   // Aim-Lock-Glow-Sync (nur Touch-Shell)
 	if (ma && window.__ts_setAds) __ts_setAds(ma[1] === '1');
+	if (window.TS_DEATH){                                     // Death-Screen 2.0: Daten VOR dem dead-Trigger
+		var md = msg.match(/TSUI:dstats:([^\n]*)/);
+		if (md) TS_DEATH.setStats(md[1]);
+		var mb = msg.match(/TSUI:dboard:([^\n]*)/);
+		if (mb) TS_DEATH.addRow(mb[1]);
+	}
 }
 (function(){
 	var orig = console.log.bind(console);
@@ -312,7 +376,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-07-08a';
+var TS_BUILD = '2026-07-08b';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -514,6 +578,11 @@ var I18N = {
 		hintOk:'▶ TIPPEN ZUM START',
 		deadTitle:'SIGNAL VERLOREN', deadRound:'RUNDE %d ERREICHT',
 		again:'▶ NOCHMAL', lobby:'⌂ ZUR LOBBY',
+		statTab:'STATISTIK', boardTab:'SCOREBOARD',
+		waves1:'RUNDE UEBERLEBT', wavesN:'RUNDEN UEBERLEBT',
+		stKills:'KILLS', stHeads:'KOPFSCHUESSE', stQuota:'KOPF-QUOTE',
+		stPoints:'PUNKTE', stDowns:'DOWNS', stRevs:'WIEDERBELEBT',
+		colName:'NAME', colHeads:'KOPF', timeLbl:'ZEIT',
 		update:'⟳ Neue Version — tippen zum Laden',
 		tips:[
 			'Erstkontakt lädt ~90 MB — danach läuft es offline aus dem Cache.',
@@ -544,6 +613,11 @@ var I18N = {
 		hintOk:'▶ TAP TO START',
 		deadTitle:'SIGNAL LOST', deadRound:'REACHED ROUND %d',
 		again:'▶ PLAY AGAIN', lobby:'⌂ TO LOBBY',
+		statTab:'STATS', boardTab:'SCOREBOARD',
+		waves1:'ROUND SURVIVED', wavesN:'ROUNDS SURVIVED',
+		stKills:'KILLS', stHeads:'HEADSHOTS', stQuota:'HS RATE',
+		stPoints:'POINTS', stDowns:'DOWNS', stRevs:'REVIVES',
+		colName:'NAME', colHeads:'HEAD', timeLbl:'TIME',
 		update:'⟳ New version — tap to reload',
 		tips:[
 			'First contact downloads ~90 MB — then it runs offline from cache.',
@@ -624,11 +698,69 @@ var TS_LOAD = {
 // NOCHMAL = restart (gleiche Karte), ZUR LOBBY = disconnect + ts_maps
 // (eigenes MenuQC-Konsolenkommando -> springt direkt in die Solo-Kartenwahl).
 var TS_DEATH = {
-	timer: 0,
+	timer: 0, stats: null, board: [],
+	strip: function(x){ return String(x || '').replace(/\^./g, ''); },   // Quake-Farbcodes raus
+	setStats: function(raw){
+		var p = String(raw).split('|');
+		this.board = [];                                   // neuer Death-Report beginnt
+		this.stats = { rounds:+p[0]||0, score:+p[1]||0, kills:+p[2]||0, heads:+p[3]||0,
+			downs:+p[4]||0, revs:+p[5]||0, secs:+p[6]||0, map:this.strip(p[7]) };
+	},
+	addRow: function(raw){
+		var p = String(raw).split('|');
+		if (this.board.length < 4)
+			this.board.push({ name:this.strip(p[0]) || '???', pts:+p[1]||0, kills:+p[2]||0,
+				heads:+p[3]||0, downs:+p[4]||0, revs:+p[5]||0 });
+	},
+	tab: function(which){
+		var st = document.getElementById('dpage-stats'), bo = document.getElementById('dpage-board');
+		var ts = document.getElementById('dtab-stats'), tb = document.getElementById('dtab-board');
+		var stats = which === 'stats';
+		if (st) st.hidden = !stats;
+		if (bo) bo.hidden = stats;
+		if (ts) ts.classList.toggle('active', stats);
+		if (tb) tb.classList.toggle('active', !stats);
+	},
+	render: function(r){
+		var d = this.stats;
+		var waves = Math.max(1, d ? d.rounds : r);
+		var wv = document.getElementById('deathwaves');
+		var wl = document.getElementById('deathwaveslbl');
+		if (wv) wv.textContent = waves;
+		if (wl) wl.textContent = T(waves === 1 ? 'waves1' : 'wavesN');
+		var tabs = document.getElementById('deathtabs');
+		var page = document.getElementById('dpage-stats');
+		if (!d){                                           // Fallback: stale progs -> nur Rundenzahl
+			if (tabs) tabs.style.display = 'none';
+			if (page) page.hidden = true;
+			return;
+		}
+		if (tabs) tabs.style.display = 'flex';
+		this.tab('stats');
+		function set(id, v){ var e = document.getElementById(id); if (e) e.textContent = v; }
+		set('ds-kills', d.kills);
+		set('ds-heads', d.heads);
+		set('ds-quota', (d.kills > 0 ? Math.round(d.heads / d.kills * 100) : 0) + '%');
+		set('ds-points', d.score);
+		set('ds-downs', d.downs);
+		set('ds-revs', d.revs);
+		var mm = Math.floor(d.secs / 60), ss = d.secs % 60;
+		set('deathfoot', T('timeLbl') + ' ' + mm + ':' + (ss < 10 ? '0' : '') + ss + (d.map ? ' \u00b7 ' + d.map : ''));
+		var tb = document.getElementById('dboardrows');
+		if (tb){
+			tb.innerHTML = '';
+			for (var i = 0; i < this.board.length; i++){
+				var b = this.board[i], tr = document.createElement('tr');
+				[b.name, b.pts, b.kills, b.heads, b.downs, b.revs].forEach(function(v){
+					var td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+				});
+				tb.appendChild(tr);
+			}
+		}
+	},
 	show: function(r){
 		var el = document.getElementById('deathui'); if (!el) return;
-		var rd = document.getElementById('deathround');
-		if (rd) rd.textContent = String(T('deadRound') || 'RUNDE %d ERREICHT').replace('%d', Math.max(1, r));
+		this.render(r);
 		if (this.timer) clearTimeout(this.timer);
 		this.timer = setTimeout(function(){ el.style.display = 'flex'; }, 3500);
 	},
@@ -637,6 +769,12 @@ var TS_DEATH = {
 		var el = document.getElementById('deathui'); if (el) el.style.display = 'none';
 	}
 };
+(function(){
+	function tabHandler(which){ return function(e){ e.preventDefault(); TS_DEATH.tab(which); }; }
+	var ts = document.getElementById('dtab-stats'), tb = document.getElementById('dtab-board');
+	if (ts) ts.addEventListener('click', tabHandler('stats'));
+	if (tb) tb.addEventListener('click', tabHandler('board'));
+})();
 (function(){
 	var again = document.getElementById('deathagain');
 	var lobby = document.getElementById('deathlobby');

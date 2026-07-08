@@ -1316,8 +1316,31 @@ noref void() CSQC_Parse_Event =
 			break;
 		case EVENT_ENDGAME:
 			in_endgame_sequence = true;
-			// TSUI-Bruecke: Web-Shell zeigt das SIGNAL-VERLOREN-Overlay
-			// (NOCHMAL / ZUR LOBBY) -- Marker-Format TSUI:dead:<runden>.
+			// TSUI-Bruecke (Death-Screen 2.0): erst Daten, dann Trigger.
+			// dstats  = lokale Endwertung; dboard = 1 Zeile pro Spieler
+			// (Scoreboard); dead = Anzeige-Trigger + Fallback (nur Runden).
+			// Feld-Separator '|' -- Namen werden davon bereinigt.
+			entity ts_me = findfloat(world, playernum, getstatf(STAT_PLAYERNUM));
+			float ts_kills = 0, ts_heads = 0, ts_downs = 0, ts_revs = 0;
+			if (ts_me != world) {
+				ts_kills = ts_me.kills; ts_heads = ts_me.headshots;
+				ts_downs = ts_me.downs; ts_revs = ts_me.revives;
+			}
+			// sprintf kann max. 8 Parameter -> Zeile in zwei Teilen drucken
+			// (stdout puffert bis zum Newline => kommt als EINE console-Zeile an)
+			print(sprintf("\nTSUI:dstats:%d|%d|%d|%d|",
+				rounds, getstatf(STAT_TOTALSCORE), ts_kills, ts_heads));
+			print(sprintf("%d|%d|%d|%s\n",
+				ts_downs, ts_revs, floor(time),
+				strreplace("|", "", serverkey("mapname_pretty"))));
+			for (float ts_i = 0; ts_i < 4; ts_i++) {
+				entity ts_cl = findfloat(world, playernum, getplayerkeyfloat(ts_i, "client_index"));
+				if (ts_cl == world || !ts_cl.classname)
+					continue;
+				print(sprintf("\nTSUI:dboard:%s|%d|%d|%d|%d|%d\n",
+					strreplace("|", "", strreplace("\n", " ", getplayerkeyvalue(ts_i, "name"))),
+					ts_cl.points, ts_cl.kills, ts_cl.headshots, ts_cl.downs, ts_cl.revives));
+			}
 			print(sprintf("\nTSUI:dead:%d\n", rounds));
 			break;
 		case EVENT_DOUBLETAPUPDATE:
