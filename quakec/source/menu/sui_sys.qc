@@ -223,6 +223,8 @@ void() _action_element_count_sanity =
 const float MAX_MOUSE_ACTIONS = 16;
 string _hover_actions[MAX_MOUSE_ACTIONS];
 string _click_actions[MAX_MOUSE_ACTIONS];
+float _tap_pending;       // Touch-Tap traf (noch) nichts -> in sui_end aufloesen
+float _tap_click_armed;   // Nachzuegler-Klick ist fuer den naechsten Frame gesetzt
 string _hold_actions[MAX_MOUSE_ACTIONS];
 string _release_actions[MAX_MOUSE_ACTIONS];
 string _last_clicked_actions[MAX_MOUSE_ACTIONS];
@@ -624,6 +626,13 @@ void() _sui_mouse1_up =
 		}
 	}
 	
+	// Touch-Tap-Erkennung: Down+Up trafen nichts (auf Touch kommt die Cursor-
+	// Position teils erst NACH dem Button-Event an -> Hover war beim Down noch
+	// am alten Ort = beruehmtes "erster Tipp fokussiert nur"). Merken und in
+	// sui_end gegen die dann frische Hover-Liste als Klick aufloesen.
+	if (_click_action_count == 0 && _hold_action_count == 0)
+		_tap_pending = TRUE;
+
 	// In case someone is keeping state on hold and wants to do stuff on release, even if cursor has moved
 	for (int i = 0; i < _hold_action_count; i++) _release_actions[i] = _hold_actions[i];
 	_release_action_count = _hold_action_count;
@@ -948,10 +957,30 @@ void(float width, float height) sui_begin =
 // Call after your menu code per frame in your draw/updateview.
 void() sui_end =
 {
+	// Touch-Tap-Nachzuegler (siehe _sui_mouse1_up): jetzt ist die Hover-Liste
+	// frisch -> den haengenden Tap als Klick fuer den NAECHSTEN Frame setzen.
+	// Ein gesetzter Nachzuegler ueberlebt genau einen Frame und wird dann
+	// hier konsumiert (sonst wuerde er endlos weiterklicken).
+	if (_tap_click_armed)
+	{
+		_tap_click_armed = FALSE;
+	}
+	else if (_tap_pending)
+	{
+		_tap_pending = FALSE;
+		if (_hover_action_count > 0)
+		{
+			for (int i = 0; i < _hover_action_count; i++) _click_actions[i] = _hover_actions[i];
+			_click_action_count = _hover_action_count;
+			_tap_click_armed = TRUE;
+		}
+	}
+
 	// Dirty part:
 	_sui_draw_initialized = FALSE;
 	// reset "once" type actions
-	_click_action_count = 0;
+	if (!_tap_click_armed)
+		_click_action_count = 0;
 	_release_action_count = 0;
 	// empty input buffer
 	sui_clear_input();
