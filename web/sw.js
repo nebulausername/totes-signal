@@ -6,7 +6,7 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v11';                // v11: HELLIGKEIT-Presets im Gear-Sheet
+const SW_VERSION = 'v12';                // v12: Death-Key-Art + Sheet-Auto-Close
 const SHELL = 'totes-shell-' + SW_VERSION;
 const DATA  = 'totes-data-'  + SW_VERSION;
 const ALLOW = [SHELL, DATA];

@@ -379,7 +379,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-07-08c';
+var TS_BUILD = '2026-07-08d';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -765,6 +765,9 @@ var TS_DEATH = {
 	},
 	show: function(r){
 		var el = document.getElementById('deathui'); if (!el) return;
+		var da = document.getElementById('deathart');
+		if (da && !da.getAttribute('src')){ da.src = 'img/death-keyart.jpg'; da.hidden = false;
+			da.onerror = function(){ da.hidden = true; }; }
 		this.render(r);
 		if (this.timer) clearTimeout(this.timer);
 		this.timer = setTimeout(function(){ el.style.display = 'flex'; }, 3500);
@@ -1149,6 +1152,12 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		row('gs-help', function(){ sheetShow(false); showHints(true); });
 		row('gs-close', function(){ sheetShow(false); });
 		releasers.push(function(){ sheetShow(false); });
+		// Tap irgendwo ausserhalb schliesst das Sheet (Capture: sieht auch Canvas-Taps)
+		document.addEventListener('pointerdown', function(e){
+			if (!sheet || sheet.style.display !== 'block') return;
+			if (sheet.contains(e.target) || e.target === gear || gear.contains(e.target)) return;
+			sheetShow(false);
+		}, true);
 	})();
 
 	// --- ZIELEN hybrid (V2): kurzer Tipp = Aim-Lock an/aus (natives impulse 26,
