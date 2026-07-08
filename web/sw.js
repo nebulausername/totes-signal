@@ -6,7 +6,7 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v8';                 // v8: Update-Erkennung (version.json network-only) + Build-Tag
+const SW_VERSION = 'v9';                 // v9: V2 Hybrid Aim-Lock + Sprint-Tuning
 const SHELL = 'totes-shell-' + SW_VERSION;
 const DATA  = 'totes-data-'  + SW_VERSION;
 const ALLOW = [SHELL, DATA];

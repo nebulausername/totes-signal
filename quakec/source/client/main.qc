@@ -894,6 +894,8 @@ void(vector client_view_angles) Camera_AimSnap =
 
 // CALLED EVERY CLIENT RENDER FRAME
 float pap_flash_alternate;
+float ts_last_ads;   // zuletzt gemeldeter ADS-Zustand (TSUI:ads-Marker)
+
 noref void(float width, float height, float menushown) CSQC_UpdateView =
 {
 	//clear and update our global screen resolution vars
@@ -917,6 +919,17 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 
 	if (getstatf(STAT_FACINGENEMY) && cvar("in_aimassist") == 1)
 		sensitivity_factor *= 0.5;
+
+	// TSUI-Bruecke: ADS-Zustand an die Web-Shell melden (Button-Glow-Sync).
+	// zoom 1|2 = zielt (Hold ODER impulse-26-Latch); zoom 3 = Sprint (kein ADS).
+	// Nur bei Aenderung drucken -- der Server kann den Latch still loesen
+	// (W_AimOut setzt ads_release=false), darum ist DIESER Stat die Wahrheit.
+	float ts_zoom = getstatf(STAT_WEAPONZOOM);
+	float ts_ads_now = (ts_zoom == 1 || ts_zoom == 2) ? 1 : 0;
+	if (ts_ads_now != ts_last_ads) {
+		ts_last_ads = ts_ads_now;
+		print(ts_ads_now ? "\nTSUI:ads:1\n" : "\nTSUI:ads:0\n");
+	}
 
 	setsensitivityscaler(sensitivity_factor);
 

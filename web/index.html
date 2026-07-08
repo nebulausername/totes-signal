@@ -55,6 +55,9 @@
 		background:rgba(156,20,5,0.66); border-color:#e6431f; color:#fff;
 		box-shadow:0 0 16px rgba(224,46,18,0.6), inset 0 0 12px rgba(0,0,0,0.4); }
 	#touchui .tbtn.big:active, #touchui .tbtn.big.held { background:rgba(214,34,12,0.82); }
+	#touchui .tbtn.on {                                     /* Aim-Lock aktiv (Marker-synchron) */
+		background:rgba(140,20,5,0.6); border-color:#ff5030; color:#fff;
+		box-shadow:0 0 18px rgba(255,60,25,0.65), inset 0 0 12px rgba(0,0,0,0.4); }
 	/* Schnell-Einstellungen (Slide-in links) */
 	#gearsheet {
 		position:absolute; left:0; top:0; bottom:0; width:clamp(230px, 46vmin, 360px);
@@ -210,7 +213,7 @@
 		<!-- Rechter Kampf-Cluster (9er-Set); Umsehen/Zielen = direkt auf dem Bildschirm wischen. -->
 		<div class="tbtn big" id="firebtn"                    style="right:calc(4vmin + env(safe-area-inset-right));  bottom:calc(4vmin + env(safe-area-inset-bottom));">FEUER</div>
 		<div class="tbtn" data-key="82" data-code="KeyR"      style="right:calc(24vmin + env(safe-area-inset-right)); bottom:calc(5vmin + env(safe-area-inset-bottom));">LADEN</div>
-		<div class="tbtn" data-key="81" data-code="KeyQ"      style="right:calc(23vmin + env(safe-area-inset-right)); bottom:calc(20vmin + env(safe-area-inset-bottom));">ZIELEN</div>
+		<div class="tbtn" id="aimbtn"                         style="right:calc(23vmin + env(safe-area-inset-right)); bottom:calc(20vmin + env(safe-area-inset-bottom));">ZIELEN</div>
 		<div class="tbtn" data-key="32" data-code="Space"     style="right:calc(4vmin + env(safe-area-inset-right));  bottom:calc(40vmin + env(safe-area-inset-bottom));">SPRUNG</div>
 		<div class="tbtn" data-key="86" data-code="KeyV"      style="right:calc(42vmin + env(safe-area-inset-right)); bottom:calc(6vmin + env(safe-area-inset-bottom));">MESSER</div>
 		<div class="tbtn" data-key="71" data-code="KeyG"      style="right:calc(41vmin + env(safe-area-inset-right)); bottom:calc(21vmin + env(safe-area-inset-bottom));">GRANATE</div>
@@ -295,6 +298,8 @@ function tsMarker(msg)
 		if (m) TS_DEATH.show(parseInt(m[1], 10));
 		else if (stateChange) TS_DEATH.hide();
 	}
+	var ma = msg.match(/TSUI:ads:([01])/);                   // Aim-Lock-Glow-Sync (nur Touch-Shell)
+	if (ma && window.__ts_setAds) __ts_setAds(ma[1] === '1');
 }
 (function(){
 	var orig = console.log.bind(console);
@@ -307,7 +312,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-07-07b';
+var TS_BUILD = '2026-07-08a';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -833,6 +838,10 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	// Alle "gehaltenen" Aktionen registrieren -> bei Menue/Blur garantiert freigeben,
 	// damit nie eine Taste in der Engine haengen bleibt.
 	var releasers = [];
+	// Aim-Zustand (Hybrid-ZIELEN): adsOn = Engine-Wahrheit via TSUI:ads-Marker;
+	// aimHoldActive = klassisches Halten (Taste 81 gerade unten).
+	var adsOn = false, aimHoldActive = false;
+	function aimEngaged(){ return adsOn || aimHoldActive; }
 	function sendKey(type, keyCode, code)
 	{	//the engine reads legacy keyCode, which the KeyboardEvent
 		//constructor refuses to set - force it via defineProperty.
@@ -974,6 +983,63 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		releasers.push(function(){ sheetShow(false); });
 	})();
 
+	// --- ZIELEN hybrid (V2): kurzer Tipp = Aim-Lock an/aus (natives impulse 26,
+	// inkl. Auto-Snap aufs naechste Ziel beim Einrasten), gedrueckt halten
+	// (>=250ms) = klassisches Zielen solange der Finger liegt. Der Glow kommt
+	// NUR vom TSUI:ads-Marker (Server kann den Latch still loesen). ---
+	(function(){
+		var aim = document.getElementById('aimbtn');
+		if (!aim) return;
+		var AIM_TAP_MS = 250;
+		var downAt = 0, holdTimer = 0;
+		window.__ts_setAds = function(b){
+			adsOn = !!b;
+			aim.classList.toggle('on', adsOn);
+			aim.textContent = adsOn ? 'ZIELEN \u25cf' : 'ZIELEN';
+		};
+		// WICHTIG: Tap und Hold benutzen getrennte Engine-Pfade, die sich NIE
+		// vermischen duerfen (button8-Release + impulse 26 im selben/naechsten
+		// Server-Frame loescht den frischen Latch -- framerate-abhaengig!).
+		// Darum: Tap = NUR impulse 26; Hold = keydown erst NACH der Tap-Frist.
+		aim.addEventListener('pointerdown', function(e){
+			e.preventDefault();
+			try { aim.setPointerCapture(e.pointerId); } catch(err){}
+			downAt = Date.now();
+			aim.classList.add('held');
+			if (!adsOn){
+				holdTimer = setTimeout(function(){
+					holdTimer = 0;
+					if (!downAt) return;               // schon losgelassen (Tap)
+					aimHoldActive = true;
+					sendKey('keydown', 81, 'KeyQ');    // klassisches Hold-Aim ab 250ms
+				}, AIM_TAP_MS);
+			}
+		});
+		function aimUp(){
+			if (!downAt) return;
+			var dur = Date.now() - downAt;
+			downAt = 0;
+			if (holdTimer){ clearTimeout(holdTimer); holdTimer = 0; }
+			aim.classList.remove('held');
+			if (aimHoldActive){
+				aimHoldActive = false;
+				sendKey('keyup', 81, 'KeyQ');          // Hold beenden -- kein Impulse im Spiel
+			} else if (dur < AIM_TAP_MS || adsOn){
+				tsCmd('impulse 26\n');                // Tap: Lock togglen (mit Auto-Snap)
+			}
+		}
+		aim.addEventListener('pointerup', aimUp);
+		aim.addEventListener('pointercancel', aimUp);
+		aim.addEventListener('lostpointercapture', aimUp);
+		releasers.push(function(){
+			if (holdTimer){ clearTimeout(holdTimer); holdTimer = 0; }
+			if (aimHoldActive){ aimHoldActive = false; sendKey('keyup', 81, 'KeyQ'); }
+			aim.classList.remove('held');
+			downAt = 0;
+			// Latch absichtlich NICHT loesen -- der Marker synct den Glow zurueck.
+		});
+	})();
+
 	// --- Virtueller Joystick -> WASD (M1-gehaertet). Grundsaetze:
 	//  * window-weite Listener, KEIN setPointerCapture (Finger geht nie verloren)
 	//  * Active-Pointer-Registry = Quelle der Wahrheit: NUR echtes pointerup/
@@ -1042,15 +1108,12 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	}
 
 	// Auto-Sprint + Longpress-Ducken (Tuning-Konstanten; live pruefen via ?tsdebug=1)
-	var SPRINT_DEFLECT = 0.90;    // Anteil Vollausschlag, ab dem gesprintet wird
-	var SPRINT_RETAP_MS = 3000;   // QC beendet Sprint selbst (Stamina/Richtung) -> solange gehalten, re-tippen
+	var SPRINT_DEFLECT = 0.85;    // Anteil Vollausschlag, ab dem gesprintet wird (V2: 0.90 -> 0.85)
+	var SPRINT_RETAP_MS = 2500;   // QC beendet Sprint selbst (Stamina/Richtung) -> solange gehalten, re-tippen
 	var DUCK_HOLD_MS = 350;       // Stick so lange ruhig halten = Haltung wechseln
 	var lastSprintTap = 0;
+	var lastAimUnlock = 0;        // Sprint-Intent loest aktiven Aim-Lock (einmal je 800ms)
 	var duckTimer = 0, duckMaxLen = 0;
-	function aimHeld(){
-		var z = ui.querySelector('[data-key="81"]');
-		return !!(z && z.classList.contains('held'));
-	}
 
 	function resetStick()
 	{
@@ -1079,9 +1142,9 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		// Auto-Sprint: Vollausschlag im Vorwaerts-Kegel (nicht beim Zielen).
 		// impulse 23 STARTET den Sprint; stoppen macht die QC selbst (Stamina,
 		// Richtungswechsel, Feuern) -> wir senden nur zeit-gedrosselte Start-Taps.
-		var forward = dy < -dead && Math.abs(dy) >= Math.abs(dx);
+		var forward = dy < -dead && Math.abs(dy) >= 0.8 * Math.abs(dx);   // V2: Kegel weiter
 		var full = rawLen >= max * SPRINT_DEFLECT;
-		if (forward && full && !aimHeld()){
+		if (forward && full && !aimEngaged()){
 			var now = Date.now();
 			if (now - lastSprintTap > SPRINT_RETAP_MS){
 				lastSprintTap = now;
@@ -1089,6 +1152,16 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 				sendKey('keyup', 16, 'ShiftLeft');
 			}
 			stick.classList.add('sprint');
+		} else if (forward && full && adsOn && !aimHoldActive){
+			// Vollausschlag bei aktivem Aim-Lock = Sprint-Intent: Lock loesen,
+			// Sprint-Tap folgt ~250ms spaeter (W_SprintStart verlangt zoom==0;
+			// impulse 26 und impulse 23 duerfen nie im selben Frame laufen).
+			var nowU = Date.now();
+			if (nowU - lastAimUnlock > 800){
+				lastAimUnlock = nowU;
+				tsCmd('impulse 26\n');
+				lastSprintTap = nowU - SPRINT_RETAP_MS + 250;
+			}
 		} else {
 			stick.classList.remove('sprint');
 			lastSprintTap = 0;
