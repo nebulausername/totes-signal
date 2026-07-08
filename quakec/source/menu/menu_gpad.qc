@@ -126,7 +126,7 @@ void() Menu_Gamepad =
     Menu_Button(5, "gp_seny", T("Y AXIS SENSITIVITY"), T("Alter Y-Axis Look Sensitivity.")) ? 0 : 0;
     Menu_CvarSlider(5, "gp_seny", [0, 4, 16], "joyyawsensitivity", false, false, false);
 
-    Menu_DrawDivider(12.25);
+    Menu_DrawDivider(11.5);
     Menu_Button(-2, "gp_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Gamepad_ApplySettings() : 0;
     Menu_Button(-1, "gp_back", T("BACK"), T("Return to Control Options.")) ? current_menu = MENU_CONTROL : 0;
 

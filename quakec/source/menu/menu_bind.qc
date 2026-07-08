@@ -128,7 +128,7 @@ void() Menu_Bindings =
     Menu_Button(11, "bm_ads", T("AIM DOWN SIGHTS"), "") ? Menu_Bindings_Listen(11, "+button8") : 0;
     Menu_Bindings_PrintBindForCommand(11, "+button8");
 
-    Menu_DrawDivider(12.25);
+    Menu_DrawDivider(11.5);
     Menu_Button(-2, "bm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Gamepad_ApplySettings() : 0;
     Menu_Button(-1, "bm_back", T("BACK"), T("Return to Control Options.")) ? Menu_Bindings_Back() : 0;
 

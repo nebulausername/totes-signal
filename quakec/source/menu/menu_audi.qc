@@ -61,7 +61,7 @@ void() Menu_Audio =
     Menu_Button(3, "am_bgm", T("MUSIC VOLUME"), T("Volume for Background Music.")) ? 0 : 0;
     Menu_CvarSlider(3, "am_bgm", [0, 1, 10], "nzp_bgmvolume", false, true, false);
 
-    Menu_DrawDivider(12.25);
+    Menu_DrawDivider(11.5);
     Menu_Button(-2, "am_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Audio_ApplySettings() : 0;
     Menu_Button(-1, "am_back", T("BACK"), T("Return to Configuration.")) ? current_menu = MENU_OPTIONS : 0;
 

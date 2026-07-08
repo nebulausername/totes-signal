@@ -159,7 +159,7 @@ void() Menu_Accessibility =
     }
     Menu_DrawOptionValue(5, month_string);
 
-    Menu_DrawDivider(12.25);
+    Menu_DrawDivider(11.5);
     Menu_Button(-2, "ac_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Accessibility_ApplySettings() : 0;
     Menu_Button(-1, "ac_back", T("BACK"), T("Return to Configuration Menu.")) ? current_menu = MENU_OPTIONS : 0;
 

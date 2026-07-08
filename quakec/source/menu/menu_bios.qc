@@ -400,7 +400,7 @@ void() Menu_Bios =
             ) ? Menu_Bios_EnterSubMenu(i + 1) : 0;
         }
 
-        Menu_DrawDivider(13.25);
+        Menu_DrawDivider(11.5);
 
         Menu_Button(-1, "bi_back", T("BACK"), T("Return to Main Menu.")) ? current_menu = MENU_MAIN : 0;
     }

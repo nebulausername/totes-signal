@@ -132,7 +132,7 @@ void() Menu_Control =
     Menu_Button(4, "cm_gpad", T("GAMEPAD"), T("Gamepad specific options.")) ? current_menu = MENU_GAMEPAD : 0;
     Menu_Button(5, "cm_bind", T("BINDINGS"), T("Change Input Bindings.")) ? current_menu = MENU_BINDINGS : 0;
 
-    Menu_DrawDivider(12.25);
+    Menu_DrawDivider(11.5);
     Menu_Button(-2, "cm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Control_ApplySettings() : 0;
     Menu_Button(-1, "cm_back", T("BACK"), T("Return to Configuration.")) ? current_menu = MENU_OPTIONS : 0;
 

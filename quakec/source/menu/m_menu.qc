@@ -425,7 +425,7 @@ void(float order, string title) Menu_GreyButton =
 	if (order > 0) {
 		position = [6, 50 + (order * 25)];
 	} else {
-		position = [6, -50 + (order * 25)];
+		position = [6, -75 + (order * 25)];   // -75: untere Buttons ueber Bottom-Bar/Phone-Gesten-Zone gehoben
 	}
 
 	sui_text(position  - [getTextWidth(title, MENU_TEXT_MEDIUM_x), 0, 0] + [275, 0, 0], MENU_TEXT_MEDIUM, title, text_color, 1, 0);
@@ -453,7 +453,7 @@ float(float order, string id, string title, string description) Menu_Button =
 		position = [6, 50 + (order * 25)];
 		bbox_pos = position - [6, 5, 0];
 	} else {
-		position = [6, -50 + (order * 25)];
+		position = [6, -75 + (order * 25)];   // -75: untere Buttons ueber Bottom-Bar/Phone-Gesten-Zone gehoben
 		bbox_pos = position + [-6, 5, 0];
 	}
 

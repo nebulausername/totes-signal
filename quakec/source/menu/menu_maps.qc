@@ -166,15 +166,15 @@ void() Menu_Maps =
         menu_maps_buttons[i + 2] = "map_back";
     } else {
         // calculate the amount of usermaps we can display on this page.
-        int maps_on_page = 10; // default to 10, all that will fit on the UI.
-        int maps_start_position = (user_maps_page * 10);
+        int maps_on_page = 9; // 9 Zeilen: Pager/BACK wurden um 25px angehoben
+        int maps_start_position = (user_maps_page * 9);
 
         // Not all 10 slots can be filled..
         if (maps_on_page > user_maps_count - maps_start_position)
             maps_on_page = user_maps_count - maps_start_position;
 
         for (i = maps_start_position; i < maps_on_page + maps_start_position; i++) {
-            int menu_position = (i + 1) - (user_maps_page * 10);
+            int menu_position = (i + 1) - (user_maps_page * 9);
             string bsp_name = user_maps[i].map_name;
 
             // Build the map strings
@@ -193,9 +193,9 @@ void() Menu_Maps =
             Menu_MapButton(menu_position, sprintf("map_%s", bsp_name), bsp_name, map_category, i) ? Menu_Maps_LoadMap(bsp_name) : 0;
         }
 
-        int current_registry_position = ((i + 1) - (user_maps_page * 10)) - 1;
+        int current_registry_position = ((i + 1) - (user_maps_page * 9)) - 1;
 
-        Menu_DrawDivider(11.25);
+        Menu_DrawDivider(10.25);
 
         if (maps_on_page + maps_start_position < user_maps_count) {
             menu_maps_buttons[current_registry_position] = "map_usernext";

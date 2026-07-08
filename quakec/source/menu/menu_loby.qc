@@ -86,7 +86,7 @@ void() Menu_Lobby =
         else
             Menu_GreyButton(2, T("NOT SUPPORTED BY MAP"));
 
-        Menu_Button(-1, "lo_back", T("BACK"), T("Return to Map Selection.")) ? current_menu = last_map_menu : 0;
+        Menu_Button(3, "lo_back", T("BACK"), T("Return to Map Selection.")) ? current_menu = last_map_menu : 0;   // Order 3: erreichbar, weg von der Gesten-Zone
     } else {
         Menu_Button(1, "lo_cancl", T("CANCEL"), T("..Take it back!")) ? Menu_Lobby_StopCountdown() : 0;
 
@@ -95,7 +95,7 @@ void() Menu_Lobby =
         else
             Menu_GreyButton(2, T("NOT SUPPORTED BY MAP"));
 
-        Menu_GreyButton(-1, T("BACK"));
+        Menu_GreyButton(3, T("BACK"));
     }
 
     Menu_DrawMapPanel();
@@ -141,33 +141,33 @@ void() Menu_Lobby =
     if (cvar("sv_fastrounds") == 1) fast_rounds = T("ENABLED");
     else fast_rounds = T("DISABLED");
 
-    sui_text([80, -160], MENU_TEXT_MEDIUM, T("Game Mode"), [1, 1, 1], 1, 0);
-    sui_text([80, -145], MENU_TEXT_SMALL, gamemode, [1, 1, 0], 1, 0);
-    sui_fill([80, -135], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    sui_text([65, -160], MENU_TEXT_MEDIUM, T("Game Mode"), [1, 1, 1], 1, 0);
+    sui_text([65, -145], MENU_TEXT_SMALL, gamemode, [1, 1, 0], 1, 0);
+    sui_fill([65, -135], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
-    sui_text([220, -160], MENU_TEXT_MEDIUM, T("Difficulty"), [1, 1, 1], 1, 0);
-    sui_text([220, -145], MENU_TEXT_SMALL, difficulty, [1, 1, 0], 1, 0);
-    sui_fill([220, -135], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    sui_text([235, -160], MENU_TEXT_MEDIUM, T("Difficulty"), [1, 1, 1], 1, 0);
+    sui_text([235, -145], MENU_TEXT_SMALL, difficulty, [1, 1, 0], 1, 0);
+    sui_fill([235, -135], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
-    sui_text([80, -120], MENU_TEXT_MEDIUM, T("Start Round"), [1, 1, 1], 1, 0);
-    sui_text([80, -105], MENU_TEXT_SMALL, start_round, [1, 1, 0], 1, 0);
-    sui_fill([80, -95], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    sui_text([65, -120], MENU_TEXT_MEDIUM, T("Start Round"), [1, 1, 1], 1, 0);
+    sui_text([65, -105], MENU_TEXT_SMALL, start_round, [1, 1, 0], 1, 0);
+    sui_fill([65, -95], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
-    sui_text([220, -120], MENU_TEXT_MEDIUM, T("Magic"), [1, 1, 1], 1, 0);
-    sui_text([220, -105], MENU_TEXT_SMALL, magic, [1, 1, 0], 1, 0);
-    sui_fill([220, -95], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    sui_text([235, -120], MENU_TEXT_MEDIUM, T("Magic"), [1, 1, 1], 1, 0);
+    sui_text([235, -105], MENU_TEXT_SMALL, magic, [1, 1, 0], 1, 0);
+    sui_fill([235, -95], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
-    sui_text([80, -80], MENU_TEXT_MEDIUM, T("Headshots Only"), [1, 1, 1], 1, 0);
-    sui_text([80, -65], MENU_TEXT_SMALL, headshots, [1, 1, 0], 1, 0);
-    sui_fill([80, -55], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    sui_text([65, -80], MENU_TEXT_MEDIUM, T("Headshots Only"), [1, 1, 1], 1, 0);
+    sui_text([65, -65], MENU_TEXT_SMALL, headshots, [1, 1, 0], 1, 0);
+    sui_fill([65, -55], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
-    sui_text([220, -80], MENU_TEXT_MEDIUM, T("Horde Size"), [1, 1, 1], 1, 0);
-    sui_text([220, -65], MENU_TEXT_SMALL, sprintf("%d", cvar("sv_maxai")), [1, 1, 0], 1, 0);
-    sui_fill([220, -55], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    sui_text([235, -80], MENU_TEXT_MEDIUM, T("Horde Size"), [1, 1, 1], 1, 0);
+    sui_text([235, -65], MENU_TEXT_SMALL, sprintf("%d", cvar("sv_maxai")), [1, 1, 0], 1, 0);
+    sui_fill([235, -55], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
-    sui_text([80, -40], MENU_TEXT_MEDIUM, T("Fast Rounds"), [1, 1, 1], 1, 0);
-    sui_text([80, -25], MENU_TEXT_SMALL, fast_rounds, [1, 1, 0], 1, 0);
-    sui_fill([80, -15], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    sui_text([65, -40], MENU_TEXT_MEDIUM, T("Fast Rounds"), [1, 1, 1], 1, 0);
+    sui_text([65, -25], MENU_TEXT_SMALL, fast_rounds, [1, 1, 0], 1, 0);
+    sui_fill([65, -15], [90, 2], [0.2, 0.2, 0.2], 1, 0);
 
     float lobby_delta = menu_loby_countdown - time;
     if (lobby_delta > 0) {

@@ -338,7 +338,7 @@ string(string english) T =
 	case "Difficulty": return "Schwierigkeit";
 	case "Start Round": return "Startrunde";
 	case "Magic": return "Magie";
-	case "Headshots Only": return "Nur Kopfschuesse";
+	case "Headshots Only": return "Nur Kopfschuss";
 	case "Horde Size": return "Horden-Groesse";
 	case "Fast Rounds": return "Schnelle Runden";
 
