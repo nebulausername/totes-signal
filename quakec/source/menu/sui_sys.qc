@@ -968,11 +968,20 @@ void() sui_end =
 	else if (_tap_pending)
 	{
 		_tap_pending = FALSE;
-		if (_hover_action_count > 0)
+		// WICHTIG: direkter Hit-Test an der Cursor-Position -- die Elementliste
+		// ist HIER (Ende des Draws) frisch und vollstaendig. Die Hover-Liste
+		// waere manipulierbar (Keyboard-Navigation setzt sie kuenstlich) und
+		// erzeugte Phantom-Klicks bei Leer-Taps + schnellem Pfeiltasten-Druck.
+		_click_action_count = 0;
+		for (int i = min(MAX_ACTION_ELEMENTS, _action_elements_index) - 1; i >= 0; i--)
 		{
-			for (int i = 0; i < _hover_action_count; i++) _click_actions[i] = _hover_actions[i];
-			_click_action_count = _hover_action_count;
-			_tap_click_armed = TRUE;
+			if (is_2dpoint_in_bbox(_cursor_position, _action_elements[i].pos, _action_elements[i].size))
+			{
+				if (mouse_action_sanity(_click_action_count)) break;
+				_click_actions[_click_action_count] = _action_elements[i].id;
+				_click_action_count += 1;
+				_tap_click_armed = TRUE;
+			}
 		}
 	}
 
