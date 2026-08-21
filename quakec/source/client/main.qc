@@ -751,6 +751,14 @@ float pressed_zoom_in;
 #define CAMERA_AIM_SNAP_NEAR_DOT     0.980   // yaw cone, near (looser)
 #define CAMERA_AIM_SNAP_FAR_DOT      0.9998  // yaw cone, far (tighter)
 
+// Fuer Touch weitere Kegel. 0.9998 entspricht rund 1,15 Grad -- mit einer Maus
+// erreichbar, mit einem Daumen auf einem Wisch-Bildschirm praktisch nie. Der
+// Ziel-Snap lief damit auf dem Handy fast immer ins Leere.
+// 0.9990 sind rund 2,6 Grad und immer noch eng genug, dass er nicht wahllos
+// auf irgendetwas springt.
+#define CAMERA_AIM_SNAP_FAR_DOT_TOUCH    0.9990
+#define CAMERA_AIM_SNAP_NEAR_PITCH_TOUCH 16
+
 #define CAMERA_AIM_SNAP_NEAR_PITCH   13      // near = allow more vertical slop
 #define CAMERA_AIM_SNAP_FAR_PITCH    8       // far  = be stricter
 
@@ -791,8 +799,11 @@ float Camera_InFront(vector ent1_origin, vector ent2_origin, vector client_view_
     vector dir2d = normalize(to2d);
     float dotp = dotproduct(dir2d, v_forward);
 
+    // Auf Touch-Geraeten weiter oeffnen (siehe Kommentar bei den Konstanten).
+    float far_dot = cvar("ts_touchui") ? CAMERA_AIM_SNAP_FAR_DOT_TOUCH
+                                       : CAMERA_AIM_SNAP_FAR_DOT;
     float yaw_threshold = CAMERA_AIM_SNAP_NEAR_DOT
-                        + t * (CAMERA_AIM_SNAP_FAR_DOT - CAMERA_AIM_SNAP_NEAR_DOT);
+                        + t * (far_dot - CAMERA_AIM_SNAP_NEAR_DOT);
 
     if (dotp <= yaw_threshold)
         return false;
@@ -801,8 +812,10 @@ float Camera_InFront(vector ent1_origin, vector ent2_origin, vector client_view_
     vector targ_ang = vectoangles(dir3d);
     targ_ang[0] *= -1;
 
-    float pitch_tol = CAMERA_AIM_SNAP_NEAR_PITCH
-                    + t * (CAMERA_AIM_SNAP_FAR_PITCH - CAMERA_AIM_SNAP_NEAR_PITCH);
+    float near_pitch = cvar("ts_touchui") ? CAMERA_AIM_SNAP_NEAR_PITCH_TOUCH
+                                          : CAMERA_AIM_SNAP_NEAR_PITCH;
+    float pitch_tol = near_pitch
+                    + t * (CAMERA_AIM_SNAP_FAR_PITCH - near_pitch);
 
     float dpitch = fabs(angledelta(targ_ang[0] - client_view_angles[0]));
     if (dpitch > pitch_tol)
@@ -951,8 +964,18 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 	else
 		sensitivity_factor = (1 + SCALE_CONSTANT * getstatf(STAT_VIEWZOOM)) / (1 + SCALE_CONSTANT);
 
-	if (getstatf(STAT_FACINGENEMY) && cvar("in_aimassist") == 1)
-		sensitivity_factor *= 0.5;
+	// Sticky Aim: Wenn das Fadenkreuz auf einem Zombie liegt (STAT_FACINGENEMY
+	// ist ein echter Trace vom Server), die Empfindlichkeit senken -- der
+	// Daumen rutscht dann nicht so leicht wieder herunter.
+	// Beim ZIELEN staerker als aus der Hueffte: dort will der Spieler halten,
+	// hier will er noch schwenken koennen.
+	if (getstatf(STAT_FACINGENEMY) && cvar("in_aimassist") == 1) {
+		float ts_zoomed = (getstatf(STAT_WEAPONZOOM) == 1 || getstatf(STAT_WEAPONZOOM) == 2);
+		if (ts_zoomed && cvar("ts_touchui"))
+			sensitivity_factor *= 0.35;
+		else
+			sensitivity_factor *= 0.5;
+	}
 
 	// TSUI-Bruecke: ADS-Zustand an die Web-Shell melden (Button-Glow-Sync).
 	// zoom 1|2 = zielt (Hold ODER impulse-26-Latch); zoom 3 = Sprint (kein ADS).

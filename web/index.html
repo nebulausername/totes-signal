@@ -382,7 +382,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-21c';
+var TS_BUILD = '2026-08-21d';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1102,10 +1102,23 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 
 	// --- Erste-Runde-Hinweise (Onboarding; via ⚙ > HILFE jederzeit wieder) ---
 	var hintsEl = document.getElementById('hints');
+	var hintsAuto = 0;
 	function showHints(force){
 		if (!hintsEl) return;
 		if (!force){ try { if (localStorage.getItem('ts_seen_hints') === '1') return; } catch(e){} }
 		hintsEl.style.display = 'flex';
+		// Notbremse: die Karte liegt ueber allem und sperrt die Eingabe. Wer
+		// sie nicht antippt (weil er sie fuer Deko haelt), soll nicht dauerhaft
+		// festsitzen -- nach 12 s verschwindet sie von selbst und gilt als
+		// gesehen. Ueber das Zahnrad-Sheet ist sie jederzeit wieder da.
+		if (hintsAuto) clearTimeout(hintsAuto);
+		hintsAuto = setTimeout(function(){
+			hintsAuto = 0;
+			if (hintsEl.style.display === 'flex'){
+				hintsEl.style.display = 'none';
+				try { localStorage.setItem('ts_seen_hints', '1'); } catch(e){}
+			}
+		}, 12000);
 	}
 	if (hintsEl) hintsEl.addEventListener('pointerdown', function(e){
 		e.preventDefault(); hintsEl.style.display = 'none';
@@ -1347,7 +1360,15 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	// Auto-Sprint + Longpress-Ducken (Tuning-Konstanten; live pruefen via ?tsdebug=1)
 	var SPRINT_DEFLECT = 0.85;    // Anteil Vollausschlag, ab dem gesprintet wird (V2: 0.90 -> 0.85)
 	var SPRINT_RETAP_MS = 2500;   // QC beendet Sprint selbst (Stamina/Richtung) -> solange gehalten, re-tippen
-	var DUCK_HOLD_MS = 350;       // Stick so lange ruhig halten = Haltung wechseln
+	// 600 statt frueher 350 ms, und die Auslenkung muss deutlich enger bleiben
+	// (0.12 statt 0.28). Grund: 350 ms sind kuerzer als das normale Nachgreifen
+	// am Stick -- wer kurz absetzt und dann erst schiebt, hat die Geste
+	// ausgeloest. `impulse 30` SCHALTET die Haltung weiter (stehen -> ducken ->
+	// liegen), und liegend gilt maxspeed * 0.25: mitten in der Horde praktisch
+	// ein Todesurteil. Die Geste ist ohnehin redundant, das Zahnrad-Sheet hat
+	// HALTUNG.
+	var DUCK_HOLD_MS = 600;       // Stick so lange ruhig halten = Haltung wechseln
+	var DUCK_MAX_LEN = 0.12;      // dabei nie weiter auslenken als das
 	var lastSprintTap = 0;
 	var lastAimUnlock = 0;        // Sprint-Intent loest aktiven Aim-Lock (einmal je 800ms)
 	var duckTimer = 0, duckMaxLen = 0;
@@ -1414,7 +1435,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		if (duckTimer) clearTimeout(duckTimer);
 		duckTimer = setTimeout(function(){
 			duckTimer = 0;
-			if (stickId !== null && duckMaxLen < 0.28){       // Deadzone nie verlassen = bewusstes Halten
+			if (stickId !== null && duckMaxLen < DUCK_MAX_LEN){   // fast unbewegt = bewusstes Halten
 				sendKey('keydown', 18, 'AltLeft');            // LALT-Tap = impulse 30 (Haltung)
 				sendKey('keyup', 18, 'AltLeft');
 				if (navigator.vibrate) try { navigator.vibrate(30); } catch(err){}
@@ -1497,7 +1518,11 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			bridgeSeen = true; b = !!b;
 			if (b && !hintsShown){
 				hintsShown = true;
-				setTimeout(function(){ if (inGame) showHints(false); }, 4000);
+				// Frueher 4000 ms: die Karte erschien MITTEN in Runde 1 und
+				// sperrte jede Eingabe, bis jemand tippte. Jetzt sofort beim
+				// Betreten (da laeuft noch nichts auf einen zu) und mit einer
+				// Notbremse, falls der Spieler sie ueberliest.
+				setTimeout(function(){ if (inGame) showHints(false); }, 600);
 			}
 			if (!b && hintsEl) hintsEl.style.display = 'none';   // Hints beschreiben In-Game-Controls
 			if (inGame === b) return;
