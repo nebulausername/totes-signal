@@ -1,0 +1,19 @@
+{
+  "name": "totes-signal-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-2.0-or-later",
+  "description": "Bestenliste, Konten und Erfolge fuer TOTES SIGNAL. Laeuft same-origin unter /api/.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/server.js",
+    "migrate": "node scripts/migrate.mjs"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1",
+    "@fastify/cookie": "^11.0.2",
+    "pg": "^8.13.1",
+    "jose": "^5.9.6"
+  }
+}
