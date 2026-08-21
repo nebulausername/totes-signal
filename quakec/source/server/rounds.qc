@@ -386,6 +386,18 @@ void() Round_Core =
 
 void() InitRounds =
 {
+	// EINZIGER Startpunkt eines Laufs: wird sowohl beim frischen Spielstart
+	// (server/main.qc) als auch beim weichen Neustart (game_restart.qc)
+	// gerufen. Der weiche Neustart laedt die Karte NICHT neu, CSQC_Init
+	// liefe dort also nicht erneut -- deshalb haengt die Lauf-Erkennung hier
+	// und nicht am Kartenladen.
+	ts_runseq = ts_runseq + 1;
+#ifdef FTE
+	// Nur FTE: der Vril-Build kennt weder sprintf noch serverinfo, und er
+	// wird ohnehin nie ausgeliefert (build-progs.sh zippt nur build/fte/).
+	localcmd(sprintf("serverinfo ts_runseq %d\n", ts_runseq));
+#endif
+
 	roundtype = 1;
 	delay_at_round = 2/0.95;
 	totalpowerups = 0;

@@ -942,6 +942,39 @@ void(vector client_view_angles) Camera_AimSnap =
 // CALLED EVERY CLIENT RENDER FRAME
 float pap_flash_alternate;
 float ts_last_ads;   // zuletzt gemeldeter ADS-Zustand (TSUI:ads-Marker)
+// Als float gefuehrt, nicht als string: serverkey() liefert eine
+// Tempstring, und strzone() ist in diesem fteqcc als veraltet markiert
+// ("Redundant"). Eine Zahl zu vergleichen umgeht die Frage nach der
+// Lebensdauer vollstaendig.
+float ts_last_runseq;   // zuletzt gemeldeter Lauf (TSUI:rstart-Marker)
+
+// Herzschlag fuer die Bestenliste: einmal je Runde. Der Server vergleicht die
+// Spur spaeter mit der Endwertung -- eine Endrunde, die von der Spur nicht
+// gedeckt ist, ist eine Luege. Und weil die Spur ueber die Echtzeit verteilt
+// ankommt, kostet ein gefaelschter Rekord echte Wartezeit.
+//
+// sprintf nimmt hoechstens 8 Parameter EINSCHLIESSLICH Formatstring -- hier
+// sind es 6, also unkritisch.
+void() ts_send_heartbeat =
+{
+	// Beim Kartenstart feuert CSQC_EVENT_ROUNDCHANGE einmal mit rounds = 0.
+	// Ein Herzschlag mit lauter Nullen sagt nichts aus und wuerde die Spur nur
+	// verrauschen -- der Server prueft sie auf Monotonie und Deckung.
+	if (rounds < 1)
+		return;
+
+	entity me = findfloat(world, playernum, getstatf(STAT_PLAYERNUM));
+	float k = 0, h = 0;
+	if (me != world) { k = me.kills; h = me.headshots; }
+
+	// ACHTUNG Reihenfolge: rstart wird in CSQC_UpdateView gemeldet (Renderframe),
+	// der erste Herzschlag dagegen auf dem Rundenwechsel-Ereignis. Er kann also
+	// VOR rstart ankommen. Die Shell muss Herzschlaege deshalb puffern, bis sie
+	// vom Server eine Lauf-Kennung hat -- sie darf nicht annehmen, dass rstart
+	// immer zuerst da ist.
+	print(sprintf("\nTSUI:hb:%d|%d|%d|%d|%d\n",
+		rounds, getstatf(STAT_TOTALSCORE), k, h, floor(time)));
+};
 
 noref void(float width, float height, float menushown) CSQC_UpdateView =
 {
@@ -975,6 +1008,18 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 			sensitivity_factor *= 0.35;
 		else
 			sensitivity_factor *= 0.5;
+	}
+
+	// TSUI-Bruecke: Beginn eines neuen Laufs melden.
+	// Erkannt ueber ts_runseq statt ueber das Kartenladen, weil der weiche
+	// Neustart die Karte NICHT neu laedt -- ein zweiter Lauf wuerde sonst
+	// still an den ersten angehaengt. mapkey ist der rohe BSP-Name (stabiler
+	// Schluessel), ts_cfg traegt Schwierigkeit|Modus|Startrunde|Flags.
+	float ts_seq = stof(serverkey("ts_runseq"));
+	if (ts_seq > 0 && ts_seq != ts_last_runseq) {
+		ts_last_runseq = ts_seq;
+		print(sprintf("\nTSUI:rstart:%s|%s|%d\n",
+			serverkey("ts_map"), serverkey("ts_cfg"), ts_seq));
 	}
 
 	// TSUI-Bruecke: ADS-Zustand an die Web-Shell melden (Button-Glow-Sync).
@@ -1307,6 +1352,7 @@ noref void() CSQC_Parse_Event =
 			break;
 		case CSQC_EVENT_ROUNDCHANGE:
 			rounds = readbyte();
+			ts_send_heartbeat();
 			break;
 		case CSQC_EVENT_BROADCASTMESSAGE:
 			broadcast_type = readbyte();
@@ -1409,6 +1455,17 @@ noref void() CSQC_Parse_Event =
 					strreplace("|", "", strreplace("\n", " ", getplayerkeyvalue(ts_i, "name"))),
 					ts_cl.points, ts_cl.kills, ts_cl.headshots, ts_cl.downs, ts_cl.revives));
 			}
+			// Konfiguration ZUM ZEITPUNKT DES ABSCHLUSSES. Bewusst ein
+			// eigener Marker statt einer Erweiterung von dstats: aeltere,
+			// im PWA-Cache haengende Shells matchen nur /TSUI:dstats:.../
+			// und laufen dadurch unveraendert weiter.
+			// Der Server vergleicht das mit der beim START gemeldeten
+			// Konfiguration -- das schliesst "auf Leicht starten, auf Schwer
+			// einreichen", ohne einer der beiden Seiten allein zu glauben.
+			print(sprintf("\nTSUI:dmeta:%s|%s|%s\n",
+				serverkey("ts_cheat") == "1" ? "1" : "0",
+				serverkey("ts_cfg"), serverkey("ts_map")));
+
 			print(sprintf("\nTSUI:dead:%d\n", rounds));
 			break;
 		case EVENT_DOUBLETAPUPDATE:

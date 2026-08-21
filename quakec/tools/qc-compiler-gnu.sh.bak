@@ -76,55 +76,11 @@ function compile_progs()
 	echo "[INFO]: Compiling using [${src_file}] (${name}).."
 	local command="bin/${FTEQCC} ${flags} -srcfile progs/${src_file}.src"
 	echo "[${command}]"
-	# Erwartete Ausgabedatei aus dem .src lesen -- ihre frische Existenz ist
-	# die einzige verlaessliche Erfolgsmeldung.
-	# ssqc.src enthaelt ZWEI progs_dat-Zeilen: eine im #ifdef FTE (qwprogs.dat)
-	# und eine im #else (Vril, build/standard/progs.dat). Welche gilt, haengt
-	# an den Flags -- sonst prueft der Vril-Durchlauf die FTE-Datei und meldet
-	# faelschlich, sie sei nicht neu geschrieben worden.
-	local out_rel
-	if [[ "${flags}" == *"-DFTE"* ]]; then
-		out_rel=$(grep -m1 '#pragma progs_dat' "progs/${src_file}.src" | sed 's/.*"\(.*\)".*/\1/')
-	else
-		out_rel=$(grep '#pragma progs_dat' "progs/${src_file}.src" | tail -1 | sed 's/.*"\(.*\)".*/\1/')
-	fi
-	local out_abs="progs/${out_rel}"
-	local before=0
-	[[ -f "${out_abs}" ]] && before=$(stat -c %Y "${out_abs}")
-
-	# pipefail + PIPESTATUS[0]: hier stand frueher `local return_code=$?`
-	# NACH einer Pipe durch tee -- das fing den Exit-Code von TEE statt von
-	# fteqcc, und ausgewertet wurde er ohnehin nie. Entschieden hat
-	# stattdessen ein grep ueber das Log, in dem "warning" und sogar ein
-	# blankes "not" als Fehler galten: eine einzige Deprecation-Warnung liess
-	# den ganzen Build scheitern.
-	set -o pipefail
 	$command 2>&1 | tee -a "${QUAKEC_LOG}" > /dev/null
-	local return_code=${PIPESTATUS[0]}
-	set +o pipefail
+	local return_code=$?
 
-	failure="0"
-	if [[ "${return_code}" -ne 0 ]]; then
-		echo "[ERROR]: fteqcc endete mit Code ${return_code}."
-		failure="1"
-	fi
-
-	# Zweite, unabhaengige Absicherung: ohne frisch geschriebene Ausgabedatei
-	# gab es keinen erfolgreichen Compile, egal was der Exit-Code behauptet.
-	if [[ ! -s "${out_abs}" ]]; then
-		echo "[ERROR]: ${out_rel} fehlt oder ist leer."
-		failure="1"
-	elif [[ "$(stat -c %Y "${out_abs}")" -le "${before}" ]]; then
-		echo "[ERROR]: ${out_rel} wurde nicht neu geschrieben."
-		failure="1"
-	fi
-
-	# Warnungen sind ein Hinweis, kein Abbruch.
-	if grep -qE "warning" "${QUAKEC_LOG}" 2>/dev/null; then
-		echo "[WARN]: fteqcc meldet Warnungen:"
-		grep -E "warning" "${QUAKEC_LOG}" | sed 's/^/        /' | head -20
-	fi
-	rm -f "${QUAKEC_LOG}"
+	sed 's/^.\{16\}//' "${QUAKEC_LOG}" | grep -E "warning|error|defined|not|unknown|branches" || failure="0"
+	rm -rf "${QUAKEC_LOG}"
 
 	if [[ "${failure}" -ne "0" ]]; then
 		echo "[ERROR]: FAILED to build!"

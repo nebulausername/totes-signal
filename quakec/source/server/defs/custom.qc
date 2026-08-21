@@ -596,6 +596,13 @@ float barricade_reward_maximum;
 .float barricade_reward;
 
 float rounds;
+
+// Zaehlt jeden neuen Lauf hoch und wird per serverinfo an CSQC gemeldet. Die
+// Shell erkennt daran, dass ein NEUER Lauf begonnen hat -- auch beim weichen
+// Neustart, bei dem die Karte nicht neu geladen wird und CSQC_Init deshalb
+// NICHT erneut laeuft. Ohne diesen Zaehler wuerde ein zweiter Lauf still an
+// den ersten angehaengt.
+float ts_runseq;
 float rounds_change;
 
 //Waypoints

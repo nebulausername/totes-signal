@@ -352,6 +352,20 @@ void() precaches =
 }
 
 //called when map loaded
+// Packt die Einstellungen, die die Schwierigkeit eines Laufs veraendern, in
+// ein Bitfeld. Ohne die ist keine faire Wertung moeglich: ein Lauf mit
+// sv_headshotonly oder abgeschalteten Powerups ist ein anderes Spiel.
+float() ts_flag_bits =
+{
+	float f = 0;
+	if (cvar("sv_headshotonly")) f |= 1;
+	if (!cvar("sv_magic"))       f |= 2;
+	if (cvar("sv_fastrounds"))   f |= 4;
+	if (player_count > 1)        f |= 8;
+	if (cheats_have_been_activated) f |= 16;
+	return f;
+};
+
 void() worldspawn =
 {
 	precaches();
@@ -483,6 +497,17 @@ void() worldspawn =
 
 	cvar_set("mapname_pretty", mapname_pretty);
 	localcmd(sprintf("serverinfo mapname_pretty %s\n", mapname_pretty));
+
+	// --- Lauf-Konfiguration fuer die Bestenliste ---
+	// Derselbe Weg wie mapname_pretty daruber: serverinfo -> serverkey() in
+	// CSQC. Wichtig ist ts_map, der ROHE BSP-Name: mapname_pretty ist die
+	// erste Zeile aus maps/<bsp>.txt, also unser deutscher Anzeigetext.
+	// Aendert sich der Text, zerfiele eine Bestenliste sonst in zwei
+	// Eintraege -- der stabile Schluessel ist der Dateiname.
+	localcmd(sprintf("serverinfo ts_map %s\n", mapname));
+	localcmd(sprintf("serverinfo ts_cfg %d|%d|%d|%d\n",
+		cvar("sv_difficulty"), cvar("sv_gamemode"), cvar("sv_startround"),
+		ts_flag_bits()));
 
 #endif // FTE
 
@@ -655,5 +680,10 @@ void() EndFrame =
 
 	if (cheats_have_been_activated == false && cvar("sv_cheats") == 1) {
 		cheats_have_been_activated = true;
+		// Einbahnstrasse: sv_cheats 0 loescht den Riegel NICHT mehr. Wer ihn
+		// erkennt, erkennt damit auch impulse 22 (+10000 Punkte, +4 Runden),
+		// das genau daran haengt. Sofort melden, damit die Shell den Lauf
+		// markieren kann, auch wenn er spaeter "sauber" aussieht.
+		localcmd("serverinfo ts_cheat 1\n");
 	}
 };
