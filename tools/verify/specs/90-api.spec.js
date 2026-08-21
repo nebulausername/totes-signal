@@ -361,3 +361,92 @@ test('abgewiesene Laeufe stehen NICHT auf der Bestenliste', async () => {
   expect(unmoeglich, `abgewiesener Lauf ist sichtbar: ${JSON.stringify(unmoeglich)}`).toHaveLength(0);
   await ctx.dispose();
 });
+
+// ---------------------------------------------------------------------------
+// Erfolge
+// ---------------------------------------------------------------------------
+
+test('Erfolgs-Definitionen sind oeffentlich und deutsch', async () => {
+  const ctx = await request.newContext();
+  const r = await ctx.get(`${BASE}/api/achievements`);
+  expect(r.status()).toBe(200);
+  const d = (await r.json()).defs;
+  expect(d.length, 'nicht alle 42 Erfolge').toBe(42);
+  expect(d[0].name_de).toBeTruthy();
+  // Nicht erreichbare Erfolge muessen als solche gekennzeichnet sein -- drei
+  // verweisen auf Kino der Toten, eine Karte die wir gar nicht ausliefern.
+  expect(d.some((x) => !x.verfuegbar), 'kein Erfolg als unerreichbar markiert').toBe(true);
+  await ctx.dispose();
+});
+
+test('abgeleitete Erfolge wirken RUECKWIRKEND aus den Laufdaten', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const auth = { ...ORIGIN, Authorization: `Bearer ${a.access_token}` };
+
+  // Vorher: nichts freigeschaltet.
+  let mein = await (await ctx.get(`${BASE}/api/profile/achievements`, { headers: auth })).json();
+  expect(mein.freigeschaltet).toBe(0);
+
+  // Ein Lauf bis Runde 5 -- der Server muss daraus Erfolg 0 ableiten, ohne
+  // dass das Spiel irgendetwas gemeldet haette.
+  const lauf = await starteLauf(ctx, a.access_token);
+  const kopf = { ...auth, 'X-Run-Token': lauf.run_token };
+  await ctx.post(`${BASE}/api/runs/${lauf.run_id}/heartbeat`, {
+    headers: kopf, data: { beats: [
+      { seq: 1, round: 3, score: 1500, kills: 30, headshots: 10, secs: 12 },
+      { seq: 2, round: 5, score: 3100, kills: 65, headshots: 20, secs: 25 } ] } });
+  const fin = await (await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, {
+    headers: kopf, data: laufDaten(5) })).json();
+  expect(fin.status, `Lauf abgewiesen: ${fin.reason}`).toBe('verified');
+
+  const neu = (fin.achievements_neu || []).map((x) => x.id);
+  expect(neu, `Erfolg 0 nicht abgeleitet. Neu: ${JSON.stringify(fin.achievements_neu)}`).toContain(0);
+
+  mein = await (await ctx.get(`${BASE}/api/profile/achievements`, { headers: auth })).json();
+  expect(mein.freigeschaltet).toBeGreaterThanOrEqual(1);
+  const e0 = mein.defs.find((x) => x.id === 0);
+  expect(e0.unlocked_at, 'Erfolg 0 ist nicht als freigeschaltet gespeichert').toBeTruthy();
+  await ctx.dispose();
+});
+
+test('Client kann NUR ingame-Erfolge melden, keine abgeleiteten', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const auth = { ...ORIGIN, Authorization: `Bearer ${a.access_token}` };
+
+  // Versuch, sich Erfolg 34 ("1.000.000 Punkte", abgeleitet) und 41 (Meta)
+  // zu erschwindeln -- beide muessen ignoriert werden. 3 ist ingame und darf.
+  const r = await ctx.post(`${BASE}/api/profile/achievements/sync`, {
+    headers: auth,
+    data: { unlocked: [{ id: 34, progress: 1 }, { id: 41, progress: 1 }, { id: 3, progress: 1 }] },
+  });
+  expect(r.status()).toBe(200);
+  expect((await r.json()).uebernommen, 'mehr als der ingame-Erfolg wurde uebernommen').toBe(1);
+
+  const mein = await (await ctx.get(`${BASE}/api/profile/achievements`, { headers: auth })).json();
+  const holen = (id) => mein.defs.find((x) => x.id === id);
+  expect(holen(3).unlocked_at, 'ingame-Erfolg wurde nicht uebernommen').toBeTruthy();
+  expect(holen(34).unlocked_at, 'abgeleiteter Erfolg war frei erfindbar!').toBeNull();
+  expect(holen(41).unlocked_at, 'Meta-Erfolg war frei erfindbar!').toBeNull();
+  await ctx.dispose();
+});
+
+test('Erfolge bringen XP, und der Zaehler bleibt konsistent', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const auth = { ...ORIGIN, Authorization: `Bearer ${a.access_token}` };
+  const lauf = await starteLauf(ctx, a.access_token);
+  const kopf = { ...auth, 'X-Run-Token': lauf.run_token };
+  await ctx.post(`${BASE}/api/runs/${lauf.run_id}/heartbeat`, {
+    headers: kopf, data: { beats: [{ seq: 1, round: 5, score: 3100, kills: 65, headshots: 20, secs: 25 }] } });
+  const fin = await (await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, {
+    headers: kopf, data: laufDaten(5) })).json();
+
+  // Lauf-XP plus die XP des abgeleiteten Erfolgs.
+  const erfolgsXp = (fin.achievements_neu || []).reduce((s, x) => s + x.xp, 0);
+  expect(erfolgsXp, 'Erfolg brachte keine XP').toBeGreaterThan(0);
+  expect(fin.xp_total, 'xp_total deckt Lauf und Erfolg nicht ab')
+    .toBeGreaterThanOrEqual(fin.xp_gained + erfolgsXp);
+  await ctx.dispose();
+});

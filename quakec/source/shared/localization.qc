@@ -397,6 +397,96 @@ string(string english) T =
 	case "Revives": return "Wiederbelebt";
 	case "Headshots": return "Kopfschuesse";
 
+	// >>> ERFOLGE-ANFANG (erzeugt) <<<
+	// === Erfolge (erzeugt aus server/data/erfolge.json) ===
+	// Nicht von Hand aendern -- neu erzeugen mit
+	//   node server/scripts/erfolge-qc-erzeugen.mjs
+	// ASCII 33..126, weil die Spielschrift nichts anderes kann.
+	case "Ready..": return "Bereit ...";
+	case "Reach Round 5": return "Erreiche Runde 5";
+	case "Steady..": return "Ruhig ...";
+	case "Reach Round 10": return "Erreiche Runde 10";
+	case "Go? Hell No...": return "Los? Auf keinen Fall.";
+	case "Reach Round 15": return "Erreiche Runde 15";
+	case "Where Did Legs Go?": return "Wo sind die Beine hin?";
+	case "Turn a Zombie into a Crawler": return "Mach aus einem Zombie einen Krabbler";
+	case "The F Bomb": return "Mit Kanonen auf Spatzen";
+	case "Use the Nuke Power-Up to kill a     single Zombie": return "Toete mit der Atombombe genau einen Zombie";
+	case "No Perks? No Problem": return "Ohne Perks? Kein Problem.";
+	case "Survive an entire Round without     Perks past Round 15 or higher": return "Ueberstehe ab Runde 15 eine ganze Runde ohne Perks";
+	case "Dipsomaniac": return "Trunksucht";
+	case "Hold all Perk-A-Colas at once in a  single Game": return "Halte alle Perk-A-Colas gleichzeitig";
+	case "Oops!": return "Hoppla!";
+	case "Nearly die from fall damage": return "Ueberlebe einen Sturz nur knapp";
+	case "Abstinence Program": return "Unberuehrt";
+	case "Survive to Round 10 without taking  any enemy damage": return "Erreiche Runde 10, ohne Schaden zu nehmen";
+	case "Pro-Gamer Move": return "Meisterleistung";
+	case "Die on Round 1 with no Ammo         remaining": return "Stirb in Runde 1 mit leerem Magazin";
+	case "Spinning Plates": return "Alle Teller in der Luft";
+	case "Keep entry points Barricaded all the way to Round 10": return "Halte bis Runde 10 alle Fenster vernagelt";
+	case "Unlucky": return "Pech gehabt";
+	case "Have the Mystery Box move 10 times": return "Lass die Wundertruhe zehnmal umziehen";
+	case "The Collector": return "Der Sammler";
+	case "Buy every weapon off the wall in a  single Game": return "Kaufe in einem Spiel jede Wandwaffe";
+	case "Barrels o' Fun": return "Fass ohne Boden";
+	case "In Nacht der Untoten, kill 15       Zombies with Explosive Barrels": return "Toete in Nacht der Untoten 15 Zombies mit Explosivfaessern";
+	case "It's a Trap!": return "Eine Falle!";
+	case "In Kino der Toten, kill 5 Crawlers  with the use of 1 Trap": return "Nicht verfuegbar: verlangt Kino der Toten";
+	case "Up-Link": return "Standleitung";
+	case "In Kino der Toten, teleport to the  Pack-A-Punch 5 times in a single  Game": return "Nicht verfuegbar: verlangt Kino der Toten";
+	case "Undone": return "Zermuerbt";
+	case "Survive a total of 150 Rounds on    Nacht der Untoten": return "Ueberstehe in Nacht der Untoten insgesamt 150 Runden";
+	case "Moviegoer": return "Kinogaenger";
+	case "Play 10 total Matches on Kino der   Toten": return "Nicht verfuegbar: verlangt Kino der Toten";
+	case "C'mere, Cupcake!": return "Komm her, Suesser!";
+	case "Kill yourself with your own Grenade": return "Sprenge dich mit deiner eigenen Granate";
+	case "Orbital Strike": return "Schlag von oben";
+	case "Kill 5 Zombies at once, with the    Panzerschreck, while in the air": return "Toete im Sprung fuenf Zombies mit dem Panzerschreck";
+	case "A House Divided, Multiplied, then Subtracted": return "Geteiltes Haus";
+	case "In Nacht der Untoten, reach Round 10 without going upstairs & without fixing Barriers, then go upstairs & allow those Barriers to be Destroyed": return "Nicht verfuegbar: Erkennung fehlt";
+	case "Colt-Hearted Killer": return "Kaltbluetig";
+	case "Reach Round 10 using only the Colt  M1911": return "Erreiche Runde 10 nur mit der Colt M1911";
+	case "Cannot Cache and Carry": return "Voll ist voll";
+	case "Collected a Max Ammo power-up whilst already being at fully ammo      capacity": return "Nimm Max-Munition bei vollem Vorrat";
+	case "Divide and Conquer": return "Teile und herrsche";
+	case "Turn all Zombies into Crawlers in a single Round": return "Mach in einer Runde alle Zombies zu Krabblern";
+	case "Tough Luck!": return "Dumm gelaufen";
+	case "Die before reaching Round 5": return "Stirb vor Runde 5";
+	case "All Are One with Gregg!": return "Alle sind eins mit Gregg!";
+	case "Slasher": return "Schlitzer";
+	case "Perform 100 total Melee kills": return "Erledige insgesamt 100 Zombies im Nahkampf";
+	case "Made by Children": return "Von Kindern gebaut";
+	case "Get a Zombie stuck for 5 minutes": return "Lass einen Zombie fuenf Minuten feststecken";
+	case "Increase your Firepower!": return "Mehr Feuerkraft!";
+	case "Use the Pack-A-Punch for the first  time": return "Benutze zum ersten Mal Pack-a-Punch";
+	case "Kraut Got Your Tongue?": return "Kopfsache";
+	case "Get 25 Headshots": return "Lande 25 Kopfschuesse";
+	case "Mindblowing": return "Umwerfend";
+	case "Get 250 Headshots": return "Lande 250 Kopfschuesse";
+	case "Big Thanks to Explosions": return "Danke, Sprengstoff";
+	case "Kill 10 Zombies with a single       Grenade": return "Toete zehn Zombies mit einer einzigen Granate";
+	case "Mystery Box Manaic": return "Truhen-Besessen";
+	case "Use the Mystery Box 20 times in a   single Game": return "Benutze die Wundertruhe 20-mal in einem Spiel";
+	case "Instant Help": return "Sofortige Hilfe";
+	case "Get 100 total Kills with the        Insta-Kill Power-Up": return "Erledige 100 Zombies unter Insta-Kill";
+	case "Blow the Bank": return "Bank gesprengt";
+	case "Earn 1,000,000 Points": return "Verdiene insgesamt 1.000.000 Punkte";
+	case "..Why Are We Waiting?": return "Worauf warten wir?";
+	case "Stand Still for 2 minutes": return "Steh zwei Minuten still";
+	case "One Clip": return "Ein Magazin";
+	case "Survive a Round using the MG42 and  without Reloading": return "Ueberstehe eine Runde mit dem MG42, ohne nachzuladen";
+	case "Twenty-Twenty-One": return "Zwanzig aus zwanzig";
+	case "Land 20 Headshots, with 20 Bullets, with one Clip": return "Lande 20 Kopfschuesse mit 20 Schuss aus einem Magazin";
+	case "Getting Warmed Up": return "Warmgelaufen";
+	case "Earn 10 Achievements": return "Sammle 10 Erfolge";
+	case "About Half-Way": return "Gut die Haelfte";
+	case "Earn 20 Achievements": return "Sammle 20 Erfolge";
+	case "I mean.. 75% is Passing": return "75 Prozent reichen auch";
+	case "Earn 30 Achievements": return "Sammle 30 Erfolge";
+	case "Over-Achiever": return "Uebererfuellt";
+	case "Earn all 42 Achievements": return "Sammle alle 42 Erfolge";
+	// <<< ERFOLGE-ENDE (erzeugt) >>>
+
 	default: return english;
 	}
 };

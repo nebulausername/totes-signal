@@ -150,6 +150,11 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	registercommand("togglemenu");
 	registercommand("promptjoin");
 	registercommand("showscores");
+	// Rueckweg fuer die Web-Shell: sie kennt den Serverstand der Erfolge und
+	// spielt ihn beim Spielstart ein. Ohne das wuerde jeder laengst verdiente
+	// Erfolg beim naechsten Besuch erneut aufpoppen -- und schlimmer, er
+	// koennte erneut vergeben und doppelt gezaehlt werden.
+	registercommand("ts_ach_set");
 
 	cvar_set("r_fb_models", ftos(0));
 	autocvar(r_viewmodel_default_fov, 70);
@@ -1143,6 +1148,13 @@ noref float(string cmd) CSQC_ConsoleCommand =
 			else
 				score_show = TRUE;
 			return TRUE;
+		case "ts_ach_set":
+			// ts_ach_set <id> <freigeschaltet> <fortschritt>
+			// Setzt still, ohne Toast und ohne TSUI:ach zurueckzumelden --
+			// sonst entstuende eine Schleife Shell -> Engine -> Shell.
+			if (argv(1) != "")
+				Achievement_Restore(stof(argv(1)), stof(argv(2)), stof(argv(3)));
+			return TRUE;
 		default:
 			return FALSE;
 	}
@@ -1377,8 +1389,13 @@ noref void() CSQC_Parse_Event =
 		case CSQC_EVENT_GIVEACHIEVEMENT:
 			float achievement_id = readbyte();
 
-			// Don't unlock an existing achievement or any if on emscripten.
-			if (achievements[achievement_id].unlocked || platform_is_web)
+			// Der frueher hier stehende platform_is_web-Riegel ist entfallen.
+			// Begruendet war er mit der unzuverlaessigen Dateiablage von
+			// Achievement_Save() im Emscripten-Dateisystem -- genau das Problem
+			// loest jetzt der Server: der Marker unten meldet die
+			// Freischaltung, die Shell traegt sie ins Konto ein, und beim
+			// naechsten Start kommt sie ueber ts_ach_set zurueck.
+			if (achievements[achievement_id].unlocked)
 				return;
 
 			Achievement_Unlock(achievement_id);

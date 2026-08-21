@@ -3,6 +3,7 @@ import { q, pool } from '../lib/db.js';
 import { sha256, ipPrefix } from '../lib/tokens.js';
 import { requireUser } from './auth.js';
 import { bewerte, xpForRun } from '../lib/plausibility.js';
+import { erfolgePruefen } from '../lib/erfolge.js';
 
 function fail(code, message, status = 400) {
   const e = new Error(message); e.statusCode = status; e.tsCode = code; return e;
@@ -174,6 +175,14 @@ export default async function routes(app) {
       await client.query('UPDATE ts.users SET last_seen_at = now() WHERE id=$1', [userId]);
       await client.query('COMMIT');
 
+      // Erfolge NACH dem Commit auswerten: sie lesen die frisch gespeicherten
+      // Laufdaten und wirken rueckwirkend ueber die gesamte Historie.
+      let neueErfolge = [];
+      if (urteil.status === 'verified') {
+        try { neueErfolge = await erfolgePruefen(userId, run.id); }
+        catch (e) { req.log.error({ err: e }, 'Erfolgspruefung fehlgeschlagen'); }
+      }
+
       const prof = (await q('SELECT level, xp_total FROM ts.profiles WHERE user_id=$1', [userId])).rows[0];
       const rang = urteil.status === 'verified' ? await rangFuer(gespeichert) : null;
 
@@ -185,6 +194,7 @@ export default async function routes(app) {
         level: prof?.level ?? 1,
         xp_total: Number(prof?.xp_total ?? 0),
         rank: rang,
+        achievements_neu: neueErfolge,
       };
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});

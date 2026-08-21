@@ -359,6 +359,7 @@ function tsMarker(msg)
 		if (window.__ts_applyBright) __ts_applyBright();
 		if (window.__ts_applyHud)    __ts_applyHud();
 		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
+		if (window.TS_RUN && TS_ORIGIN_OK) TS_RUN.erfolgeWiederherstellen();
 	}
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
@@ -377,6 +378,7 @@ function tsMarker(msg)
 		var mr = msg.match(/TSUI:rstart:([^\n]*)/); if (mr) TS_RUN.onStart(mr[1]);
 		var mh = msg.match(/TSUI:hb:([^\n]*)/);     if (mh) TS_RUN.onBeat(mh[1]);
 		var mm = msg.match(/TSUI:dmeta:([^\n]*)/);  if (mm) TS_RUN.onMeta(mm[1]);
+		var mc = msg.match(/TSUI:ach:([^\n]*)/);    if (mc) TS_RUN.onAch(mc[1]);
 	}
 }
 (function(){
@@ -390,7 +392,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-21f';
+var TS_BUILD = '2026-08-21g';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1024,6 +1026,31 @@ var TS_RUN = {
 		}).then(function(){ self.gesendet = bis; }).catch(function(){ /* naechster Versuch */ });
 	},
 
+	// Erfolge, die das Spiel waehrend dieses Laufs gemeldet hat.
+	erfolge: [],
+	onAch: function(roh){
+		var p = String(roh).split('|');
+		var id = +p[0];
+		if (!isFinite(id)) return;
+		this.erfolge.push({ id: id, progress: +p[1] || 0 });
+	},
+
+	// Serverstand ins Spiel zurueckspielen. Ohne das poppt jeder laengst
+	// verdiente Erfolg beim naechsten Besuch erneut auf -- die Ablage in
+	// ach.dat ueberlebt im Emscripten-Dateisystem nicht zuverlaessig.
+	erfolgeWiederherstellen: async function(){
+		if (!TS_ORIGIN_OK || !TS_API.hatKonto()) return;
+		try {
+			var d = await TS_API.call('/profile/achievements');
+			var befehle = d.defs.filter(function(x){ return x.unlocked_at || x.progress; })
+				.map(function(x){ return 'ts_ach_set ' + x.id + ' ' + (x.unlocked_at ? 1 : 0) + ' ' + (x.progress || 0); });
+			// Gebuendelt in einem cbufadd: jeder Aufruf zieht window.focus()
+			// nach sich, und 42 davon wuerden einen aufliegenden Finger vom
+			// Joystick reissen.
+			if (befehle.length) tsCmd(befehle.join('\n') + '\n');
+		} catch(e){}
+	},
+
 	onMeta: function(roh){
 		// <cheat>|<diff|mode|startround|flags>|<mapkey>
 		var p = String(roh).split('|');
@@ -1043,6 +1070,14 @@ var TS_RUN = {
 			cheat:      this.meta ? this.meta.cheat : 0
 		};
 		var self = this;
+		// Gemeldete Erfolge mitschicken. Der Server nimmt davon NUR die Art
+		// 'ingame' an -- abgeleitete und Meta-Erfolge rechnet er selbst aus,
+		// sonst waeren sie frei erfindbar.
+		if (this.erfolge.length && TS_API.hatKonto()){
+			TS_API.call('/profile/achievements/sync', {
+				method: 'POST', body: { unlocked: this.erfolge }
+			}).catch(function(){});
+		}
 		if (this.lauf){
 			this.flushBeats();
 			TS_API.call('/runs/' + this.lauf.run_id + '/finish', {
@@ -1138,10 +1173,18 @@ var TS_BOARD = {
 		var e = (this.letztes && this.letztes.run) || null;
 		var kopf = '';
 		if (this.letztes){
-			if (this.letztes.status === 'verified')
+			if (this.letztes.status === 'verified'){
 				kopf = '<div class="dfoot">' + T('rankPlatz') + ' ' +
 					(this.letztes.rank ? this.letztes.rank.map : '?') +
 					' &middot; +' + this.letztes.xp_gained + ' XP</div>';
+				// Frisch verdiente Erfolge sind der schoenste Moment nach dem
+				// Sterben -- die gehoeren nach oben, nicht in ein Untermenue.
+				var ne = this.letztes.achievements_neu || [];
+				if (ne.length)
+					kopf += '<div class="dfoot" style="color:#e8b04b">&#9733; ' +
+						ne.map(function(x){ return TS_DEATH.strip(x.name) + ' (+' + x.xp + ' XP)'; }).join(' &middot; ') +
+						'</div>';
+			}
 			else
 				// Ehrlich benennen statt still verschweigen: ein markierter Lauf
 				// ist nicht verloren, er wird nur geprueft.

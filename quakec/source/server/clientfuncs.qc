@@ -485,17 +485,14 @@ void(string chaptertitle, string location, string date, string person, entity wh
 
 void (float achievement_id, optional entity who) GiveAchievement =
 {
-	return;
-
-	// Achievements have been removed, adding back TBD
-#if 0
-#ifndef FTE
-
-	// temp
-	if (achievement_id > 4)
-		return;
-
-#endif // FTE
+	// Upstream hatte das hier komplett stillgelegt: ein bedingungsloses
+	// `return;` und der ganze Rumpf in `#if 0` ("Achievements have been
+	// removed, adding back TBD"). Zusammen mit dem platform_is_web-Riegel in
+	// CSQC bedeutete das: KEIN einziger der 42 Erfolge konnte je ausgeloest
+	// werden -- und der Web-Build ist der einzige, den wir ausliefern.
+	//
+	// Reaktiviert. Die Vergabestellen (IDs 0-13) waren die ganze Zeit da und
+	// werden ab jetzt wieder erreicht.
 
 	// this is an achievement specific to an individual
 	if ((who && who != world) || player_count == 1) {
@@ -509,7 +506,6 @@ void (float achievement_id, optional entity who) GiveAchievement =
 			players = find(players, classname, "player");
 		}
 	}
-#endif
 }
 
 #ifdef FTE
