@@ -40,6 +40,28 @@ float() GetUltraWideOffset =
 	return 0;
 }
 
+// Auf Touch-Geraeten liegt der Bewegungs-Stick der Web-Shell unten links --
+// exakt dort, wo das HUD Punktestand, Spielername und die Punkte-Animation
+// zeichnet. Der Stick verdeckt die Zahl also genau in dem Moment, in dem sie
+// sich aendert. Das HUD wandert deshalb dort ein Stueck nach oben.
+//
+// Geschaltet ueber ts_touchui, NICHT ueber platform_is_web: der Desktop-
+// Browser ist ebenfalls "web", hat aber keinen Stick und braucht die
+// Verschiebung nicht. Nur die Shell weiss, ob sie ein Touch-Geraet bedient
+// (pointer:coarse / ontouchstart) -- sie setzt die Cvar per tsCmd.
+//
+// 74 virtuelle Zeilen reichen bei jeder der drei HUD-Groessen (480/380/300);
+// die Stick-Groesse ist clamp(126px, 31vmin, 216px) und damit fast konstant.
+#define HUD_TOUCH_LIFT 74
+
+float() GetTouchLift =
+{
+	if (cvar("ts_touchui"))
+		return HUD_TOUCH_LIFT;
+
+	return 0;
+}
+
 //return hud images, makes drawpic slightly cleaner..
 string(string img) getImage = {
 	return strcat(huddir, img);
@@ -347,7 +369,7 @@ void(float amount, float playernum) RegisterPointChange =
 
 	// set our x and y positions
 	point_elements[index].x_position = 0;
-	point_elements[index].y_position = (g_height - 90) - (25 * (playernum - 1));
+	point_elements[index].y_position = (g_height - 90) - GetTouchLift() - (25 * (playernum - 1));
 
 	// start with an opacity of 1
 	point_elements[index].opacity = 1;
@@ -416,11 +438,11 @@ void() HUD_Points =
 		x = (99 - pointwidth)/2 + GetUltraWideOffset();
 
 		if (player_number == getstatf(STAT_PLAYERNUM)) {
-			drawpic([3 + GetUltraWideOffset(), g_height - 97 - (i * 25)], "gfx/hud/moneyback.tga", [96, 24], [1,1,1], 1);
-			HUD_DrawStringWithBackdrop([x, g_height - 92 - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
+			drawpic([3 + GetUltraWideOffset(), g_height - 97 - GetTouchLift() - (i * 25)], "gfx/hud/moneyback.tga", [96, 24], [1,1,1], 1);
+			HUD_DrawStringWithBackdrop([x, g_height - 92 - GetTouchLift() - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
 		} else {
-			drawpic([-7 + GetUltraWideOffset(), g_height - 97 - (i * 25)], "gfx/hud/moneyback_condensed.tga", [96, 24], [1,1,1], 1);
-			HUD_DrawStringWithBackdrop([x - 9, g_height - 92 - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
+			drawpic([-7 + GetUltraWideOffset(), g_height - 97 - GetTouchLift() - (i * 25)], "gfx/hud/moneyback_condensed.tga", [96, 24], [1,1,1], 1);
+			HUD_DrawStringWithBackdrop([x - 9, g_height - 92 - GetTouchLift() - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
 		}
 
 		PointUpdate(x + 70, player_number);
@@ -442,7 +464,7 @@ void() HUD_CharacterName =
 	if (nameprint_time - 1 < time) {
 		alpha = (nameprint_time - time);
 	}
-	HUD_DrawStringWithBackdrop([x, g_height - 92 - ((getstatf(STAT_PLAYERNUM) - 1) * 25)], character_name, [12, 12], [1, 1, 1], alpha, 0);
+	HUD_DrawStringWithBackdrop([x, g_height - 92 - GetTouchLift() - ((getstatf(STAT_PLAYERNUM) - 1) * 25)], character_name, [12, 12], [1, 1, 1], alpha, 0);
 }
 
 /*******************

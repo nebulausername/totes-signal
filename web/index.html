@@ -259,6 +259,7 @@
 			<div class="gs-title" data-i18n="gsTitle"></div>
 			<div class="gs-row" id="gs-auto"><span data-i18n="gsAuto"></span><span class="gs-state" id="gs-auto-state"></span></div>
 			<div class="gs-row" id="gs-bright"><span data-i18n="gsBright"></span><span class="gs-state" id="gs-bright-state"></span></div>
+			<div class="gs-row" id="gs-hud"><span data-i18n="gsHud"></span><span class="gs-state" id="gs-hud-state"></span></div>
 			<div class="gs-row" id="gs-duck"><span data-i18n="gsDuck"></span></div>
 			<div class="gs-row" id="gs-nade"><span data-i18n="gsNade"></span></div>
 			<div class="gs-row" id="gs-fs"><span data-i18n="gsFs"></span></div>
@@ -352,8 +353,10 @@ function tsMarker(msg)
 	var stateChange = msg.indexOf('TSUI:game') !== -1 || msg.indexOf('TSUI:menu') !== -1;
 	if (window.TS_CTRL && stateChange)                       // Touch-HUD (nur Touch-Geraete)
 		TS_CTRL.setInGame(msg.indexOf('TSUI:game') !== -1);
-	if (msg.indexOf('TSUI:game') !== -1 && window.__ts_applyBright)
-		__ts_applyBright();                                  // Helligkeits-Preset idempotent re-anwenden
+	if (msg.indexOf('TSUI:game') !== -1){                     // Presets idempotent re-anwenden
+		if (window.__ts_applyBright) __ts_applyBright();
+		if (window.__ts_applyHud)    __ts_applyHud();
+	}
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
 		if (m) TS_DEATH.show(parseInt(m[1], 10));
@@ -379,7 +382,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-21a';
+var TS_BUILD = '2026-08-21c';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -575,6 +578,7 @@ var I18N = {
 		gsTitle:'▚ SCHNELL-EINSTELLUNGEN ▚', gsAuto:'AUTO-FEUER', gsDuck:'HALTUNG WECHSELN',
 		gsNade:'GRANATE WECHSELN', gsFs:'VOLLBILD', gsHelp:'HILFE ANZEIGEN', gsClose:'SCHLIESSEN',
 		gsBright:'HELLIGKEIT', bright0:'NORMAL', bright1:'HELL', bright2:'SEHR HELL',
+		gsHud:'HUD-GROESSE', hud0:'STANDARD', hud1:'GROSS', hud2:'SEHR GROSS',
 		on:'AN', off:'AUS',
 		hint1:'⟵ Stick: Bewegen — voll nach vorn = SPRINT',
 		hint2:'Rechts über den Bildschirm wischen = Umsehen ⟶',
@@ -611,6 +615,7 @@ var I18N = {
 		gsTitle:'▚ QUICK SETTINGS ▚', gsAuto:'AUTO-FIRE', gsDuck:'CHANGE STANCE',
 		gsNade:'SWITCH GRENADE', gsFs:'FULLSCREEN', gsHelp:'SHOW HELP', gsClose:'CLOSE',
 		gsBright:'BRIGHTNESS', bright0:'NORMAL', bright1:'BRIGHT', bright2:'BRIGHTEST',
+		gsHud:'HUD SIZE', hud0:'STANDARD', hud1:'LARGE', hud2:'EXTRA LARGE',
 		on:'ON', off:'OFF',
 		hint1:'⟵ Stick: move — push fully forward = SPRINT',
 		hint2:'Swipe the right side of the screen = look around ⟶',
@@ -1125,6 +1130,45 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	}
 	window.__ts_applyBright = function(){ if (brightIdx > 0) applyBright(false); };   // Re-Apply-Hook (tsMarker)
 
+	// --- HUD-Groesse: das Spiel zeichnet sein HUD in einen virtuellen Raum von
+	// 480 Zeilen Hoehe (vid_conheight, gesetzt in nzportable.cfg INNERHALB der
+	// unantastbaren game.pk3). Auf einem Handy sind die 12-px-Texte darin kaum
+	// lesbar, und der Punktestand verschwindet halb hinter dem Joystick.
+	//
+	// Kleinerer Wert = weniger virtuelle Zeilen auf derselben Flaeche = groesseres
+	// HUD. An DIESEM Build geprueft: 480 -> 260 macht den Punktestand rund 1,85x
+	// groesser, die gesamte 2D-Ebene skaliert mit (Scoreboard, Hinweise, Schrift).
+	//
+	// vid_conautoscale waere der dokumentierte Weg, hat hier aber KEINE Wirkung:
+	// ein explizit gesetztes vid_conheight schlaegt die Automatik -- ebenfalls
+	// an diesem Build geprueft. Und `fps_preset` ohne Argument oeffnet ein
+	// blockierendes Engine-Menue ueber dem Spiel; niemals ohne Stufe aufrufen.
+	var HUD_PRESETS = [
+		{ key: 'hud0', conheight: 480 },   // Standard (wie Desktop)
+		{ key: 'hud1', conheight: 380 },   // Gross
+		{ key: 'hud2', conheight: 300 }    // Sehr gross
+	];
+	var hudIdx = IS_TOUCH ? 1 : 0;         // auf dem Handy ist "Gross" die bessere Voreinstellung
+	try {
+		var storedHud = localStorage.getItem('ts_hudscale');
+		if (storedHud !== null)
+			hudIdx = Math.min(HUD_PRESETS.length - 1, Math.max(0, parseInt(storedHud, 10) || 0));
+	} catch(e){}
+	function applyHud(){
+		var h = HUD_PRESETS[hudIdx];
+		// ts_touchui sagt dem HUD, dass unten links ein Joystick liegt -- es
+		// schiebt Punktestand und Namen dann darueber. Die Engine kann das
+		// nicht selbst wissen: platform_is_web gilt auch fuer den Desktop.
+		// Dieser Block laeuft nur auf Touch-Geraeten (die IIFE steigt sonst
+		// vorher aus), die Cvar bleibt auf dem Desktop also 0.
+		tsCmd('ts_touchui 1\nvid_conheight ' + h.conheight + '\n');
+		var st = document.getElementById('gs-hud-state');
+		if (st){ st.textContent = T(h.key); st.classList.toggle('on', hudIdx > 0); }
+	}
+	// Re-Apply bei jedem Spielstart: die Engine liest nzportable.cfg beim Laden
+	// erneut, unsere Uebersteuerung muss danach wieder greifen.
+	window.__ts_applyHud = function(){ applyHud(); };
+
 	// --- Zahnrad + Schnell-Einstellungen-Sheet (ersetzt die HUD-Buttons
 	// SPRINT/DUCKEN/GR.2/AUTO/VOLLBILD -> weniger Controls, gleiche Funktion) ---
 	var sheet = document.getElementById('gearsheet');
@@ -1156,6 +1200,11 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			brightIdx = (brightIdx + 1) % BRIGHT_PRESETS.length;
 			try { localStorage.setItem('ts_bright', String(brightIdx)); } catch(err){}
 			applyBright(true);
+		});
+		row('gs-hud', function(){
+			hudIdx = (hudIdx + 1) % HUD_PRESETS.length;
+			try { localStorage.setItem('ts_hudscale', String(hudIdx)); } catch(err){}
+			applyHud();
 		});
 		row('gs-duck', function(){ sendKey('keydown', 18, 'AltLeft'); sendKey('keyup', 18, 'AltLeft'); });  // impulse 30
 		row('gs-nade', function(){ tsCmd('impulse 25\n'); });   // 2. Granate waehlen

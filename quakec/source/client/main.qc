@@ -155,6 +155,10 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	autocvar(r_viewmodel_default_fov, 70);
 	autocvar(cl_controllerglyphs, "xbox");
 	autocvar(in_rumbleenabled, 1);
+	// Setzt die Web-Shell auf 1, wenn sie ein Touch-Geraet bedient. Die Engine
+	// kann das nicht selbst wissen -- platform_is_web gilt auch fuer den
+	// Desktop-Browser. Steuert u.a. die HUD-Verschiebung ueber dem Joystick.
+	autocvar(ts_touchui, 0);
 	autocvar(in_aimassist, 1);   // Default an (mobile-first); im Optionsmenue abschaltbar, seta-Wahl bleibt
 	autocvar(cl_hitmarkers, 1);
 	autocvar(cl_textopacity, 0.20);
