@@ -1,30 +1,46 @@
 #!/usr/bin/env bash
-# One-shot: python deps in a venv, then compile QC + fetch assets.
-set -o pipefail
-cd /home/zombie-app
+# Ein Durchgang: Python-Werkzeuge im venv, QuakeC compilieren, Assets pruefen.
+#
+# Pfadrelativ -- die Vorgaengerfassung hatte /home/zombie-app viermal fest
+# verdrahtet. Dieses Verzeichnis existiert nicht (mehr); das Skript ist am
+# `cd` gescheitert und lief danach im falschen Arbeitsverzeichnis weiter, weil
+# nur `pipefail` gesetzt war und nicht `errexit`. Beides behoben.
+set -o errexit -o nounset -o pipefail
+
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+REPO_ROOT=$(dirname "${SCRIPT_DIR}")
+VENV="${REPO_ROOT}/.venv"
+cd "${REPO_ROOT}"
+
 echo "===== full-build start ====="
-date -u 2>/dev/null || true
+date -u
+echo "Repo: ${REPO_ROOT}"
 
-# 1) Python toolchain in an isolated venv (Debian PEP-668 safe)
-if [ ! -x /home/zombie-app/.venv/bin/python ]; then
-  python3 -m venv /home/zombie-app/.venv || { echo "[ERR] venv failed"; }
+# 1) Python-Werkzeugkette im eigenen venv (Debian PEP-668-sicher)
+if [ ! -x "${VENV}/bin/python" ]; then
+  echo "[INFO] Lege venv an ..."
+  python3 -m venv "${VENV}"
 fi
-source /home/zombie-app/.venv/bin/activate
+# shellcheck source=/dev/null
+source "${VENV}/bin/activate"
 python -m pip install --quiet --upgrade pip
-python -m pip install --quiet pandas fastcrc colorama || { echo "[ERR] pip install failed"; }
-python -c "import pandas,fastcrc,colorama; print('[OK] deps', pandas.__version__)" || exit 1
+# Versionen bewusst offen: qc_hash_generator.py traegt einen lokalen Fix fuer
+# pandas >= 2 (siehe docs/UPSTREAM.md). Bricht ein pandas-Major das erneut,
+# soll es hier sichtbar scheitern und nicht still eine alte Version festhalten.
+python -m pip install --quiet pandas fastcrc colorama
+python -c "import pandas,fastcrc,colorama; print('[OK] deps: pandas', pandas.__version__)"
 
-# ensure the build scripts see the venv python as 'python3'
-export PATH="/home/zombie-app/.venv/bin:$PATH"
+# Die Build-Skripte muessen das venv-python als 'python3' sehen
+export PATH="${VENV}/bin:${PATH}"
 
-# 2) Compile QuakeC -> progs.pk3
+# 2) QuakeC -> progs.pk3
 echo "----- build-progs -----"
-bash tools/build-progs.sh || { echo "[ERR] build-progs failed"; exit 1; }
+bash "${SCRIPT_DIR}/build-progs.sh"
 
-# 3) Fetch + verify game.pk3 (~90MB)
+# 3) game.pk3 pruefen (loescht nie etwas, siehe fetch-assets.sh)
 echo "----- fetch-assets -----"
-bash tools/fetch-assets.sh || { echo "[ERR] fetch-assets failed"; exit 1; }
+bash "${SCRIPT_DIR}/fetch-assets.sh"
 
-echo "----- result -----"
-ls -la web/nzp/
+echo "----- Ergebnis -----"
+ls -la "${REPO_ROOT}/web/nzp/"
 echo "===== full-build done ====="
