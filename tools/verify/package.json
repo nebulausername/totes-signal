@@ -1,0 +1,13 @@
+{
+  "name": "totes-signal-verify",
+  "private": true,
+  "type": "module",
+  "description": "Verifikations-Harness fuer TOTES SIGNAL. Browser liegen bereits unter /root/.cache/ms-playwright.",
+  "scripts": {
+    "smoke": "playwright test --grep-invert @full",
+    "full": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}
