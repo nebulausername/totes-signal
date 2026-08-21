@@ -2,7 +2,15 @@ import { test, expect, request } from '@playwright/test';
 
 // API-Tests brauchen keinen Browser -> nur einmal laufen lassen.
 test.describe.configure({ mode: 'serial' });
-test.skip(({ browserName }) => browserName !== 'chromium', 'nur einmal noetig');
+// browserName ist fuer chromium-desktop UND chromium-mobile 'chromium' --
+// danach zu filtern liesse diese reine HTTP-Suite ZWEIMAL laufen, und der
+// zweite Lauf faellt zuverlaessig ins Rate-Limit. Deshalb ueber den
+// Projektnamen, und zwar in beforeEach: die Kurzform test.skip(fn) bekommt
+// kein testInfo.
+test.beforeEach(({}, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop',
+    'reine HTTP-Pruefung -- genau einmal, nicht je Browser');
+});
 
 const BASE = process.env.TS_API_BASE || 'https://totersignal.de';
 const ORIGIN = { 'Origin': 'https://totersignal.de', 'Content-Type': 'application/json' };
