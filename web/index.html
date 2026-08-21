@@ -358,6 +358,7 @@ function tsMarker(msg)
 	if (msg.indexOf('TSUI:game') !== -1){                     // Presets idempotent re-anwenden
 		if (window.__ts_applyBright) __ts_applyBright();
 		if (window.__ts_applyHud)    __ts_applyHud();
+		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
 	}
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
@@ -389,7 +390,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-21e';
+var TS_BUILD = '2026-08-21f';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -892,6 +893,31 @@ var TS_API = {
 
 	hatKonto(){ try { return !!localStorage.getItem('ts_rt_anon'); } catch(e){ return false; } },
 
+	// Der Deckname muss in die Engine, sonst steht im Spiel-Scoreboard weiter
+	// "Ueberlebender". Aus JS lassen sich Cvars NICHT lesen, nur setzen -- die
+	// Shell ist deshalb die Quelle der Wahrheit und schiebt den Namen bei
+	// jedem Spielstart erneut nach (idempotent, wie die Helligkeit).
+	//
+	// Der Server liefert bereits eine ASCII-Fassung: die Spielschrift kann nur
+	// 33..126, '|' ist das Marker-Trennzeichen, '^' leitet Quake-Farbcodes ein.
+	// Hier trotzdem noch einmal filtern -- was in einen Konsolenbefehl geht,
+	// wird nicht auf gut Glueck durchgereicht.
+	nameSetzen(ascii){
+		var sauber = String(ascii || '').replace(/[^\x21-\x7e]/g, '').replace(/[|^"';]/g, '').slice(0, 20);
+		if (sauber.length < 3) return;
+		try { localStorage.setItem('ts_name_ascii', sauber); } catch(e){}
+		// NIE aus einem Pointer-Handler heraus: tsCmd ruft window.focus(), und
+		// das reisst einen aufliegenden Finger vom Joystick.
+		tsCmd('seta name ' + sauber + '\n');
+	},
+
+	nameNachschieben(){
+		try {
+			var n = localStorage.getItem('ts_name_ascii');
+			if (n) this.nameSetzen(n);
+		} catch(e){}
+	},
+
 	// Wird NUR aus einer ausdruecklichen Nutzerhandlung heraus gerufen. Genau
 	// deshalb braucht das Spiel kein Cookie-Banner: die Speicherung ist dann
 	// "unbedingt erforderlich" fuer einen vom Nutzer angeforderten Dienst
@@ -908,6 +934,7 @@ var TS_API = {
 		this._tok = j.access_token;
 		this._exp = Date.now() + (j.expires_in - 60) * 1000;
 		try { localStorage.setItem('ts_rt_anon', j.refresh_token); } catch(e){}
+		if (j.user && j.user.display_name_ascii) this.nameSetzen(j.user.display_name_ascii);
 		return j;
 	}
 };
