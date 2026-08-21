@@ -307,6 +307,7 @@
 		<div class="death-tabs" id="deathtabs">
 			<span class="dtab active" id="dtab-stats" data-i18n="statTab"></span>
 			<span class="dtab" id="dtab-board" data-i18n="boardTab"></span>
+			<span class="dtab" id="dtab-rank" data-i18n="rankTab"></span>
 		</div>
 		<div id="dpage-stats">
 			<div class="dgrid">
@@ -325,6 +326,7 @@
 				<tbody id="dboardrows"></tbody>
 			</table>
 		</div>
+		<div id="dpage-rank" hidden></div>
 		<div class="death-actions">
 			<span class="play" id="deathagain" data-i18n="again"></span>
 			<span class="play alt" id="deathlobby" data-i18n="lobby"></span>
@@ -370,6 +372,11 @@ function tsMarker(msg)
 		var mb = msg.match(/TSUI:dboard:([^\n]*)/);
 		if (mb) TS_DEATH.addRow(mb[1]);
 	}
+	if (window.TS_RUN){                                       // Bestenliste
+		var mr = msg.match(/TSUI:rstart:([^\n]*)/); if (mr) TS_RUN.onStart(mr[1]);
+		var mh = msg.match(/TSUI:hb:([^\n]*)/);     if (mh) TS_RUN.onBeat(mh[1]);
+		var mm = msg.match(/TSUI:dmeta:([^\n]*)/);  if (mm) TS_RUN.onMeta(mm[1]);
+	}
 }
 (function(){
 	var orig = console.log.bind(console);
@@ -382,7 +389,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-21d';
+var TS_BUILD = '2026-08-21e';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -587,6 +594,11 @@ var I18N = {
 		deadTitle:'SIGNAL VERLOREN', deadRound:'RUNDE %d ERREICHT',
 		again:'▶ NOCHMAL', lobby:'⌂ ZUR LOBBY',
 		statTab:'STATISTIK', boardTab:'SCOREBOARD',
+		rankTab:'BESTENLISTE', rankAus:'Bestenliste und Fortschritt sind aus.',
+		rankAnBtn:'AKTIVIEREN', rankLaedt:'Laedt ...', rankLeer:'Noch keine Eintraege.',
+		rankFehler:'Nicht erreichbar.', rankPlatz:'Platz',
+		rankPruefung:'Lauf wird geprueft.', rankAbgelehnt:'Lauf nicht gewertet.',
+		rankFremd:'Konto und Bestenliste: auf totersignal.de spielen.',
 		waves1:'RUNDE UEBERLEBT', wavesN:'RUNDEN UEBERLEBT',
 		stKills:'KILLS', stHeads:'KOPFSCHUESSE', stQuota:'KOPF-QUOTE',
 		stPoints:'PUNKTE', stDowns:'DOWNS', stRevs:'WIEDERBELEBT',
@@ -624,6 +636,11 @@ var I18N = {
 		deadTitle:'SIGNAL LOST', deadRound:'REACHED ROUND %d',
 		again:'▶ PLAY AGAIN', lobby:'⌂ TO LOBBY',
 		statTab:'STATS', boardTab:'SCOREBOARD',
+		rankTab:'LEADERBOARD', rankAus:'Leaderboard and progress are off.',
+		rankAnBtn:'ENABLE', rankLaedt:'Loading ...', rankLeer:'No entries yet.',
+		rankFehler:'Unavailable.', rankPlatz:'Rank',
+		rankPruefung:'Run under review.', rankAbgelehnt:'Run not counted.',
+		rankFremd:'Account and leaderboard: play on totersignal.de.',
 		waves1:'ROUND SURVIVED', wavesN:'ROUNDS SURVIVED',
 		stKills:'KILLS', stHeads:'HEADSHOTS', stQuota:'HS RATE',
 		stPoints:'POINTS', stDowns:'DOWNS', stRevs:'REVIVES',
@@ -715,6 +732,9 @@ var TS_DEATH = {
 		this.board = [];                                   // neuer Death-Report beginnt
 		this.stats = { rounds:+p[0]||0, score:+p[1]||0, kills:+p[2]||0, heads:+p[3]||0,
 			downs:+p[4]||0, revs:+p[5]||0, secs:+p[6]||0, map:this.strip(p[7]) };
+		// Einziger Punkt, an dem alle Endwerte beisammen sind. dmeta ist da
+		// bereits eingetroffen -- CSQC druckt es vor dem dead-Marker.
+		if (window.TS_RUN) TS_RUN.abschliessen(this.stats);
 	},
 	addRow: function(raw){
 		var p = String(raw).split('|');
@@ -722,14 +742,17 @@ var TS_DEATH = {
 			this.board.push({ name:this.strip(p[0]) || '???', pts:+p[1]||0, kills:+p[2]||0,
 				heads:+p[3]||0, downs:+p[4]||0, revs:+p[5]||0 });
 	},
+	// N-Wege statt der frueheren Zwei-Wege-Logik: mit der Bestenliste sind es
+	// drei Tabs, und ein weiterer soll nicht wieder eine Umschreibung kosten.
+	tabs: ['stats', 'board', 'rank'],
 	tab: function(which){
-		var st = document.getElementById('dpage-stats'), bo = document.getElementById('dpage-board');
-		var ts = document.getElementById('dtab-stats'), tb = document.getElementById('dtab-board');
-		var stats = which === 'stats';
-		if (st) st.hidden = !stats;
-		if (bo) bo.hidden = stats;
-		if (ts) ts.classList.toggle('active', stats);
-		if (tb) tb.classList.toggle('active', !stats);
+		this.tabs.forEach(function(name){
+			var seite = document.getElementById('dpage-' + name);
+			var reiter = document.getElementById('dtab-' + name);
+			if (seite)  seite.hidden = (name !== which);
+			if (reiter) reiter.classList.toggle('active', name === which);
+		});
+		if (which === 'rank' && window.TS_BOARD) TS_BOARD.laden();
 	},
 	render: function(r){
 		var d = this.stats;
@@ -784,9 +807,10 @@ var TS_DEATH = {
 };
 (function(){
 	function tabHandler(which){ return function(e){ e.preventDefault(); TS_DEATH.tab(which); }; }
-	var ts = document.getElementById('dtab-stats'), tb = document.getElementById('dtab-board');
-	if (ts) ts.addEventListener('click', tabHandler('stats'));
-	if (tb) tb.addEventListener('click', tabHandler('board'));
+	TS_DEATH.tabs.forEach(function(name){
+		var el = document.getElementById('dtab-' + name);
+		if (el) el.addEventListener('click', tabHandler(name));
+	});
 })();
 (function(){
 	var again = document.getElementById('deathagain');
@@ -802,6 +826,323 @@ var TS_DEATH = {
 		setTimeout(function(){ tsCmd('ts_maps\n'); }, 350);
 	});
 })();
+
+// =====================================================================
+// Konto, Laeufe und Bestenliste
+// =====================================================================
+// Same-origin gegen /api/ auf totersignal.de. Bewusst KEINE Bibliothek: der
+// gesamte Bedarf sind ein paar fetch()-Aufrufe, und diese Datei hat keinen
+// Bundler.
+//
+// WICHTIG -- warum das im Portfolio-iframe nicht laeuft:
+// Passkeys sind origin-gebunden, Cookies waeren dort Drittanbieter-Cookies
+// (Safari blockiert sie, Firefox/Chrome partitionieren sie), und localStorage
+// ist ebenfalls partitioniert. Das ist nicht reparierbar, sondern eine
+// Eigenschaft der Einbettung. Da die Datei byte-identisch gespiegelt wird,
+// ist die Loesung eine Laufzeitpruefung, keine zweite Build-Variante.
+var TS_ORIGIN_OK = (location.hostname === 'totersignal.de' && window.top === window.self);
+
+var TS_API = {
+	base: '/api',
+	_tok: null,          // Access-Token: NUR im Arbeitsspeicher, nie persistiert
+	_exp: 0,
+
+	async _refresh(){
+		// Der anonyme Notanker aus localStorage: iOS Safari raeumt Cookies nach
+		// sieben Tagen ohne Interaktion ab, und ein anonymer Spieler haette dann
+		// keinen Weg zurueck zu seinen Bestwerten.
+		var rt = null;
+		try { rt = localStorage.getItem('ts_rt_anon'); } catch(e){}
+		var r = await fetch(this.base + '/auth/refresh', {
+			method: 'POST', credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(rt ? { refresh_token: rt } : {})
+		});
+		if (!r.ok) throw new Error('refresh ' + r.status);
+		var j = await r.json();
+		this._tok = j.access_token;
+		this._exp = Date.now() + (j.expires_in - 60) * 1000;
+		if (j.refresh_token) { try { localStorage.setItem('ts_rt_anon', j.refresh_token); } catch(e){} }
+		return j;
+	},
+
+	async token(){
+		if (this._tok && Date.now() < this._exp) return this._tok;
+		await this._refresh();
+		return this._tok;
+	},
+
+	async call(pfad, opt){
+		opt = opt || {};
+		var kopf = Object.assign({ 'Content-Type': 'application/json' }, opt.headers || {});
+		if (opt.auth !== false) kopf.Authorization = 'Bearer ' + await this.token();
+		var r = await fetch(this.base + pfad, {
+			method: opt.method || 'GET', credentials: 'same-origin', headers: kopf,
+			body: opt.body ? JSON.stringify(opt.body) : undefined
+		});
+		if (r.status === 204) return null;
+		var j = await r.json().catch(function(){ return null; });
+		if (!r.ok){
+			var e = new Error((j && j.error && j.error.message) || ('HTTP ' + r.status));
+			e.code = j && j.error && j.error.code; e.status = r.status;
+			throw e;
+		}
+		return j;
+	},
+
+	hatKonto(){ try { return !!localStorage.getItem('ts_rt_anon'); } catch(e){ return false; } },
+
+	// Wird NUR aus einer ausdruecklichen Nutzerhandlung heraus gerufen. Genau
+	// deshalb braucht das Spiel kein Cookie-Banner: die Speicherung ist dann
+	// "unbedingt erforderlich" fuer einen vom Nutzer angeforderten Dienst
+	// (§25 Abs. 2 Nr. 2 TDDDG). Wird das je auf "beim Seitenaufruf" geaendert,
+	// ist ein Banner Pflicht.
+	async kontoAnlegen(){
+		var r = await fetch(this.base + '/auth/anon', {
+			method: 'POST', credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ age_confirmed: true, locale: LANG, privacy_version: '1.0' })
+		});
+		if (!r.ok) throw new Error('anon ' + r.status);
+		var j = await r.json();
+		this._tok = j.access_token;
+		this._exp = Date.now() + (j.expires_in - 60) * 1000;
+		try { localStorage.setItem('ts_rt_anon', j.refresh_token); } catch(e){}
+		return j;
+	}
+};
+
+// --- Ausgangs-Warteschlange -------------------------------------------------
+// Ein fertiger Lauf darf NIE verloren gehen, auch nicht bei Funkloch oder
+// wenn der Spieler die Bestenliste erst nach dem Sterben aktiviert.
+// IndexedDB statt localStorage: localStorage ist synchron und wuerde auf dem
+// Spielfaden ruckeln.
+var TS_OUTBOX = {
+	_db: null,
+	async db(){
+		if (this._db) return this._db;
+		this._db = await new Promise(function(res, rej){
+			var rq = indexedDB.open('ts_outbox', 1);
+			rq.onupgradeneeded = function(){ rq.result.createObjectStore('jobs', { keyPath: 'id', autoIncrement: true }); };
+			rq.onsuccess = function(){ res(rq.result); };
+			rq.onerror = function(){ rej(rq.error); };
+		});
+		return this._db;
+	},
+	async _tx(modus, fn){
+		var db = await this.db();
+		return new Promise(function(res, rej){
+			var t = db.transaction('jobs', modus), st = t.objectStore('jobs'), out;
+			out = fn(st);
+			t.oncomplete = function(){ res(out && out.result !== undefined ? out.result : out); };
+			t.onerror = function(){ rej(t.error); };
+		});
+	},
+	add(job){ return this._tx('readwrite', function(st){ return st.add(Object.assign({ at: Date.now(), versuche: 0 }, job)); }); },
+	alle(){ return this._tx('readonly', function(st){ return st.getAll(); }); },
+	del(id){ return this._tx('readwrite', function(st){ return st.delete(id); }); },
+	async put(job){ return this._tx('readwrite', function(st){ return st.put(job); }); }
+};
+
+// --- Lauf-Verfolgung --------------------------------------------------------
+var TS_RUN = {
+	lauf: null,          // { run_id, run_token } vom Server
+	seq: 0,              // Marker-Lauf-Nummer aus rstart
+	cfg: null,           // { map_key, difficulty, gamemode, start_round, flags }
+	beats: [],           // gepuffert, bis der Server eine Kennung geliefert hat
+	gesendet: 0,
+	meta: null,          // aus dmeta
+	letztesErgebnis: null,
+
+	onStart: function(roh){
+		// <mapkey>|<diff>|<mode>|<startround>|<flags>|<runseq>
+		var p = String(roh).split('|');
+		var seq = +p[5] || 0;
+		if (seq === this.seq) return;          // derselbe Lauf, nichts zu tun
+		this.seq = seq;
+		this.lauf = null; this.beats = []; this.gesendet = 0; this.meta = null;
+		this.cfg = {
+			map_key: p[0] || 'unbekannt',
+			difficulty: +p[1] || 0, gamemode: +p[2] || 0,
+			start_round: +p[3] || 0, flags: +p[4] || 0
+		};
+		if (!TS_ORIGIN_OK || !TS_API.hatKonto()) return;   // ohne Konto kein Server-Lauf
+		var self = this;
+		TS_API.call('/runs/start', { method: 'POST', body: Object.assign({
+			map_pretty: '', player_count: 1, aim_assist: 1, shell_build: TS_BUILD
+		}, this.cfg) }).then(function(j){
+			self.lauf = j;
+			self.flushBeats();
+		}).catch(function(){ /* offline: der Abschluss landet in der Warteschlange */ });
+	},
+
+	onBeat: function(roh){
+		// <runde>|<score>|<kills>|<kopfschuesse>|<sekunden>
+		var p = String(roh).split('|');
+		this.beats.push({ seq: this.beats.length + 1, round: +p[0] || 0, score: +p[1] || 0,
+			kills: +p[2] || 0, headshots: +p[3] || 0, secs: +p[4] || 0 });
+		// Gebuendelt: alle drei Runden oder alle 45 s. Eine Anfrage pro Runde
+		// waere auf dem Handy Verschwendung und kollidiert mit den
+		// Asset-Ladevorgaengen beim Rundenwechsel.
+		if (this.beats.length - this.gesendet >= 3) this.flushBeats();
+	},
+
+	flushBeats: function(){
+		if (!this.lauf || this.beats.length <= this.gesendet) return;
+		var offen = this.beats.slice(this.gesendet, this.gesendet + 20);
+		var self = this, bis = this.gesendet + offen.length;
+		TS_API.call('/runs/' + this.lauf.run_id + '/heartbeat', {
+			method: 'POST', headers: { 'X-Run-Token': this.lauf.run_token },
+			body: { beats: offen }
+		}).then(function(){ self.gesendet = bis; }).catch(function(){ /* naechster Versuch */ });
+	},
+
+	onMeta: function(roh){
+		// <cheat>|<diff|mode|startround|flags>|<mapkey>
+		var p = String(roh).split('|');
+		this.meta = { cheat: p[0] === '1' ? 1 : 0,
+			difficulty: +p[1] || 0, gamemode: +p[2] || 0, map_key: p[5] || (this.cfg && this.cfg.map_key) };
+	},
+
+	// Wird aus TS_DEATH.setStats gerufen -- dort liegen alle Endwerte vor.
+	abschliessen: function(st){
+		if (!TS_ORIGIN_OK || !st) return;
+		var koerper = {
+			rounds: st.rounds, score: st.score, kills: st.kills, headshots: st.heads,
+			downs: st.downs, revives: st.revs, secs: st.secs,
+			difficulty: this.meta ? this.meta.difficulty : (this.cfg ? this.cfg.difficulty : 0),
+			gamemode:   this.meta ? this.meta.gamemode   : (this.cfg ? this.cfg.gamemode : 0),
+			map_key:    this.meta ? this.meta.map_key    : (this.cfg ? this.cfg.map_key : 'unbekannt'),
+			cheat:      this.meta ? this.meta.cheat : 0
+		};
+		var self = this;
+		if (this.lauf){
+			this.flushBeats();
+			TS_API.call('/runs/' + this.lauf.run_id + '/finish', {
+				method: 'POST', headers: { 'X-Run-Token': this.lauf.run_token }, body: koerper
+			}).then(function(j){ self.letztesErgebnis = j; if (window.TS_BOARD) TS_BOARD.zeigeErgebnis(j); })
+			  .catch(function(){ TS_OUTBOX.add({ art: 'finish', run: self.lauf, body: koerper }); });
+		} else {
+			// Kein Konto (oder Start war offline): Lauf aufheben. Aktiviert der
+			// Spieler die Bestenliste im Todes-Bildschirm, wird er nachgereicht.
+			TS_OUTBOX.add({ art: 'finish_offen', cfg: koerper, beats: this.beats.slice(0, 60) });
+		}
+	},
+
+	// Nachreichen: laeuft beim Laden, bei "wieder online" und nach dem
+	// Anlegen eines Kontos.
+	nachreichen: async function(){
+		if (!TS_ORIGIN_OK || !TS_API.hatKonto()) return;
+		var jobs = [];
+		try { jobs = await TS_OUTBOX.alle(); } catch(e){ return; }
+		for (var i = 0; i < jobs.length; i++){
+			var j = jobs[i];
+			try {
+				if (j.art === 'finish'){
+					await TS_API.call('/runs/' + j.run.run_id + '/finish', {
+						method: 'POST', headers: { 'X-Run-Token': j.run.run_token }, body: j.body });
+				} else if (j.art === 'finish_offen'){
+					// Start und Abschluss in einem: der Server hat hier keinen
+					// eigenen Zeitanker und markiert solche Laeufe entsprechend.
+					var neu = await TS_API.call('/runs/start', { method: 'POST', body: {
+						map_key: j.cfg.map_key, difficulty: j.cfg.difficulty,
+						gamemode: j.cfg.gamemode, player_count: 1, shell_build: TS_BUILD } });
+					if (j.beats && j.beats.length)
+						await TS_API.call('/runs/' + neu.run_id + '/heartbeat', {
+							method: 'POST', headers: { 'X-Run-Token': neu.run_token },
+							body: { beats: j.beats.slice(0, 20) } });
+					await TS_API.call('/runs/' + neu.run_id + '/finish', {
+						method: 'POST', headers: { 'X-Run-Token': neu.run_token }, body: j.cfg });
+				}
+				await TS_OUTBOX.del(j.id);
+			} catch(e){
+				j.versuche = (j.versuche || 0) + 1;
+				// Nach zwoelf Versuchen aufgeben, aber NIE stillschweigend
+				// wegwerfen -- der Spieler sieht es im Konto-Bereich.
+				if (j.versuche >= 12) { await TS_OUTBOX.del(j.id); }
+				else { await TS_OUTBOX.put(j); }
+				break;   // Reihenfolge wahren
+			}
+		}
+	}
+};
+
+// --- Bestenliste im Todes-Bildschirm ---------------------------------------
+// Dritter Tab in der vorhandenen Leiste statt eines eigenen Overlays: er erbt
+// Gestaltung, Tab-CSS und die 3,5-s-Einblendung, und er steht genau dort, wo
+// ein Spieler nach dem Sterben ohnehin hinschaut.
+var TS_BOARD = {
+	fenster: 'all',
+	async laden(){
+		var ziel = document.getElementById('dpage-rank');
+		if (!ziel) return;
+		if (!TS_ORIGIN_OK){
+			ziel.innerHTML = '<div class="dfoot">' + T('rankFremd') + '</div>';
+			return;
+		}
+		if (!TS_API.hatKonto()){
+			ziel.innerHTML = '<div class="dfoot">' + T('rankAus') + '</div>' +
+				'<div class="death-actions"><span class="play" id="rankAn">' + T('rankAnBtn') + '</span></div>';
+			var b = document.getElementById('rankAn');
+			if (b) b.addEventListener('click', async function(){
+				b.textContent = '...';
+				try {
+					await TS_API.kontoAnlegen();
+					await TS_RUN.nachreichen();
+					TS_BOARD.laden();
+				} catch(e){ b.textContent = T('rankFehler'); }
+			});
+			return;
+		}
+		ziel.innerHTML = '<div class="dfoot">' + T('rankLaedt') + '</div>';
+		try {
+			var karte = (TS_RUN.cfg && TS_RUN.cfg.map_key) || '*';
+			var d = await (await fetch('/api/leaderboard?metric=rounds&window=' +
+				this.fenster + '&map=' + encodeURIComponent(karte) + '&limit=15')).json();
+			this.zeichnen(d);
+		} catch(e){
+			ziel.innerHTML = '<div class="dfoot">' + T('rankFehler') + '</div>';
+		}
+	},
+
+	zeichnen: function(d){
+		var ziel = document.getElementById('dpage-rank');
+		if (!ziel) return;
+		var e = (this.letztes && this.letztes.run) || null;
+		var kopf = '';
+		if (this.letztes){
+			if (this.letztes.status === 'verified')
+				kopf = '<div class="dfoot">' + T('rankPlatz') + ' ' +
+					(this.letztes.rank ? this.letztes.rank.map : '?') +
+					' &middot; +' + this.letztes.xp_gained + ' XP</div>';
+			else
+				// Ehrlich benennen statt still verschweigen: ein markierter Lauf
+				// ist nicht verloren, er wird nur geprueft.
+				kopf = '<div class="dfoot">' + T(this.letztes.status === 'flagged' ? 'rankPruefung' : 'rankAbgelehnt') + '</div>';
+		}
+		if (!d.entries.length){
+			ziel.innerHTML = kopf + '<div class="dfoot">' + T('rankLeer') + '</div>';
+			return;
+		}
+		var zeilen = d.entries.map(function(x){
+			return '<tr><td>' + x.rank + '</td><td>' + TS_DEATH.strip(x.display_name) +
+				'</td><td>' + x.rounds + '</td><td>' + x.score + '</td></tr>';
+		}).join('');
+		ziel.innerHTML = kopf +
+			'<table><thead><tr><th>#</th><th>' + T('colName') + '</th><th>' +
+			T('waves1') + '</th><th>' + T('stPoints') + '</th></tr></thead><tbody>' +
+			zeilen + '</tbody></table>';
+	},
+
+	zeigeErgebnis: function(j){ this.letztes = j; this.laden(); }
+};
+
+// Nachreichen anstossen, sobald es sinnvoll ist.
+window.addEventListener('online', function(){ TS_RUN.nachreichen(); });
+document.addEventListener('visibilitychange', function(){
+	if (document.visibilityState === 'visible') TS_RUN.nachreichen();
+});
+if (TS_ORIGIN_OK) setTimeout(function(){ TS_RUN.nachreichen(); }, 4000);
 
 // ---- Update-Erkennung: version.json (immer frisch, am SW vorbei) gegen
 // TS_BUILD dieser Seite. Aeltere Shell? Vor dem Spielstart: einmal automatisch
