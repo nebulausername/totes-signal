@@ -209,3 +209,155 @@ test('Rate-Limit greift auf /api/auth/ (Schutz, kein Nebeneffekt)', async () => 
   expect(sah429, 'kein 429 -- der Endpunkt ist ungebremst offen').toBe(true);
   await ctx.dispose();
 });
+
+// ---------------------------------------------------------------------------
+// Laeufe und Bestenliste
+// ---------------------------------------------------------------------------
+
+// Ein glaubwuerdiger KURZER Lauf.
+//
+// Wichtig zu verstehen, warum die Zahlen so klein sind: der Server verankert
+// die Spielzeit an SEINER Uhr (C5). Ein Test laeuft in Sekunden ab, kann also
+// keinen 15-Minuten-Lauf behaupten -- genau das ist der Sinn der Pruefung.
+// Ein erster Entwurf dieses Tests behauptete Runde 12 in 900 Sekunden und
+// wurde zu Recht abgewiesen.
+//
+// Die Grenzen kommen aus den echten Formeln in server/rounds.qc:
+//   Zombies bis R5 ~ 75  ->  Mindestdauer 75 * 0,08 = 6 s (C7)
+//                        ->  Kill-Obergrenze 1,15 * 75 + 10 = 96 (C2)
+//   C5 erlaubt Spielzeit <= Echtzeit + 30 s Toleranz.
+function laufDaten(runde = 5) {
+  return {
+    rounds: runde,
+    score: runde * 620,
+    kills: Math.floor(runde * 13),
+    headshots: Math.floor(runde * 4),
+    downs: 1, revives: 0,
+    secs: 25,
+  };
+}
+
+async function starteLauf(ctx, token, map = 'ndu') {
+  const r = await ctx.post(`${BASE}/api/runs/start`, {
+    headers: { ...ORIGIN, Authorization: `Bearer ${token}` },
+    data: { map_key: map, map_pretty: 'Nacht der Untoten', difficulty: 0, gamemode: 0,
+            start_round: 0, player_count: 1, aim_assist: 1, shell_build: 'test' },
+  });
+  expect(r.status(), await r.text()).toBe(201);
+  return r.json();
+}
+
+test('Lauf: starten, Herzschlag, abschliessen, verifiziert', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const auth = { ...ORIGIN, Authorization: `Bearer ${a.access_token}` };
+  const lauf = await starteLauf(ctx, a.access_token);
+  expect(lauf.run_token, 'kein Lauf-Token').toBeTruthy();
+
+  const hb = await ctx.post(`${BASE}/api/runs/${lauf.run_id}/heartbeat`, {
+    headers: { ...auth, 'X-Run-Token': lauf.run_token },
+    data: { beats: [
+      { seq: 1, round: 2, score: 1200, kills: 20, headshots: 6,  secs: 9 },
+      { seq: 2, round: 4, score: 2400, kills: 45, headshots: 14, secs: 18 },
+      { seq: 3, round: 5, score: 3100, kills: 65, headshots: 20, secs: 25 },
+    ] },
+  });
+  expect(hb.status()).toBe(204);
+
+  const fin = await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, {
+    headers: { ...auth, 'X-Run-Token': lauf.run_token },
+    data: { ...laufDaten(5), difficulty: 0, gamemode: 0, map_key: 'ndu' },
+  });
+  expect(fin.status(), await fin.text()).toBe(200);
+  const j = await fin.json();
+  expect(j.status, `Lauf abgewiesen: ${j.reason}`).toBe('verified');
+  expect(j.xp_gained).toBeGreaterThan(0);
+  expect(j.rank.map).toBeGreaterThanOrEqual(1);
+  await ctx.dispose();
+});
+
+test('Lauf ohne gueltiges Token wird abgewiesen', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const lauf = await starteLauf(ctx, a.access_token);
+  const r = await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, {
+    headers: { ...ORIGIN, Authorization: `Bearer ${a.access_token}`, 'X-Run-Token': 'falsch' },
+    data: laufDaten(5),
+  });
+  expect(r.status()).toBe(403);
+  expect((await r.json()).error.code).toBe('RUN_TOKEN_INVALID');
+  await ctx.dispose();
+});
+
+test('unmoegliche Kill-Zahl wird abgewiesen', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const lauf = await starteLauf(ctx, a.access_token);
+  const r = await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, {
+    headers: { ...ORIGIN, Authorization: `Bearer ${a.access_token}`, 'X-Run-Token': lauf.run_token },
+    data: { ...laufDaten(3), kills: 500000, headshots: 400000 },
+  });
+  const j = await r.json();
+  expect(j.status, 'ein unmoeglicher Lauf wurde akzeptiert').toBe('rejected');
+  expect(j.xp_gained).toBe(0);
+  await ctx.dispose();
+});
+
+test('Runde 40 in 20 Sekunden wird abgewiesen (Echtzeit-Anker)', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const lauf = await starteLauf(ctx, a.access_token);
+  const r = await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, {
+    headers: { ...ORIGIN, Authorization: `Bearer ${a.access_token}`, 'X-Run-Token': lauf.run_token },
+    data: { rounds: 40, score: 999999, kills: 1200, headshots: 400, downs: 0, revives: 0, secs: 20 },
+  });
+  const j = await r.json();
+  expect(j.status).toBe('rejected');
+  await ctx.dispose();
+});
+
+test('doppelter Abschluss zaehlt nicht doppelt', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const auth = { ...ORIGIN, Authorization: `Bearer ${a.access_token}` };
+  const lauf = await starteLauf(ctx, a.access_token);
+  const kopf = { ...auth, 'X-Run-Token': lauf.run_token };
+
+  // Runde 5, damit die Deckungspruefung (C14) nicht anspringt: fuer laengere
+  // Laeufe OHNE Herzschlag-Spur markiert der Server zu Recht, und ein
+  // markierter Lauf zaehlt nicht als verifiziert.
+  const r1 = await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, { headers: kopf, data: laufDaten(5) });
+  expect((await r1.json()).status, 'Grundlauf nicht verifiziert').toBe('verified');
+  const r2 = await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, { headers: kopf, data: laufDaten(5) });
+  const j2 = await r2.json();
+  expect(j2.bereits_eingereicht, 'zweiter Abschluss wurde erneut gewertet').toBe(true);
+
+  const me = await (await ctx.get(`${BASE}/api/auth/me`, { headers: auth })).json();
+  expect(me.stats.runs, 'Lauf wurde doppelt gezaehlt').toBe(1);
+  await ctx.dispose();
+});
+
+test('Bestenliste zeigt den Lauf und eine Zeile je Spieler', async () => {
+  const ctx = await request.newContext();
+  const r = await ctx.get(`${BASE}/api/leaderboard?metric=rounds&window=all&map=ndu`);
+  expect(r.status()).toBe(200);
+  const j = await r.json();
+  expect(Array.isArray(j.entries)).toBe(true);
+  expect(j.entries.length, 'Bestenliste ist leer, obwohl Laeufe eingereicht wurden').toBeGreaterThan(0);
+
+  const nutzer = j.entries.map((e) => e.user_id);
+  expect(new Set(nutzer).size, 'ein Spieler taucht mehrfach auf').toBe(nutzer.length);
+  for (let i = 1; i < j.entries.length; i++)
+    expect(j.entries[i].rounds).toBeLessThanOrEqual(j.entries[i - 1].rounds);
+  await ctx.dispose();
+});
+
+test('abgewiesene Laeufe stehen NICHT auf der Bestenliste', async () => {
+  const ctx = await request.newContext();
+  const r = await ctx.get(`${BASE}/api/leaderboard?metric=rounds&window=all&map=ndu&limit=100`);
+  const j = await r.json();
+  // Runde 40 in 20 Sekunden war einer der Testlaeufe oben.
+  const unmoeglich = j.entries.filter((e) => e.rounds >= 40 && e.in_game_secs < 60);
+  expect(unmoeglich, `abgewiesener Lauf ist sichtbar: ${JSON.stringify(unmoeglich)}`).toHaveLength(0);
+  await ctx.dispose();
+});

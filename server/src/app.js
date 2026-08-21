@@ -3,6 +3,7 @@ import cookie from '@fastify/cookie';
 import { env } from './lib/env.js';
 import { healthy } from './lib/db.js';
 import authRoutes from './routes/auth.js';
+import runRoutes from './routes/runs.js';
 
 export function build() {
   const app = Fastify({
@@ -54,6 +55,7 @@ export function build() {
   });
 
   app.register(authRoutes);
+  app.register(runRoutes);
 
   const started = Date.now();
 
