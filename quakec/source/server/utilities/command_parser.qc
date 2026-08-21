@@ -43,9 +43,14 @@ float client_parse_override;
 //
 float(string params) Command_give =
 {
-	// Anti-Cheat in Co-Op.
-	if (player_count > 1 && cheats_have_been_activated == false) {
-		bprint(PRINT_HIGH, "Someone tried to issue Give in a Co-Op match. Nice try!\n");
+	// Anti-Cheat. Die Bedingung lautete frueher
+	// `player_count > 1 && !cheats_have_been_activated` und griff damit im
+	// SOLO nie -- bei einem Spieler war der erste Teil falsch, es wurde also
+	// nie abgelehnt. Fuer ein Browserspiel mit Bestenliste ist das der
+	// direkte Weg zum manipulierten Score: eine Zeile in der Konsole.
+	// sv_cheats 1 bleibt der bewusste Weg fuer Tests.
+	if (cheats_have_been_activated == false) {
+		bprint(PRINT_HIGH, "Cheat-Kommando ohne sv_cheats abgelehnt.\n");
 		return COMMAND_FAILURE;
 	}
 
@@ -68,9 +73,14 @@ float(string params) Command_give =
 //
 float(string params) Command_addmoney =
 {
-	// Anti-Cheat in Co-Op.
-	if (player_count > 1 && cheats_have_been_activated == false) {
-		bprint(PRINT_HIGH, "Someone tried to issue Add Money in a Co-Op match. Nice try!\n");
+	// Anti-Cheat. Die Bedingung lautete frueher
+	// `player_count > 1 && !cheats_have_been_activated` und griff damit im
+	// SOLO nie -- bei einem Spieler war der erste Teil falsch, es wurde also
+	// nie abgelehnt. Fuer ein Browserspiel mit Bestenliste ist das der
+	// direkte Weg zum manipulierten Score: eine Zeile in der Konsole.
+	// sv_cheats 1 bleibt der bewusste Weg fuer Tests.
+	if (cheats_have_been_activated == false) {
+		bprint(PRINT_HIGH, "Cheat-Kommando ohne sv_cheats abgelehnt.\n");
 		return COMMAND_FAILURE;
 	}
 
@@ -97,6 +107,14 @@ float(string params) Command_addmoney =
 //
 float(string params) Command_softrestart =
 {
+	// War als einziger Eintrag der Tabelle voellig ungesichert und vom Client
+	// per `cmd qc_soft_restart` erreichbar. Mit Bestenliste ist ein
+	// client-ausloesbarer Neustart ein Werkzeug zur Score-Manipulation.
+	if (cheats_have_been_activated == false) {
+		bprint(PRINT_HIGH, "Cheat-Kommando ohne sv_cheats abgelehnt.\n");
+		return COMMAND_FAILURE;
+	}
+
 	Soft_Restart();
 
 	return COMMAND_SUCCESS;
@@ -108,9 +126,14 @@ float(string params) Command_softrestart =
 //
 float(string params) Command_godmode =
 {
-	// Anti-Cheat in Co-Op.
-	if (player_count > 1 && cheats_have_been_activated == false) {
-		bprint(PRINT_HIGH, "Someone tried to issue God Mode in a Co-Op match. Nice try!\n");
+	// Anti-Cheat. Die Bedingung lautete frueher
+	// `player_count > 1 && !cheats_have_been_activated` und griff damit im
+	// SOLO nie -- bei einem Spieler war der erste Teil falsch, es wurde also
+	// nie abgelehnt. Fuer ein Browserspiel mit Bestenliste ist das der
+	// direkte Weg zum manipulierten Score: eine Zeile in der Konsole.
+	// sv_cheats 1 bleibt der bewusste Weg fuer Tests.
+	if (cheats_have_been_activated == false) {
+		bprint(PRINT_HIGH, "Cheat-Kommando ohne sv_cheats abgelehnt.\n");
 		return COMMAND_FAILURE;
 	}
 
@@ -124,9 +147,14 @@ float(string params) Command_godmode =
 //
 float(string params) Command_noclip =
 {
-	// Anti-Cheat in Co-Op.
-	if (player_count > 1 && cheats_have_been_activated == false) {
-		bprint(PRINT_HIGH, "Someone tried to issue No-Clip in a Co-Op match. Nice try!\n");
+	// Anti-Cheat. Die Bedingung lautete frueher
+	// `player_count > 1 && !cheats_have_been_activated` und griff damit im
+	// SOLO nie -- bei einem Spieler war der erste Teil falsch, es wurde also
+	// nie abgelehnt. Fuer ein Browserspiel mit Bestenliste ist das der
+	// direkte Weg zum manipulierten Score: eine Zeile in der Konsole.
+	// sv_cheats 1 bleibt der bewusste Weg fuer Tests.
+	if (cheats_have_been_activated == false) {
+		bprint(PRINT_HIGH, "Cheat-Kommando ohne sv_cheats abgelehnt.\n");
 		return COMMAND_FAILURE;
 	}
 
@@ -147,9 +175,14 @@ float(string params) Command_noclip =
 //
 float(string params) Command_powerup =
 {
-	// Anti-Cheat in Co-Op.
-	if (player_count > 1 && cheats_have_been_activated == false) {
-		bprint(PRINT_HIGH, "Someone tried to issue spawn_pu in a Co-Op match. Nice try!\n");
+	// Anti-Cheat. Die Bedingung lautete frueher
+	// `player_count > 1 && !cheats_have_been_activated` und griff damit im
+	// SOLO nie -- bei einem Spieler war der erste Teil falsch, es wurde also
+	// nie abgelehnt. Fuer ein Browserspiel mit Bestenliste ist das der
+	// direkte Weg zum manipulierten Score: eine Zeile in der Konsole.
+	// sv_cheats 1 bleibt der bewusste Weg fuer Tests.
+	if (cheats_have_been_activated == false) {
+		bprint(PRINT_HIGH, "Cheat-Kommando ohne sv_cheats abgelehnt.\n");
 		return COMMAND_FAILURE;
 	}
 
@@ -169,9 +202,14 @@ float(string params) Command_powerup =
 //
 float(string params) Command_tracedmgmultiplier =
 {
-	// Anti-Cheat in Co-Op.
-	if (player_count > 1 && cheats_have_been_activated == false) {
-		bprint(PRINT_HIGH, "Someone tried to issue sv_tracedmgmultiplier in a Co-Op match. Nice try!\n");
+	// Anti-Cheat. Die Bedingung lautete frueher
+	// `player_count > 1 && !cheats_have_been_activated` und griff damit im
+	// SOLO nie -- bei einem Spieler war der erste Teil falsch, es wurde also
+	// nie abgelehnt. Fuer ein Browserspiel mit Bestenliste ist das der
+	// direkte Weg zum manipulierten Score: eine Zeile in der Konsole.
+	// sv_cheats 1 bleibt der bewusste Weg fuer Tests.
+	if (cheats_have_been_activated == false) {
+		bprint(PRINT_HIGH, "Cheat-Kommando ohne sv_cheats abgelehnt.\n");
 		return COMMAND_FAILURE;
 	}
 

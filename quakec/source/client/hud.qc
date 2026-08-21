@@ -1046,8 +1046,18 @@ void() HUD_Useprint =
             usebutton = temp_button;
     }
 
-    if (usebutton == "")
-        usebutton = "UNBOUND";
+    if (usebutton == "") {
+        // Auf dem Handy ist NICHTS an +button7 gebunden -- findkeysforcommandex
+        // liefert dort leer, und der Spieler las bisher woertlich
+        // "Halte UNBOUND zum Oeffnen der Tuer". Stattdessen die Beschriftung
+        // des Bildschirmknopfes nennen, den er tatsaechlich vor sich hat.
+        // Bewusst nicht durch T(): die Touch-Knoepfe in web/index.html sind
+        // fest deutsch beschriftet, der Text muss zu ihnen passen.
+        if (platform_is_web)
+            usebutton = "AKTION";
+        else
+            usebutton = "UNBOUND";
+    }
 
 	// If this is a gamepad button, the space we want to reserve
 	// in the usestring should be a fixed width.
@@ -1146,7 +1156,11 @@ void() HUD_Useprint =
 			usestring = strcat(T("Hold "), usespace, T(" to Drop the Nuke"));
 			break;
 		default:
-			usestring = "This should not happen you dum fuck"; //yikes
+			// Unbekannter useprint-Typ: nichts zeichnen. Hier stand ein
+			// Debug-Fluch, der bis in die ausgelieferte Fassung durchrutschte.
+			usestring = "";
+			if (cvar("developer"))
+				dprint(sprintf("HUD_Useprint: unbehandelter Typ %d\n", useprint_type));
 			break;
 	}
 
@@ -1555,8 +1569,14 @@ void() HUD_Crosshair =
 					breath_button = temp_button;
 			}
 
-			if (breath_button == "")
-				breath_button = "UNBOUND";
+			if (breath_button == "") {
+				// Sprint/Luft anhalten liegt auf dem Handy nicht auf einer
+				// Taste, sondern auf dem Stick am vorderen Anschlag.
+				if (platform_is_web)
+					breath_button = "STICK VOR";
+				else
+					breath_button = "UNBOUND";
+			}
 
 			string breath_button_string = "  ";
 

@@ -59,8 +59,13 @@ void() EndGame_FadePrompt =
 	// Web/FTE: Nach dem Tod zeigt die Web-Shell ein Auswahl-Overlay
 	// (NOCHMAL / ZUR LOBBY via TSUI:dead-Marker + restart/disconnect).
 	// MapRotation ist nur noch Dead-Man-Fallback, falls niemand waehlt.
+	// 25 s statt der frueheren 120 s: normalerweise uebernimmt die Web-Shell
+	// hier und bietet NOCHMAL / ZUR LOBBY an. Bleibt der Marker aber aus
+	// (veraltete progs, Fehler im Parser), sass der Spieler zwei Minuten vor
+	// einem schwarzen Standbild. 25 s sind immer noch deutlich mehr, als das
+	// Overlay braucht, aber keine gefuehlte Ewigkeit mehr.
 	self.think = MapRotation_Decide;
-	self.nextthink = time + 120;
+	self.nextthink = time + 25;
 
 #else
 
@@ -156,8 +161,22 @@ void() EndGameSetup =
 		players.movetype = MOVETYPE_TOSS;
 		players.velocity = '0 0 0';
 
-		Player_RemoveScore(players, players.points);
-		Player_AddScore(players, players.score, false);
+		// Endwertung: den Geldbeutel auf die insgesamt VERDIENTEN Punkte
+		// setzen. Bewusst als direkte Zuweisung und NICHT ueber
+		// Player_ChangeScore -- diese API ist hier gleich doppelt falsch:
+		//
+		//   1. Sie steigt bei `who.downed` sofort aus. LastStand_Begin setzt
+		//      downed = true sechs Zeilen vor dem Aufruf hierher, im Solo ist
+		//      der Spieler also IMMER downed -> beide Aufrufe waren wirkungslos
+		//      und .points blieb der Geldbeutel nach der 5-%-Todesstrafe.
+		//   2. Sie addiert bei positiven Werten auf .score. Ein
+		//      Player_AddScore(p, p.score) hat .score also VERDOPPELT --
+		//      beim Koop-Ueberlebenden, der nicht downed ist, genau der Fall.
+		//
+		// Ergebnis war: TSUI:dstats (aus .score) stimmte im Solo und log im
+		// Koop, TSUI:dboard (aus .points) genau umgekehrt. Fuer eine
+		// Bestenliste unbrauchbar.
+		players.points = players.score;
 
 		players = find(players, classname, "player");
 	}
@@ -168,8 +187,8 @@ void() EndGameSetup =
 	}
 
 	in_endgame_sequence = true;
-	Player_RemoveScore(self, self.points);
-	Player_AddScore(self, self.score, false);
+	// Gleiche Korrektur wie oben, hier fuer den ausloesenden Spieler.
+	self.points = self.score;
 	for (float i = 0; i < MAX_PLAYER_WEAPONS; ++i)
 	{
 		Weapon_RemoveWeapon(0);

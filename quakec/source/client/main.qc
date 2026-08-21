@@ -716,8 +716,24 @@ void() Camera_SniperSway =
 
 float gamepad_enabled;
 
-vector cam_snap_difference;
+// Restwinkel, der beim Ziel-Snap noch abzutragen ist.
+//
+// FRUEHER hiess das hier `cam_snap_difference` und war ein DAUERHAFTER
+// Versatz: einmal in Camera_AimSnap gesetzt, danach nie wieder genullt, aber
+// jeden Renderframe auf die Kamera UND jeden Eingabeframe auf input_angles
+// addiert. Ab dem ersten Snap zeigte das Fadenkreuz damit nicht mehr dorthin,
+// wo die Kugel hinging, und die Ansicht driftete fortlaufend weiter.
+// Zum Vergleich: gun_kick wird von DropRecoilKick() abgebaut, sniper_sway
+// jeden Frame neu berechnet -- dieser dritte Summand war der einzige ohne
+// Abbau. Jetzt wird er verbraucht statt aufaddiert.
+vector cam_snap_remaining;
 float pressed_zoom_in;
+
+// Anteil des Restwinkels, der pro Eingabeframe abgetragen wird. 0.35 heisst
+// rund drei Frames bis zum Ziel -- schnell genug, um sich wie ein Einrasten
+// anzufuehlen, weich genug, um nicht wie ein Sprung zu wirken.
+#define TS_AIMSNAP_EASE     0.35
+#define TS_AIMSNAP_EPSILON  0.05   // darunter: fertig, auf null setzen
 
 #define CAMERA_AIM_SNAP_MAX_DIST        1024    // hard cutoff (quake units)
 
@@ -733,6 +749,17 @@ float pressed_zoom_in;
 
 #define CAMERA_AIM_SNAP_NEAR_PITCH   13      // near = allow more vertical slop
 #define CAMERA_AIM_SNAP_FAR_PITCH    8       // far  = be stricter
+
+// Bringt eine Winkeldifferenz auf den kuerzesten Weg (-180..180). Ohne das
+// koennte ein Snap ueber 350 Grad statt ueber -10 Grad laufen -- die Ansicht
+// wuerde einmal komplett herumdrehen.
+float(float delta) TS_ShortAngle =
+{
+    delta = anglemod(delta);
+    if (delta > 180)
+        delta -= 360;
+    return delta;
+};
 
 float Camera_InFront(vector ent1_origin, vector ent2_origin, vector client_view_angles)
 {
@@ -884,8 +911,11 @@ void(vector client_view_angles) Camera_AimSnap =
         if (distance_angles[0] < -70 || distance_angles[0] > 80)
             return;
 
-        cam_snap_difference = distance_angles - client_view_angles;
-        //print(sprintf("cam_snap_difference: [%v]\n", cam_snap_difference));
+        // Ziel merken, nicht sofort anwenden: CSQC_Input_Frame traegt den
+        // Rest ueber wenige Frames ab und nullt ihn danach.
+        cam_snap_remaining[0] = TS_ShortAngle(distance_angles[0] - client_view_angles[0]);
+        cam_snap_remaining[1] = TS_ShortAngle(distance_angles[1] - client_view_angles[1]);
+        cam_snap_remaining[2] = 0;
     }
 
     //print("snap end\n");
@@ -986,10 +1016,11 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 
 	Camera_AimSnap(camang);
 
-	camang[0] += cam_snap_difference[0];
-	camang[1] += cam_snap_difference[1];
-	camang[2] += cam_snap_difference[2];
-
+	// Hier stand frueher `camang += cam_snap_difference`. Das ist entfallen:
+	// der Snap veraendert jetzt ueber CSQC_Input_Frame die echten
+	// Blickwinkel, die Kamera folgt also von selbst. Ein zusaetzlicher
+	// Kameraversatz haette das Fadenkreuz genau um diesen Betrag neben die
+	// Schussrichtung gelegt.
 	setviewprop(VF_ANGLES, camang);
 
 	if (cvar("chase_active")) {
@@ -1211,7 +1242,17 @@ noref void() CSQC_Input_Frame =
 {
 	input_angles += gun_kick;
 	input_angles += sniper_sway;
-	input_angles += cam_snap_difference;
+
+	// Ziel-Snap: pro Eingabeframe einen Bruchteil des Restwinkels abtragen.
+	// Entscheidend ist das Abziehen -- ohne das wurde derselbe Betrag in
+	// JEDEM Frame erneut addiert und die Ansicht drehte sich endlos weiter.
+	if (cam_snap_remaining[0] != 0 || cam_snap_remaining[1] != 0) {
+		vector step = cam_snap_remaining * TS_AIMSNAP_EASE;
+		input_angles += step;
+		cam_snap_remaining -= step;
+		if (fabs(cam_snap_remaining[0]) + fabs(cam_snap_remaining[1]) < TS_AIMSNAP_EPSILON)
+			cam_snap_remaining = '0 0 0';
+	}
 }
 
 #define DEG2RAD(x)	(x * M_PI / 180.f)
