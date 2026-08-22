@@ -1103,18 +1103,20 @@ void() HUD_Useprint =
             usebutton = temp_button;
     }
 
-    if (usebutton == "") {
-        // Auf dem Handy ist NICHTS an +button7 gebunden -- findkeysforcommandex
-        // liefert dort leer, und der Spieler las bisher woertlich
-        // "Halte UNBOUND zum Oeffnen der Tuer". Stattdessen die Beschriftung
-        // des Bildschirmknopfes nennen, den er tatsaechlich vor sich hat.
-        // Bewusst nicht durch T(): die Touch-Knoepfe in web/index.html sind
-        // fest deutsch beschriftet, der Text muss zu ihnen passen.
-        if (platform_is_web)
-            usebutton = "AKTION";
-        else
-            usebutton = "UNBOUND";
-    }
+    // Auf Touch nennt die Aufforderung den BILDSCHIRMKNOPF, nicht die Taste.
+    //
+    // Die alte Fassung wollte dasselbe, haengte es aber an usebutton == "" --
+    // und das trat nie ein: nzportable.cfg bindet `e` an +button7, also
+    // liefert findkeysforcommandex auch auf dem Handy "E". Am Bild stand
+    // deshalb "Halte E zum Kauf von Kar 98k" und meinte eine Taste, die es
+    // auf einem Telefon nicht gibt. Betroffen war jede Aufforderung im Spiel.
+    //
+    // Bewusst nicht durch T(): die Touch-Knoepfe in web/index.html sind fest
+    // deutsch beschriftet, der Text muss zu ihnen passen.
+    if (cvar("ts_touchui"))
+        usebutton = "AKTION";
+    else if (usebutton == "")
+        usebutton = "UNBOUND";
 
 	// If this is a gamepad button, the space we want to reserve
 	// in the usestring should be a fixed width.
@@ -1124,7 +1126,16 @@ void() HUD_Useprint =
 	// Scale the space in the usestring for the bind according to
 	// the bind's name.
 	else {
-		for(float i = 0; i < strlen(usebutton); i++) {
+		// Die Luecke nach BREITE bemessen, nicht nach Zeichenzahl. Der Font ist
+		// proportional (gfx/kerning_map.txt), ein Leerzeichen ist deutlich
+		// schmaler als ein Grossbuchstabe. Bei einem einzelnen "E" fiel das
+		// nicht auf; bei "AKTION" lag die gelbe Beschriftung am Bild quer ueber
+		// dem naechsten Wort: "Halte AKTIONm Oeffnen der Tuer".
+		float leer = getTextWidth(" ", 12);
+		if (leer <= 0)
+			leer = 1;
+		float noetig = ceil(getTextWidth(usebutton, 12) / leer);
+		for (float i = 0; i < noetig; i++) {
 			usespace = strcat(usespace, " ");
 		}
 	}
@@ -1236,9 +1247,25 @@ void() HUD_Useprint =
 		HUD_DrawStringWithBackdrop([x3, g_height/2 + 84, 0], usecost, [12, 12, 0], [1, 1, 1], 1, 0);
 	}
 
-	// Draw highlighted usebutton
-	if (substring(usestring, 0, 4) == "Hold") {
-		button_width = x + getTextWidth("Hold ", 12);
+	// Den Knopfnamen in die Luecke malen, die usespace oben freigehalten hat.
+	//
+	// Die Bedingung stand hier als substring(usestring, 0, 4) == "Hold" --
+	// auf ENGLISCH, gegen eine Zeichenkette, die durch T() laeuft. Sobald sie
+	// "Halte  " lieferte, war sie falsch und der Knopfname wurde gar nicht
+	// gezeichnet: am Bild stand "Halte    zum Kauf von Kar 98k" mit einer
+	// leeren Luecke, wo AKTION haette stehen muessen. Betroffen war JEDE
+	// Kaufaufforderung im deutschen Spiel -- Waende, Tueren, Truemmer, Kiste,
+	// Perks, Pack-a-Punch.
+	//
+	// Auch die Positionsrechnung nahm die englische Wortbreite. Beides kommt
+	// jetzt aus derselben uebersetzten Quelle wie der Satz selbst.
+	string praefix_lang = T("Hold  ");
+	string praefix_kurz = T("Hold ");
+	if (substring(usestring, 0, strlen(praefix_lang)) == praefix_lang
+	 || substring(usestring, 0, strlen(praefix_kurz)) == praefix_kurz) {
+		// Startpunkt hinter dem Wort plus EIN Leerzeichen -- so stand es auch
+		// im Original, der Rest der Luecke ist Luft hinter der Beschriftung.
+		button_width = x + getTextWidth(praefix_kurz, 12);
 
 		if (Key_IsControllerGlyph(usebutton))
 			Key_DrawControllerGlyph([button_width - 5, g_height/2 + 62], usebutton, [18, 18]);
