@@ -20,6 +20,11 @@ vector MENU_TEXT_LARGE = '28 28 0';
 // is_hovered, und auf Touch entsteht nie ein Hover.
 string menu_map_vorschau;
 
+// Die eine Zeile, die der Spieler auf diesem Bildschirm am wahrscheinlichsten
+// treffen will (SOLO, SPIEL STARTEN). Wird pro Frame zurueckgesetzt und vom
+// Screen gesetzt -- ohne Hierarchie sieht CREDITS aus wie SOLO.
+string menu_primary_id;
+
 // Seitenblaetterung. Bei 60er-Zeilen passen auf ein Handy nur noch rund fuenf
 // Zeilen zwischen die Leisten -- Screens wie die Kartenwahl (11 Zeilen) laufen
 // sonst in die Fussleiste. Nur auf Touch aktiv; auf dem Desktop bleibt alles
@@ -110,6 +115,7 @@ void(vector frame) Menu_Metrics_Update =
 	if (MENU_ROWS_PER_PAGE < 1) MENU_ROWS_PER_PAGE = 1;
 
 	// Jeder Frame beginnt ohne Blaetterung; wer sie braucht, ruft Menu_Page_Begin.
+	menu_primary_id = "";
 	menu_row_first  = 0;
 	menu_row_count  = 0;
 	menu_page_total = 1;
@@ -220,9 +226,36 @@ void() Menu_Page_End =
 //
 vector(float order) Menu_RowBox =
 {
-	if (order > 0)
-		return [0, MENU_ROW_TOP + (order - 1) * MENU_ROW_PITCH];
+	if (order > 0) {
+		// Auf Touch ganze Zeilen. Die gebrochenen Ordnungszahlen des Originals
+		// (3.25, 5.5, 6.25) waren Abstandshalter fuer das enge 25er-Raster --
+		// bei 60er-Zeilen erzeugen sie nur ungleiche Luecken.
+		float o = MENU_TOUCH ? floor(order) : order;
+		return [0, MENU_ROW_TOP + (o - 1) * MENU_ROW_PITCH];
+	}
 	return [0, MENU_ROW_BOTTOM + (order + 1) * MENU_ROW_PITCH];
+};
+
+//
+// Menu_RowFill(box, groesse, farbe, alpha)
+// Flaeche einer Zeile mit weicher rechter Kante. sui_fill kann keinen Verlauf,
+// also sechs gestapelte Rechtecke mit fallender Deckkraft -- ein harter Schnitt
+// mitten im Hintergrundbild sieht nach Fehler aus, nicht nach Absicht.
+// Alle Stufen mit GLEICHER Hoehe: unter SUI_ALIGN_END wuerden unterschiedlich
+// hohe Rechtecke gegeneinander verrutschen.
+//
+void(vector box, vector groesse, vector farbe, float alpha) Menu_RowFill =
+{
+	float fade = min(90 * MENU_UI_SCALE, groesse_x * 0.35);
+	float voll = groesse_x - fade;
+	sui_fill(box, [voll, groesse_y], farbe, alpha, 0);
+
+	float stufen = 6;
+	float breit  = fade / stufen;
+	for (int i = 0; i < stufen; i++) {
+		float a = alpha * (1 - (i + 1) / stufen);
+		sui_fill(box + [voll + i * breit, 0], [breit + 1, groesse_y], farbe, a, 0);
+	}
 };
 
 //
@@ -839,38 +872,61 @@ float(float order, string id, string title, string description) Menu_Button =
 	                              : sui_is_held(id);
 	float lit = is_hovered || is_pressed;
 	vector text_color = lit ? [1, 0.16, 0.06] : [0.94, 0.90, 0.82];
+	// Auf der roten Waschung der Primaerzeile liest sich rote Schrift nicht --
+	// dort bleibt es bei Knochenweiss.
+	if (MENU_TOUCH && id == menu_primary_id) text_color = [1, 0.97, 0.92];
 
-	// Auf Touch die Flaeche IMMER andeuten: vorher sah der Spieler nur
-	// schwebenden Text und hatte keinen Hinweis, wo er hintippen soll.
-	if (MENU_TOUCH && !lit)
-		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.35, 0);
+	if (MENU_TOUCH) {
+		float primaer = (id == menu_primary_id);
 
-	if (lit) {
-		// Beschreibung: auf Touch entfaellt sie -- sie erschiene nur, solange
-		// der Finger liegt, und verdeckt dann die Fussleiste.
-		if (!MENU_TOUCH) {
-			sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
-			sui_text([0, -30], MENU_DESC_SIZE, description, [0.94, 0.90, 0.82], 1, 0);
-			sui_set_align(alignment);
-		}
+		// Grundflaeche IMMER: vorher sah der Spieler nur schwebenden Text und
+		// hatte keinen Hinweis, wo er hintippen soll.
+		Menu_RowFill(bbox_pos, bbox_size, [0, 0, 0], lit ? 0.90 : 0.42);
+
+		// Die wahrscheinlichste Zeile bekommt einen Schein, der vom Signalbalken
+		// nach rechts auslaeuft -- damit SOLO nicht aussieht wie CREDITS. Eine
+		// flaechig rote Zeile las sich wie eine Warnung statt wie ein Angebot,
+		// deshalb nur die linken ~42 % (der Rest ist ohnehin Verlauf).
+		if (primaer)
+			Menu_RowFill(bbox_pos, [bbox_size_x * 0.42, bbox_size_y],
+			             [0.90, 0.11, 0.02], lit ? 0.40 : 0.26);
+		if (is_pressed)
+			Menu_RowFill(bbox_pos, bbox_size, [1, 0.16, 0.05], 0.16);
+
+		// Signal-Balken LINKS statt rechts: an der Lesekante liest er sich als
+		// Zeilenmarke, an der weichen rechten Kante haette er keinen Halt.
+		float ab = max(3, (primaer ? 8 : 4) * MENU_UI_SCALE);
+		vector abfarbe = [0.32, 0.09, 0.05];
+		if (primaer) abfarbe = [1, 0.20, 0.05];
+		if (lit)     abfarbe = [1, 0.36, 0.12];
+		sui_fill(bbox_pos, [ab, bbox_size_y], abfarbe, 1, 0);
+		// Weicher Saum rechts neben dem Balken, damit er nicht wie aufgeklebt wirkt.
+		if (primaer || lit)
+			sui_fill(bbox_pos + [ab, 0], [ab * 0.75, bbox_size_y], abfarbe, 0.35, 0);
+
+		// Feine Trennkante nach unten -- haelt den Rhythmus lesbar, ohne dass
+		// jede Zeile einen eigenen Rahmen braucht.
+		if (!lit)
+			sui_fill(bbox_pos + [0, bbox_size_y - 1], [bbox_size_x * 0.55, 1], [1, 1, 1], 0.07, 0);
+	}
+	else if (lit) {
+		// Beschreibung
+		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
+		sui_text([0, -30], MENU_DESC_SIZE, description, [0.94, 0.90, 0.82], 1, 0);
+		sui_set_align(alignment);
 
 		// Background
 		sui_fill(bbox_pos, bbox_size, [0, 0, 0], is_pressed ? 0.95 : 0.9, 0);
 
 		float kante = max(2, 2 * MENU_UI_SCALE);
 		if (order > 0) {
-			// Top
 			sui_fill(bbox_pos, [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
-			// Bottom
 			sui_fill(bbox_pos + [0, bbox_size_y - kante], [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
 		} else {
-			// Top
 			sui_fill(bbox_pos - [0, bbox_size_y], [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
-			// Bottom
 			sui_fill(bbox_pos, [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
 		}
 
-		// Right accent (Signal-Balken)
 		float akzent = max(3, 3 * MENU_UI_SCALE);
 		sui_fill(bbox_pos + [bbox_size_x - akzent, 0], [akzent, bbox_size_y],
 		         is_pressed ? [1, 0.45, 0.15] : [1, 0.18, 0.05], 1, 0);
@@ -1048,7 +1104,7 @@ void(string menu_title) Menu_DrawTitle =
 	// Der grosse Masthead ("TOTES SIGNAL") steckt in Menu_DrawBackground; hier
 	// nur noch der kleine Sektionsname oben links + rote Signal-Linie darunter.
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
-	vector groesse = MENU_TOUCH ? MENU_LABEL_SIZE : MENU_TEXT_SMALL;
+	vector groesse = MENU_TOUCH ? (MENU_LABEL_SIZE * 1.18) : MENU_TEXT_SMALL;
 	// -4 ist so gewaehlt, dass der Desktop-Fall (Leiste 55, Schrift 12) exakt
 	// auf der alten y=36 landet und die Signal-Linie auf y=49.
 	float  oben    = MENU_BAR_TOP - max(3, 3 * MENU_UI_SCALE) - groesse_y - 4;

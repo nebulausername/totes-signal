@@ -123,6 +123,7 @@ void() Menu_Lobby =
     float support_gamesettings = UserMapSupportsCustomGameLookup(current_selected_bsp);
 
     if (menu_loby_countdown == 0) {
+        menu_primary_id = "lo_start";
         Menu_Button(1, "lo_start", T("START GAME"), T("Face the Horde!")) ? Menu_Lobby_StartCountdown() : 0;
 
         if (support_gamesettings)

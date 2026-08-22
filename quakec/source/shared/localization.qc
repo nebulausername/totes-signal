@@ -66,6 +66,7 @@ string(string english) T =
 	case "CONTROLS": return "STEUERUNG";
 	case "Control Options and Bindings.": return "Steuerung und Tastenbelegung.";
 	case "ACCESSIBILITY": return "BARRIEREFREIHEIT";
+	case "CONTROLS & DISPLAY": return "STEUERUNG & ANZEIGE";   // Touch: oeffnet den Shell-Einstellungsschirm
 	case "Content, Interface, and Readability options.": return "Inhalts-, Interface- und Lesbarkeitsoptionen.";
 	case "OPEN CONSOLE": return "KONSOLE OEFFNEN";
 	case "Access the Developer Console.": return "Entwicklerkonsole oeffnen.";

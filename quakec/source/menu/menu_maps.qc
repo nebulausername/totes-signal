@@ -137,7 +137,7 @@ void() Menu_Maps =
         // Auf Touch passen nur noch ~5 Zeilen zwischen die Leisten -- ohne das
         // hier stehen die letzten Karten in der Fussleiste. Auf dem Desktop
         // bleibt alles auf einer Seite (Menu_Page_Begin steigt dort sofort aus).
-        Menu_Page_Begin(stock_maps.length + 2.5, 1);
+        Menu_Page_Begin(stock_maps.length + 2.5, 1);   // Obergrenze; Leerplaetze kuerzen sie nur
 
         for(i = 0; i < stock_maps.length; i++) {
             if (stock_maps[i].bsp_name == "") {
@@ -149,17 +149,19 @@ void() Menu_Maps =
             // Build the map strings
             menu_maps_buttons[i - blank_map_spots] = sprintf("map_%s", stock_maps[i].bsp_name);
 
-            Menu_MapButton(i + 1, sprintf("map_%s", stock_maps[i].bsp_name), stock_maps[i].bsp_name, stock_maps[i].map_category, -1) ? Menu_Maps_LoadMap(stock_maps[i].bsp_name) : 0;
+            // Zeilennummer OHNE die Leerplaetze zaehlen: sonst klafft in der
+            // Liste (und beim Blaettern) eine Luecke, wo ein Trenner sass.
+            Menu_MapButton(i + 1 - blank_map_spots, sprintf("map_%s", stock_maps[i].bsp_name), stock_maps[i].bsp_name, stock_maps[i].map_category, -1) ? Menu_Maps_LoadMap(stock_maps[i].bsp_name) : 0;
         }
         Menu_DrawDivider(i + 1.25);
 
 		if (menu_map_mode == MAP_SOLOSTOCK) {
-			Menu_Button(i + 1.5, "map_nzpusermaps", T("USER MAPS"), T("View User-Created Maps.")) ? current_menu = MENU_SOLOUSER : 0;
+			Menu_Button(i + 1.5 - blank_map_spots, "map_nzpusermaps", T("USER MAPS"), T("View User-Created Maps.")) ? current_menu = MENU_SOLOUSER : 0;
 		} else if (menu_map_mode == MAP_COOPSTOCK) {
-			Menu_Button(i + 1.5, "map_nzpusermaps", T("USER MAPS"), T("View User-Created Maps.")) ? current_menu = MENU_COOPUSER : 0;
+			Menu_Button(i + 1.5 - blank_map_spots, "map_nzpusermaps", T("USER MAPS"), T("View User-Created Maps.")) ? current_menu = MENU_COOPUSER : 0;
 		}
 
-        if (Menu_Button(i + 2.5, "map_randommap", T("RANDOM"), T("Feeling indecisive? Try rolling the dice.")))
+        if (Menu_Button(i + 2.5 - blank_map_spots, "map_randommap", T("RANDOM"), T("Feeling indecisive? Try rolling the dice.")))
         {
             int random_map_index = rint(random() * user_maps_count);
             Menu_Maps_LoadMap(user_maps[random_map_index].map_name);

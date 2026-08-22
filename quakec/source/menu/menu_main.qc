@@ -71,6 +71,8 @@ void() Menu_Main =
     Menu_DrawTitle(T("MAIN MENU"));
     Menu_DrawBuildDate();
 
+    menu_primary_id = "mm_start";   // SOLO ist der Weg, den fast jeder nimmt
+
     Menu_Button(1, "mm_start", T("SOLO"), T("Play Solo.")) ? Menu_StartSolo() : 0;
     Menu_Button(2, "mm_coop", T("COOPERATIVE"), T("Play with up to Four Players.")) ? current_menu = MENU_COOP : 0;
     Menu_DrawDivider(3);

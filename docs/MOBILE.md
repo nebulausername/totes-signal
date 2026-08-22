@@ -63,6 +63,21 @@ mit NOCHMAL (`restart`) und ZUR LOBBY (`disconnect` + `ts_maps`).
 - Der dedizierte **FEUER**-Button löst das frühere „Tap aufs Spielfeld feuert
   immer" — Look-Drag feuert nicht mehr versehentlich. (Native Tap-Feuerung
   bleibt möglich, ist aber nicht mehr nötig.)
+## Einstellungen sind vom Menue aus erreichbar
+
+Im Optionsbildschirm steht auf Touch als erste Zeile **STEUERUNG & ANZEIGE**.
+Sie druckt `TSUI:open:settings`, die Shell oeffnet daraufhin `#settingsui`.
+Vorher lagen diese Einstellungen ausschliesslich hinter dem Zahnrad IM SPIEL --
+wer die Empfindlichkeit oder den Linkshaender-Modus aendern wollte, musste erst
+eine Runde starten.
+
+Dieselbe Liste blendet auf Touch STEUERUNG (Maus/Tastenbelegung), GAMEPAD und
+KONSOLE aus: ohne Tastatur haben sie nichts zu bieten.
+
+**Achtung:** `#settingsui` war lange unsichtbar, weil es nicht im
+Overlay-Sammelselektor stand (`position` fehlte, `z-index` wirkt auf statische
+Elemente nicht). Siehe Footgun 14 in `CLAUDE.md`.
+
 ## Trefferlage im Menue (1:1-Rendern)
 
 Menue und Pausemenue positionieren den Cursor **absolut**. Der Touch-Pfad der

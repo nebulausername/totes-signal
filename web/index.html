@@ -120,7 +120,12 @@
 	}
 
 	/* ---- TOTES SIGNAL: dead-radio-signal theme (start gate + loading + rotate + death) ---- */
-	#mstart, #rotate, #loadscreen, #deathui, #accountui {
+	/* #settingsui gehoerte von Anfang an in diese Liste -- es stand nur
+	   darunter mit z-index:49 und OHNE position. z-index wirkt auf statische
+	   Elemente nicht, also lag der ganze Einstellungsschirm als normaler
+	   Block UNTER dem 100%-hohen Canvas: top 408 bei 390 px Viewport, und
+	   body hat overflow:hidden. Er war nie zu sehen. */
+	#mstart, #rotate, #loadscreen, #deathui, #accountui, #settingsui {
 		position:fixed; inset:0; z-index:50; display:none;
 		background:radial-gradient(120% 90% at 50% 35%, #12100e 0%, #070605 55%, #000 100%);
 		color:#e6e1d2; font-family:monospace;
@@ -156,8 +161,13 @@
 	.acc-a b   { display:block; font-size:min(2.1vh,11px); color:#e6e1d2; letter-spacing:0.5px; }
 	.acc-a span{ font-size:min(1.8vh,10px); color:#a8a094; }
 	/* Einstellungen: erbt die Grundgestaltung der anderen Overlays. */
-	#settingsui { z-index:49; overflow-y:auto; align-items:flex-start; }
-	#settingsui .box { max-width:min(560px,94vw); width:100%; padding:14px 0 24px; }
+	#settingsui { z-index:49; overflow-y:auto; align-items:flex-start; padding:12px; }
+	#settingsui .box { max-width:min(560px,94vw); width:100%; padding:4px 0 16px; }
+	/* Im Querformat ist Hoehe knapp: die 60-px-Wortmarke frass ein Viertel des
+	   Bildschirms und schob die Regler unter die Kante. Titel klein halten,
+	   Zeilen enger -- so passen Empfindlichkeit bis Sparsam-Modus ohne Scrollen. */
+	#settingsui .ts-mark { font-size:min(4.6vh,26px); letter-spacing:3px; margin:0 0 6px; }
+	#settingsui .set-row { padding:7px 12px; }
 	.set-row { display:flex; align-items:center; gap:10px; padding:10px 12px; text-align:left;
 		border-bottom:1px solid rgba(255,255,255,0.07); }
 	.set-row label { flex:1 1 auto; font-size:min(2.2vh,12px); letter-spacing:1px; color:#e6e1d2; }
@@ -490,6 +500,12 @@ function tsMarker(msg)
 		// WEITER"). Vor TSUI:pause wusste die Shell von diesem Zustand nichts.
 		if (window.TS_CTRL) TS_CTRL.setInGame(mp[1] === '0');
 	}
+	// Das Menue kann die Shell-Einstellungen aufrufen. Sie liegen in der Shell
+	// (Empfindlichkeit, Y-Achse, Zielhilfe, Knopfgroesse, Linkshaender,
+	// Sparsam-Modus) und waren vom Hauptmenue aus bisher nicht erreichbar --
+	// man musste erst ein Spiel starten und das Zahnrad oeffnen.
+	if (msg.indexOf('TSUI:open:settings') !== -1 && window.TS_SET)
+		TS_SET.zeigen();
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
 		if (m) TS_DEATH.show(parseInt(m[1], 10));
@@ -524,7 +540,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22q';
+var TS_BUILD = '2026-08-22r';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —

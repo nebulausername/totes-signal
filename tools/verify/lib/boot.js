@@ -4,6 +4,10 @@ import { collectMarkers } from './markers.js';
 
 export async function booten(page, url = '/') {
   const markers = collectMarkers(page);
+  // Die Geraeteprofile des Harness (Pixel 7, iPhone 14) starten im HOCHFORMAT.
+  // Das Spiel blendet dort absichtlich das Touch-HUD aus und zeigt den
+  // Dreh-Hinweis -- jede Messung am laufenden Spiel braucht Querformat.
+  await page.setViewportSize({ width: 844, height: 390 });
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   const touch = await page.evaluate(() => !!window.IS_TOUCH);
   if (touch) await page.locator('#mstart').click();
