@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
+<title>Datenschutzerklärung — TOTES SIGNAL</title>
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="rechtliches.css">
+</head>
+<body>
+<div class="wrap">
+<header>
+	<p class="mark">TOTES SIGNAL<small>TOTERSIGNAL.DE</small></p>
+</header>
+
+<h1>Datenschutzerklärung</h1>
+<p>Fassung 1.0 · Informationen nach Art. 13 und 14 DSGVO.</p>
+
+<div class="hinweis">
+	<strong>Diese Seite ist noch nicht vollständig.</strong> Die mit
+	<span class="luecke">ANSCHRIFT_FEHLT</span> markierten Felder brauchen eine
+	ladungsfähige Anschrift. Solange sie leer sind, darf diese Seite nicht
+	ausgeliefert werden. Die Beschreibung der Datenflüsse darunter ist dagegen
+	vollständig und am laufenden System geprüft.
+</div>
+
+<h2>1. Verantwortlicher</h2>
+<dl>
+	<dt>Name</dt><dd><span class="luecke">ANSCHRIFT_FEHLT</span></dd>
+	<dt>Anschrift</dt><dd><span class="luecke">ANSCHRIFT_FEHLT</span></dd>
+	<dt>E-Mail</dt><dd><span class="luecke">ANSCHRIFT_FEHLT</span></dd>
+</dl>
+<p>
+	Ein Datenschutzbeauftragter ist nicht bestellt; die Voraussetzungen des
+	§ 38 BDSG liegen nicht vor.
+</p>
+
+<h2>2. Das Wichtigste zuerst</h2>
+<ul>
+	<li>Es gibt <strong>keine Werbung, keine Analyse-Dienste und keine
+		Weitergabe an Dritte</strong>.</li>
+	<li>Spielen ist <strong>ohne Konto</strong> möglich. Ohne Konto verlassen
+		keine Spieldaten dein Gerät.</li>
+	<li>Ein Konto ist <strong>anonym</strong>: keine E-Mail-Adresse, kein
+		Passwort, kein Klarname. Du bekommst einen zufälligen Decknamen.</li>
+	<li>Es gibt <strong>kein Cookie-Banner</strong>, weil ausschließlich technisch
+		notwendige Speicherung stattfindet (§ 25 Abs. 2 Nr. 2 TDDDG).</li>
+</ul>
+
+<h2>3. Aufruf der Website (Server-Protokolle)</h2>
+<p>
+	Beim Abruf protokolliert der Webserver (nginx) automatisch: IP-Adresse,
+	Zeitpunkt, angeforderte Adresse, HTTP-Status, übertragene Datenmenge,
+	Verweisseite und Browserkennung.
+</p>
+<table>
+	<tr><th>Zweck</th><td>Betrieb, Fehlersuche, Abwehr von Missbrauch</td></tr>
+	<tr><th>Rechtsgrundlage</th><td>Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem funktionierenden, sicheren Dienst)</td></tr>
+	<tr><th>Speicherdauer</th><td>14 Tage, danach automatische Löschung durch Rotation</td></tr>
+</table>
+
+<h2>4. Spielen ohne Konto</h2>
+<p>
+	Ohne Konto werden <strong>keine</strong> Spieldaten an den Server gesendet.
+	Einstellungen und der zuletzt gespielte Stand bleiben ausschließlich im
+	Speicher deines Browsers (siehe Abschnitt 7).
+</p>
+
+<h2>5. Konto, Bestenliste, Erfolge</h2>
+<p>
+	Wenn du Bestenliste und Fortschritt aktivierst, wird ein anonymes Konto
+	angelegt. Dabei und danach werden verarbeitet:
+</p>
+<table>
+	<tr><th>Daten</th><th>Wozu</th></tr>
+	<tr><td>Zufällige Kennung (UUID) und zufällig erzeugter Deckname</td><td>Dich über mehrere Sitzungen wiedererkennen und in der Bestenliste anzeigen</td></tr>
+	<tr><td>Selbstauskunft zum Mindestalter, Zeitpunkt, Fassung dieser Erklärung, Sprachkennung</td><td>Nachweis der Einwilligung und der Alterserklärung</td></tr>
+	<tr><td>Laufdaten: Runde, Punkte, Abschüsse, Kopfschüsse, Spieldauer, Karte, Schwierigkeit, Zeitpunkt</td><td>Bestenliste, Erfahrungspunkte, Erfolge</td></tr>
+	<tr><td>Erfahrungspunkte, Stufe, freigeschaltete Erfolge</td><td>Fortschrittsanzeige</td></tr>
+	<tr><td><strong>Gekürzte</strong> IP-Adresse (IPv4 auf /24, IPv6 auf /48) und ein gepfefferter Streuwert der Browserkennung, je Sitzung</td><td>Erkennung manipulierter Läufe und missbräuchlicher Massenanlage von Konten</td></tr>
+</table>
+<p>
+	Die vollständige IP-Adresse wird für das Konto <strong>nicht</strong>
+	gespeichert, und aus dem Streuwert der Browserkennung lässt sich diese nicht
+	zurückrechnen.
+</p>
+<table>
+	<tr><th>Rechtsgrundlage</th><td>Art. 6 Abs. 1 lit. b DSGVO (Erfüllung des von dir gewünschten Dienstes) sowie lit. f für die Missbrauchserkennung</td></tr>
+	<tr><th>Speicherdauer</th><td>Bis du die Löschung verlangst. Sitzungsmerkmale verfallen mit der Sitzung.</td></tr>
+	<tr><th>Empfänger</th><td>Keine. Die Daten liegen auf demselben Server, der die Seite ausliefert.</td></tr>
+</table>
+<p>
+	<strong>Öffentlich sichtbar</strong> sind ausschließlich Deckname, Stufe und
+	die Werte deiner Läufe in der Bestenliste.
+</p>
+
+<h2>6. Cookie</h2>
+<p>
+	Für die Anmeldung wird genau ein Cookie gesetzt:
+	<code>__Host-ts_rt</code>. Es enthält ein zufälliges Sitzungsmerkmal, ist
+	<code>HttpOnly</code>, <code>Secure</code>, auf <code>SameSite=Lax</code>
+	gesetzt und nur unter <code>/api/auth</code> gültig. Ohne Konto wird es nicht
+	gesetzt. Es ist technisch notwendig und dient keiner Analyse.
+</p>
+
+<h2>7. Speicher im Browser</h2>
+<p>
+	Diese Angaben bleiben lokal auf deinem Gerät und werden nicht an den Server
+	übertragen:
+</p>
+<table>
+	<tr><th>Schlüssel</th><th>Inhalt</th></tr>
+	<tr><td class="roh"><code>ts_set_*</code></td><td>Einstellungen: Empfindlichkeit, Y-Achse, Zielhilfe, Knopfgröße und -deckkraft, Linkshänder-Modus, Sparsam-Modus</td></tr>
+	<tr><td class="roh"><code>ts_lang</code></td><td>Gewählte Sprache</td></tr>
+	<tr><td class="roh"><code>ts_letzter_lauf</code></td><td>Zuletzt gespielte Karte und Einstellungen, damit „Weiterspielen“ funktioniert</td></tr>
+	<tr><td class="roh"><code>ts_autofire</code>, <code>ts_bright</code>, <code>ts_hudscale</code>, <code>ts_seen_hints</code>, <code>ts_debug</code></td><td>Anzeige- und Bedienvorlieben</td></tr>
+	<tr><td class="roh"><code>ts_name_ascii</code></td><td>Dein Deckname in der Schreibweise, die die Spiel-Engine darstellen kann</td></tr>
+	<tr><td class="roh"><code>ts_rt_anon</code></td><td>Nur bei anonymem Konto: Sicherungskopie des Sitzungsmerkmals. iOS-Safari löscht Cookies nach sieben Tagen ohne Nutzung; ohne diese Kopie wäre der Zugang zu den eigenen Bestwerten verloren.</td></tr>
+</table>
+<p>
+	Zusätzlich legt ein Service Worker die Spieldateien (rund 90 MB) im
+	Browser-Zwischenspeicher ab, damit das Spiel offline startet. Das sind
+	Programmdateien, keine personenbezogenen Daten.
+</p>
+<p>
+	Alles davon lässt sich in den Browsereinstellungen unter „Websitedaten
+	löschen“ vollständig entfernen.
+</p>
+
+<h2>8. Kinder und Jugendliche</h2>
+<p>
+	Vor dem Anlegen eines Kontos wird eine Altersbestätigung verlangt. Es handelt
+	sich um eine Selbstauskunft; eine Überprüfung findet nicht statt. Wenn du der
+	Ansicht bist, dass ein Kind ohne Zustimmung der Sorgeberechtigten ein Konto
+	angelegt hat, schreib uns — wir löschen es.
+</p>
+
+<h2>9. Deine Rechte</h2>
+<ul>
+	<li><strong>Auskunft</strong> über die zu dir gespeicherten Daten (Art. 15)</li>
+	<li><strong>Berichtigung</strong> unrichtiger Daten (Art. 16)</li>
+	<li><strong>Löschung</strong> (Art. 17)</li>
+	<li><strong>Einschränkung</strong> der Verarbeitung (Art. 18)</li>
+	<li><strong>Datenübertragbarkeit</strong> (Art. 20)</li>
+	<li><strong>Widerspruch</strong> gegen Verarbeitungen auf Grundlage von Art. 6 Abs. 1 lit. f (Art. 21)</li>
+</ul>
+<p>
+	Weil das Konto anonym ist, brauchen wir für eine Auskunft oder Löschung deine
+	Kennung oder deinen Decknamen. Melde dich unter der oben genannten Adresse.
+</p>
+<p>
+	Du kannst dich außerdem bei einer Datenschutz-Aufsichtsbehörde beschweren
+	(Art. 77 DSGVO), in der Regel bei der Behörde deines Wohnorts.
+</p>
+
+<h2>10. Weitergabe in Drittländer</h2>
+<p>
+	Findet nicht statt. Es sind keine externen Dienste, Schriftarten,
+	Karten-Anbieter oder Auswertungswerkzeuge eingebunden; alle Dateien werden von
+	diesem Server ausgeliefert.
+</p>
+
+<h2>11. Änderungen</h2>
+<p>
+	Diese Erklärung trägt eine Fassungsnummer. Ändert sich der Umfang der
+	Verarbeitung, wird die Nummer erhöht und beim nächsten Start um eine erneute
+	Bestätigung gebeten.
+</p>
+
+<footer>
+	<a href="/">Zurück zum Spiel</a>
+	<a href="impressum.html">Impressum</a>
+</footer>
+</div>
+</body>
+</html>

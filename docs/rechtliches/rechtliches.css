@@ -1,0 +1,41 @@
+/* Gemeinsame Gestaltung fuer Impressum und Datenschutzerklaerung.
+   Bewusst eine eigene Datei und NICHT Teil von index.html: diese Seiten
+   muessen ohne den 90-MB-Download erreichbar sein, verlinkbar und lesbar,
+   auch wenn die Engine gar nicht startet. Tokens wie in der Shell:
+   Signal-Rot #c21500, Knochenweiss #e6e1d2. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+body {
+	margin: 0; padding: 0 18px 64px;
+	background: #0a0706; color: #d8d2c4;
+	font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	font-size: 16px; line-height: 1.65;
+	-webkit-text-size-adjust: 100%;
+}
+.wrap { max-width: 760px; margin: 0 auto; }
+header { padding: 34px 0 10px; border-bottom: 1px solid rgba(200,60,30,0.35); }
+.mark { color: #c21500; font-size: clamp(20px, 5vw, 28px); letter-spacing: 5px;
+	font-weight: bold; margin: 0; text-shadow: 0 0 18px rgba(194,21,0,0.45); }
+.mark small { display: block; color: #7d766a; font-size: 11px; letter-spacing: 3px;
+	font-weight: normal; margin-top: 4px; text-shadow: none; }
+h1 { font-size: clamp(19px, 4.4vw, 24px); color: #e6e1d2; letter-spacing: 2px; margin: 30px 0 6px; }
+h2 { font-size: 15px; color: #c9a06a; letter-spacing: 1.6px; margin: 30px 0 6px; text-transform: uppercase; }
+p, li { margin: 8px 0; }
+ul { padding-left: 20px; }
+a { color: #e8b04b; }
+a:hover { color: #fff; }
+dl { margin: 8px 0; }
+dt { color: #c9a06a; margin-top: 12px; font-size: 13px; letter-spacing: 1px; }
+dd { margin: 2px 0 0; }
+table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+th { color: #c9a06a; font-weight: normal; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+code { color: #e8b04b; }
+.roh { display: block; overflow-x: auto; }
+.luecke { display: inline-block; background: rgba(194,21,0,0.18); border: 1px dashed #c21500;
+	color: #ff6a4d; padding: 1px 8px; letter-spacing: 1px; }
+.hinweis { border-left: 3px solid #c21500; background: rgba(194,21,0,0.08);
+	padding: 10px 14px; margin: 18px 0; color: #cfc6b4; }
+footer { margin-top: 46px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.09);
+	color: #7d766a; font-size: 13px; }
+footer a { margin-right: 16px; }
