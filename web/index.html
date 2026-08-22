@@ -219,17 +219,22 @@
 	.ts-sub { color:#9a9384; font-size:min(3.2vw,14px); letter-spacing:5px; margin:3px 0 0; opacity:0.85; }
 	@keyframes tsflk { 0%,92%,100%{opacity:1} 93%{opacity:0.35} 94%{opacity:1} 96%{opacity:0.55} 97%{opacity:1} }
 	#mstart p.hint, #rotate p, #loadscreen p.hint { font-size:min(4.2vw,17px); line-height:1.55; opacity:0.82; margin:12px 0 0; }
-	#mstart .play, #deathui .play, #joinui .play {
+	/* Die Knopfregel galt urspruenglich nur fuer #mstart und #deathui. Jedes
+	   neue Overlay musste einzeln nachgetragen werden -- und dreimal wurde es
+	   vergessen: im Konto standen ENABLE und CLOSE als nackter Text da, im
+	   Beitritts-Dialog CONNECT und CANCEL. Deshalb jetzt an der KLASSE, nicht
+	   am Overlay: .play wird ausschliesslich fuer diese Knoepfe benutzt. */
+	.play {
 		margin-top:26px; display:inline-block; padding:16px 32px; cursor:pointer;
 		border:2px solid #c21500; border-radius:12px; color:#f2ede0;
 		font-size:min(6vw,24px); font-weight:bold; letter-spacing:1px;
 		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(194,21,0,0.4);
 		vertical-align:middle;
 	}
-	#mstart .play:active, #deathui .play:active, #joinui .play:active { background:rgba(194,21,0,0.55); }
+	.play:active { background:rgba(194,21,0,0.55); }
 	/* Zweitknopf im Gate: gleiche Groesse, ruhiger -- er ist ein Angebot,
 	   nicht der Hauptweg. */
-	#mstart .play.alt, #joinui .play.alt { margin-top:14px; border-color:#6b3a2a; color:#e6e1d2;
+	.play.alt { margin-top:14px; border-color:#6b3a2a; color:#e6e1d2;
 		background:rgba(40,24,18,0.55); box-shadow:none; font-size:min(4.4vw,18px);
 		padding:12px 24px; }
 	#deathui .death-actions { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
@@ -338,6 +343,16 @@
 	@keyframes tspulse {
 		0%, 100% { box-shadow:0 0 10px rgba(194,21,0,0.22), inset 0 0 14px rgba(0,0,0,0.5); border-color:rgba(194,21,0,0.7); }
 		50%      { box-shadow:0 0 26px rgba(194,21,0,0.6),  inset 0 0 14px rgba(0,0,0,0.5); border-color:#e2361a; }
+	}
+	/* Die 60-px-Wortmarke ist fuer das Start-Gate gedacht, wo sie allein steht.
+	   In jedem Overlay MIT Inhalt frass sie auf einem Handy im Querformat ein
+	   Viertel bis die Haelfte der Hoehe und schob den Inhalt unter die Kante --
+	   dreimal einzeln repariert (Einstellungen, Beitreten, Konto), deshalb hier
+	   einmal fuer alle flachen Bildschirme. */
+	@media (max-height: 520px) {
+		.ts-mark { font-size:min(5.2vh,30px); letter-spacing:3px; margin:0 0 4px; }
+		#mstart .ts-mark { font-size:min(8vh,44px); }   /* das Gate darf gross bleiben */
+		#accountui .box, #settingsui .box { padding-top:4px; }
 	}
 	</style>
   </head>
@@ -577,7 +592,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22y';
+var TS_BUILD = '2026-08-22ac';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -2366,6 +2381,21 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	if (hintsEl) hintsEl.addEventListener('pointerdown', function(e){
 		e.preventDefault(); hintsEl.style.display = 'none';
 		try { localStorage.setItem('ts_seen_hints', '1'); } catch(err){}
+
+		// Den Tipp nicht verschlucken. Die Karte liegt ueber dem ganzen Bild --
+		// wer sie fuer Deko haelt und auf MENUE tippt, erlebt sonst, dass der
+		// sichtbare Knopf "nichts tut". Lag einer darunter, bekommt er den Tipp
+		// jetzt nachtraeglich (down UND up, sonst bliebe ein Halte-Knopf haengen).
+		var unten = document.elementFromPoint(e.clientX, e.clientY);
+		if (unten && unten.classList && unten.classList.contains('tbtn')){
+			var bau = function(typ){
+				return new PointerEvent(typ, { bubbles:true, cancelable:true,
+					pointerId: e.pointerId || 1, pointerType: e.pointerType || 'touch',
+					clientX: e.clientX, clientY: e.clientY });
+			};
+			unten.dispatchEvent(bau('pointerdown'));
+			setTimeout(function(){ unten.dispatchEvent(bau('pointerup')); }, 80);
+		}
 	});
 
 	// --- Helligkeits-Presets (V4): gamma + v_contrastboost via Konsole.

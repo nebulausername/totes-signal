@@ -40,9 +40,27 @@ else
     TODAY=$(date -u +%Y-%m-%d)
     OLD=$(cur_build)
     if [[ "${OLD}" == "${TODAY}"* ]]; then
-        # heutiges Datum -> naechster Buchstabe
+        # heutiges Datum -> naechster Buchstabe.
+        # NICHT einfach chr(ord(x)+1): nach 'z' kam so '{' (ASCII 123). An einem
+        # Tag mit vielen Auslieferungen ist das real passiert -- der Build hiess
+        # dann "2026-08-22{". Nach 'z' laufen wir auf 'aa', 'ab', ... weiter.
         SUF="${OLD##${TODAY}}"
-        NEXT=$(python3 -c "print(chr(ord('${SUF:-a}')+1) if '${SUF}' else 'a')")
+        NEXT=$(python3 - "${SUF}" <<'PYSUF'
+import sys
+s = sys.argv[1] if len(sys.argv) > 1 else ''
+if not s:
+    print('a'); raise SystemExit
+z = list(s)
+i = len(z) - 1
+while i >= 0:
+    if z[i] != 'z':
+        z[i] = chr(ord(z[i]) + 1); break
+    z[i] = 'a'; i -= 1
+else:
+    z.insert(0, 'a')
+print(''.join(z))
+PYSUF
+)
         NEW="${TODAY}${NEXT}"
     else
         NEW="${TODAY}a"
