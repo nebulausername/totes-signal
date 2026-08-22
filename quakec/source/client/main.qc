@@ -955,6 +955,7 @@ void(vector client_view_angles) Camera_AimSnap =
 // CALLED EVERY CLIENT RENDER FRAME
 float pap_flash_alternate;
 float ts_last_ads;   // zuletzt gemeldeter ADS-Zustand (TSUI:ads-Marker)
+float ts_fx_next;    // Drossel fuer Treffer-Rueckmeldung an die Shell
 // Als float gefuehrt, nicht als string: serverkey() liefert eine
 // Tempstring, und strzone() ist in diesem fteqcc als veraltet markiert
 // ("Redundant"). Eine Zahl zu vergleichen umgeht die Frage nach der
@@ -1427,6 +1428,9 @@ noref void() CSQC_Parse_Event =
 			float duration = readshort();
 			if (cvar("in_rumbleenabled"))
 				gp_rumble(last_input_deviceid, low_frequency, high_frequency, duration);
+			// Dieselbe Erschuetterung an die Shell: auf dem Handy gibt es
+			// keinen Controller, der ruettelt.
+			print("\nTSUI:fx:r\n");
 			break;
 		case CSQC_EVENT_SETGAMEMODE:
 			active_gamemode = readbyte();
@@ -1515,6 +1519,17 @@ noref void() CSQC_Parse_Event =
 						return;
 
 					hitmark_type = var_1;
+
+					// An die Web-Shell melden: sie macht daraus Haptik und
+					// einen sichtbaren Puls. Auf iOS gibt es KEINE Vibrations-
+					// Schnittstelle, deshalb muss die Rueckmeldung dort ueber
+					// das Auge laufen -- beides haengt an diesem einen Marker.
+					// Gedrosselt: bei Dauerfeuer kaemen sonst zehn Meldungen
+					// pro Sekunde, und jede davon kostet einen console.log.
+					if (time > ts_fx_next) {
+						ts_fx_next = time + 0.06;
+						print(hitmark_type == 1 ? "\nTSUI:fx:k\n" : "\nTSUI:fx:h\n");
+					}
 
 					// Red
 					if (hitmark_type == 1) {

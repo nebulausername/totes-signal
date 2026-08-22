@@ -116,3 +116,33 @@ test('Konto-Ansicht zeigt Stufe, Zahlen und Erfolge', async ({ page }) => {
   expect(text, 'unerreichbare Erfolge sind nicht gekennzeichnet')
     .toMatch(/noch nicht erreichbar|not yet obtainable/);
 });
+
+test('Treffer-Rueckmeldung: Haptik und sichtbarer Puls', async ({ page }) => {
+  // navigator.vibrate gibt es auf iOS Safari NICHT -- deshalb MUSS parallel
+  // immer ein sichtbarer Puls laufen, sonst bekommt ein iPhone-Spieler gar
+  // keine Rueckmeldung. Beide Kanaele haengen an demselben Marker.
+  await page.addInitScript(() => {
+    window.__vib = [];
+    navigator.vibrate = (m) => { window.__vib.push(JSON.stringify(m)); return true; };
+  });
+  await page.goto('https://totersignal.de/', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2500);
+
+  const r = await page.evaluate(async () => {
+    const raus = [];
+    for (const art of ['h', 'k', 'r']) {
+      console.log('\nTSUI:fx:' + art + '\n');          // genau der Weg der Engine
+      await new Promise((res) => setTimeout(res, 90));
+      raus.push({ art, klasse: (document.getElementById('firebtn') || {}).className || '' });
+      await new Promise((res) => setTimeout(res, 300));
+    }
+    return { raus, vib: window.__vib };
+  });
+
+  expect(r.raus[0].klasse, 'Treffer pulst nicht').toContain('fx-h');
+  expect(r.raus[1].klasse, 'Abschuss pulst nicht anders als ein Treffer').toContain('fx-k');
+  // Schaden AM Spieler darf den Feuerknopf NICHT pulsen -- das lese sich wie
+  // ein eigener Treffer, also genau falschherum.
+  expect(r.raus[2].klasse, 'Schaden pulst faelschlich den Feuerknopf').not.toMatch(/fx-[hk]/);
+  expect(r.vib.length, 'keine Haptik ausgeloest').toBe(3);
+});

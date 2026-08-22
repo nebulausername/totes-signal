@@ -57,6 +57,17 @@
 	#touchui .tbtn.round {                                  /* Icon-Buttons (Zahnrad) */
 		min-width:0; width:var(--tb); height:var(--tb); border-radius:50%; padding:0;
 		font-size:clamp(15px,2.8vmin,22px); }
+	/* Treffer-Puls auf dem FEUER-Knopf. Das ist auf iOS die EINZIGE
+	   Rueckmeldung, die ankommt -- dort gibt es keine Vibration. */
+	@keyframes tsfxh { 0% { box-shadow:0 0 0 0 rgba(255,255,255,0.55); }
+	                  100% { box-shadow:0 0 0 14px rgba(255,255,255,0); } }
+	@keyframes tsfxk { 0% { box-shadow:0 0 0 0 rgba(255,60,30,0.85); transform:scale(1.06); }
+	                  100% { box-shadow:0 0 0 22px rgba(255,60,30,0); transform:scale(1); } }
+	#touchui .tbtn.fx-h { animation:tsfxh 0.13s ease-out; }
+	#touchui .tbtn.fx-k { animation:tsfxk 0.22s ease-out; }
+	@media (prefers-reduced-motion: reduce) {
+		#touchui .tbtn.fx-h, #touchui .tbtn.fx-k { animation:none; }
+	}
 	#touchui .tbtn:active, #touchui .tbtn.held {
 		background:rgba(156,20,5,0.66); border-color:#e6431f; color:#fff;
 		box-shadow:0 0 16px rgba(224,46,18,0.6), inset 0 0 12px rgba(0,0,0,0.4); }
@@ -474,6 +485,9 @@ function tsMarker(msg)
 		var mm = msg.match(/TSUI:dmeta:([^\n]*)/);  if (mm) TS_RUN.onMeta(mm[1]);
 		var mc = msg.match(/TSUI:ach:([^\n]*)/);    if (mc) TS_RUN.onAch(mc[1]);
 	}
+	if (window.TS_FX){                                        // Treffer/Erschuetterung
+		var mf = msg.match(/TSUI:fx:([hkr])/);      if (mf) TS_FX.ausloesen(mf[1]);
+	}
 }
 (function(){
 	var orig = console.log.bind(console);
@@ -486,7 +500,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22m';
+var TS_BUILD = '2026-08-22o';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1626,6 +1640,45 @@ var TS_SET = {
 		});
 	} catch(e){}
 })();
+
+// --- Treffer-Rueckmeldung ---------------------------------------------------
+// Zwei Kanaele, weil einer davon auf dem wichtigsten Zielgeraet fehlt:
+// navigator.vibrate gibt es auf iOS Safari NICHT. Ein Spieler auf dem iPhone
+// bekaeme also gar nichts. Deshalb laeuft parallel immer ein sichtbarer Puls
+// auf dem FEUER-Knopf -- gleiche Quelle, anderer Sinneskanal.
+var TS_FX = {
+	kannVibrieren: !!(navigator.vibrate),
+	muster: { h: 12, k: [0, 22, 40, 22], r: [0, 45, 35, 65] },
+	letzt: 0,
+
+	ausloesen: function(art){
+		// Doppelte Drosselung: die Engine drosselt schon auf 60 ms, aber ein
+		// Marker kann auch doppelt zugestellt werden.
+		var jetzt = Date.now();
+		if (jetzt - this.letzt < 45) return;
+		this.letzt = jetzt;
+
+		if (this.kannVibrieren){
+			try { navigator.vibrate(this.muster[art] || 12); } catch(e){}
+		}
+		// Nur eigene Treffer pulsen den FEUER-Knopf. 'r' ist Schaden AM
+		// Spieler -- ein weisser Puls auf dem Feuerknopf laese sich dort wie
+		// ein Treffer, also genau falschherum. Dafuer zeichnet die Engine
+		// ohnehin ihre Blut-Ueberblendung.
+		if (art === 'h' || art === 'k') this.puls(art);
+	},
+
+	puls: function(art){
+		var f = document.getElementById('firebtn');
+		if (!f) return;
+		f.classList.remove('fx-h', 'fx-k');
+		// Neuzeichnen erzwingen, sonst startet die Animation bei schnellen
+		// Treffern nicht neu.
+		void f.offsetWidth;
+		f.classList.add(art === 'k' ? 'fx-k' : 'fx-h');
+		setTimeout(function(){ f.classList.remove('fx-h', 'fx-k'); }, art === 'k' ? 220 : 130);
+	}
+};
 
 // ---- Update-Erkennung: version.json (immer frisch, am SW vorbei) gegen
 // TS_BUILD dieser Seite. Aeltere Shell? Vor dem Spielstart: einmal automatisch
