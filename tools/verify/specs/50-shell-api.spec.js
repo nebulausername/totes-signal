@@ -76,3 +76,43 @@ test('Todes-Bildschirm hat den Bestenlisten-Tab', async ({ page }) => {
   const tabs = await page.evaluate(() => window.TS_DEATH && TS_DEATH.tabs);
   expect(tabs).toEqual(['stats', 'board', 'rank']);
 });
+
+test('Konto-Ansicht zeigt Stufe, Zahlen und Erfolge', async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto('https://totersignal.de/', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(3000);
+
+  // Konto plus ein verifizierter Lauf, damit die Ansicht Inhalt hat.
+  const d = await page.evaluate(async () => {
+    await TS_API.kontoAnlegen();
+    const s = await TS_API.call('/runs/start', { method: 'POST',
+      body: { map_key: 'ndu', difficulty: 0, gamemode: 0, player_count: 1 } });
+    await TS_API.call('/runs/' + s.run_id + '/heartbeat', { method: 'POST',
+      headers: { 'X-Run-Token': s.run_token },
+      body: { beats: [{ seq: 1, round: 5, score: 3100, kills: 65, headshots: 22, secs: 25 }] } });
+    return TS_API.call('/runs/' + s.run_id + '/finish', { method: 'POST',
+      headers: { 'X-Run-Token': s.run_token },
+      body: { rounds: 5, score: 3100, kills: 65, headshots: 22, downs: 1, revives: 0, secs: 25 } });
+  });
+  expect(d.status, `Lauf abgewiesen: ${d.reason}`).toBe('verified');
+
+  await page.evaluate(() => TS_KONTO.zeigen());
+  await page.waitForTimeout(1500);
+
+  await expect(page.locator('#accountui')).toBeVisible();
+  // Alle 42 Erfolge werden gezeigt -- auch die unerreichbaren, damit der
+  // Spieler nicht raetselt, warum manche nie kommen.
+  expect(await page.locator('.acc-a').count()).toBe(42);
+  expect(await page.locator('.acc-a.auf').count(), 'kein Erfolg als freigeschaltet markiert')
+    .toBeGreaterThanOrEqual(1);
+
+  const text = await page.locator('#acc-inhalt').innerText();
+  expect(text).toContain('XP');
+  expect(text, 'Bestwert fehlt').toMatch(/3100/);
+  // Unerreichbare muessen als solche benannt sein -- in BEIDEN Sprachen, denn
+  // die Oberflaeche folgt der Browsersprache und der Harness laeuft mit
+  // en-US. Ein erster Entwurf pruefte nur auf den deutschen Text und schlug
+  // deshalb fehl, obwohl die Anzeige richtig war.
+  expect(text, 'unerreichbare Erfolge sind nicht gekennzeichnet')
+    .toMatch(/noch nicht erreichbar|not yet obtainable/);
+});

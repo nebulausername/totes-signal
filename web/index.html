@@ -103,7 +103,7 @@
 	}
 
 	/* ---- TOTES SIGNAL: dead-radio-signal theme (start gate + loading + rotate + death) ---- */
-	#mstart, #rotate, #loadscreen, #deathui {
+	#mstart, #rotate, #loadscreen, #deathui, #accountui {
 		position:fixed; inset:0; z-index:50; display:none;
 		background:radial-gradient(120% 90% at 50% 35%, #12100e 0%, #070605 55%, #000 100%);
 		color:#e6e1d2; font-family:monospace;
@@ -113,6 +113,31 @@
 	#loadscreen { z-index:52; }
 	/* Death-Overlay: unter Gate/Ladescreen, ueber Touch-HUD; Spiel bleibt leicht sichtbar */
 	#deathui { z-index:45; background:radial-gradient(120% 90% at 50% 35%, rgba(18,10,8,0.93) 0%, rgba(7,4,3,0.95) 55%, rgba(0,0,0,0.97) 100%); }
+	/* Konto- und Fortschrittsansicht: erbt die Grundgestaltung oben, liegt
+	   ueber dem Todes-Overlay aber unter Gate und Ladescreen. */
+	#accountui { z-index:47; overflow-y:auto; align-items:flex-start; }
+	#accountui .box { max-width:min(760px, 94vw); width:100%; padding:14px 0 28px; }
+	#accountui h3 { margin:16px 0 8px; font-size:min(2.4vh,13px); letter-spacing:2px;
+		color:#c9a06a; text-transform:uppercase; font-weight:normal; }
+	.acc-kopf { display:flex; align-items:baseline; justify-content:center; gap:12px; flex-wrap:wrap; }
+	.acc-name { font-size:min(4vh,22px); letter-spacing:2px; color:#e6e1d2; }
+	.acc-lvl  { font-size:min(2.4vh,13px); color:#e8b04b; }
+	.acc-bar  { height:6px; background:rgba(255,255,255,0.08); border-radius:3px; margin:8px auto; max-width:420px; }
+	.acc-bar i { display:block; height:100%; background:#b31200; border-radius:3px; }
+	.acc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin:10px 0; }
+	.acc-chip { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+		border-radius:6px; padding:8px 6px; }
+	.acc-chip b { display:block; font-size:min(3vh,17px); color:#e6e1d2; }
+	.acc-chip span { font-size:min(1.9vh,10px); color:#a8a094; letter-spacing:1px; }
+	.acc-ach { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:6px; text-align:left; }
+	.acc-a { display:flex; gap:8px; align-items:flex-start; padding:7px 9px; border-radius:6px;
+		background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); }
+	.acc-a.auf { border-color:rgba(232,176,75,0.45); background:rgba(232,176,75,0.07); }
+	.acc-a.zu  { opacity:0.42; }
+	.acc-a i   { font-style:normal; font-size:min(2.4vh,14px); line-height:1.1; }
+	.acc-a div { min-width:0; }
+	.acc-a b   { display:block; font-size:min(2.1vh,11px); color:#e6e1d2; letter-spacing:0.5px; }
+	.acc-a span{ font-size:min(1.8vh,10px); color:#a8a094; }
 	/* CRT scanlines */
 	#mstart::before, #rotate::before, #loadscreen::before, #deathui::before {
 		content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
@@ -263,6 +288,7 @@
 			<div class="gs-row" id="gs-duck"><span data-i18n="gsDuck"></span></div>
 			<div class="gs-row" id="gs-nade"><span data-i18n="gsNade"></span></div>
 			<div class="gs-row" id="gs-fs"><span data-i18n="gsFs"></span></div>
+			<div class="gs-row" id="gs-konto"><span data-i18n="gsKonto"></span></div>
 			<div class="gs-row" id="gs-help"><span data-i18n="gsHelp"></span></div>
 			<div class="gs-row gs-close" id="gs-close"><span data-i18n="gsClose"></span></div>
 		</div>
@@ -285,6 +311,7 @@
 		<p class="ts-sub" data-i18n="sub"></p>
 		<p class="hint" data-i18n="tap"></p>
 		<span class="play" data-i18n="play"></span>
+		<p class="hint" style="margin-top:14px"><span id="gate-konto" style="cursor:pointer;text-decoration:underline" data-i18n="accTitle"></span></p>
 	</div></div>
 	<div id="rotate"><div class="box">
 		<span class="rot">⟳</span>
@@ -330,6 +357,13 @@
 		<div class="death-actions">
 			<span class="play" id="deathagain" data-i18n="again"></span>
 			<span class="play alt" id="deathlobby" data-i18n="lobby"></span>
+		</div>
+	</div></div>
+	<div id="accountui"><div class="box">
+		<p class="ts-mark" data-i18n="accTitle"></p>
+		<div id="acc-inhalt"></div>
+		<div class="death-actions">
+			<span class="play alt" id="acc-zu" data-i18n="accClose"></span>
 		</div>
 	</div></div>
 	<div id="loadscreen"><div class="box">
@@ -392,7 +426,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-21g';
+var TS_BUILD = '2026-08-22a';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -602,6 +636,12 @@ var I18N = {
 		rankFehler:'Nicht erreichbar.', rankPlatz:'Platz',
 		rankPruefung:'Lauf wird geprueft.', rankAbgelehnt:'Lauf nicht gewertet.',
 		rankFremd:'Konto und Bestenliste: auf totersignal.de spielen.',
+		gsKonto:'KONTO & ERFOLGE', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
+		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
+		accLevel:'Stufe', accBisLevel:'XP bis zur naechsten Stufe',
+		accStats:'Zahlen', accRuns:'Laeufe', accBestRound:'Beste Runde',
+		accBestScore:'Bester Punktestand', accAch:'Erfolge',
+		accGesperrt:'noch nicht erreichbar',
 		waves1:'RUNDE UEBERLEBT', wavesN:'RUNDEN UEBERLEBT',
 		stKills:'KILLS', stHeads:'KOPFSCHUESSE', stQuota:'KOPF-QUOTE',
 		stPoints:'PUNKTE', stDowns:'DOWNS', stRevs:'WIEDERBELEBT',
@@ -644,6 +684,12 @@ var I18N = {
 		rankFehler:'Unavailable.', rankPlatz:'Rank',
 		rankPruefung:'Run under review.', rankAbgelehnt:'Run not counted.',
 		rankFremd:'Account and leaderboard: play on totersignal.de.',
+		gsKonto:'ACCOUNT & ACHIEVEMENTS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
+		accAus:'No account yet. Enable leaderboard and progress.',
+		accLevel:'Level', accBisLevel:'XP to next level',
+		accStats:'Numbers', accRuns:'Runs', accBestRound:'Best round',
+		accBestScore:'Best score', accAch:'Achievements',
+		accGesperrt:'not yet obtainable',
 		waves1:'ROUND SURVIVED', wavesN:'ROUNDS SURVIVED',
 		stKills:'KILLS', stHeads:'HEADSHOTS', stQuota:'HS RATE',
 		stPoints:'POINTS', stDowns:'DOWNS', stRevs:'REVIVES',
@@ -1214,6 +1260,93 @@ document.addEventListener('visibilitychange', function(){
 });
 if (TS_ORIGIN_OK) setTimeout(function(){ TS_RUN.nachreichen(); }, 4000);
 
+// --- Konto- und Fortschrittsansicht --------------------------------------
+// Erreichbar aus dem Zahnrad-Sheet (Touch) UND vom Start-Gate (Desktop) --
+// sonst kaeme ein Desktop-Spieler nie an sein Konto, denn das Sheet gibt es
+// dort nicht.
+var TS_KONTO = {
+	async zeigen(){
+		var el = document.getElementById('accountui');
+		if (!el) return;
+		el.style.display = 'flex';
+		var ziel = document.getElementById('acc-inhalt');
+		if (!TS_ORIGIN_OK){ ziel.innerHTML = '<p class="ts-sub">' + T('rankFremd') + '</p>'; return; }
+		if (!TS_API.hatKonto()){
+			ziel.innerHTML = '<p class="ts-sub">' + T('accAus') + '</p>' +
+				'<div class="death-actions"><span class="play" id="acc-an">' + T('rankAnBtn') + '</span></div>';
+			var b = document.getElementById('acc-an');
+			if (b) b.addEventListener('click', async function(){
+				b.textContent = '...';
+				try { await TS_API.kontoAnlegen(); await TS_RUN.nachreichen(); TS_KONTO.zeigen(); }
+				catch(e){ b.textContent = T('rankFehler'); }
+			});
+			return;
+		}
+		ziel.innerHTML = '<p class="ts-sub">' + T('rankLaedt') + '</p>';
+		try {
+			var mich = await TS_API.call('/auth/me');
+			var erf  = await TS_API.call('/profile/achievements');
+			this.zeichnen(mich, erf);
+		} catch(e){
+			ziel.innerHTML = '<p class="ts-sub">' + T('rankFehler') + '</p>';
+		}
+	},
+
+	zeichnen: function(mich, erf){
+		var u = mich.user, st = mich.stats;
+		// Fortschritt bis zur naechsten Stufe. Die Kurve steht im Server
+		// (ts.level_for_xp); hier wird nur ihre Umkehrung gebildet, damit der
+		// Balken nicht luegt, falls die Kurve spaeter angepasst wird.
+		var xpF = function(l){ return Math.ceil(Math.pow(Math.max(0, l - 1), 1 / 0.6) * 250); };
+		var jetzt = xpF(u.level), naechst = xpF(u.level + 1);
+		var anteil = naechst > jetzt ? Math.min(1, Math.max(0, (u.xp_total - jetzt) / (naechst - jetzt))) : 0;
+
+		var chip = function(wert, text){
+			return '<div class="acc-chip"><b>' + wert + '</b><span>' + text + '</span></div>';
+		};
+
+		var kachel = erf.defs.map(function(a){
+			var auf = !!a.unlocked_at;
+			// Unerreichbare ehrlich kennzeichnen statt sie als "noch offen"
+			// auszugeben -- 19 der 42 haben schlicht keine Erkennungslogik.
+			var zeichen = auf ? '\u2605' : (a.verfuegbar ? '\u2606' : '\u2013');
+			var titel = TS_DEATH.strip(a.name_de) + (a.verfuegbar ? '' : ' \u2013 ' + T('accGesperrt'));
+			return '<div class="acc-a ' + (auf ? 'auf' : 'zu') + '"><i>' + zeichen + '</i><div><b>' +
+				titel + '</b><span>' + TS_DEATH.strip(a.desc_de) + '</span></div></div>';
+		}).join('');
+
+		document.getElementById('acc-inhalt').innerHTML =
+			'<div class="acc-kopf"><span class="acc-name">' + TS_DEATH.strip(u.display_name) +
+				'</span><span class="acc-lvl">' + T('accLevel') + ' ' + u.level + '</span></div>' +
+			'<div class="acc-bar"><i style="width:' + Math.round(anteil * 100) + '%"></i></div>' +
+			'<div class="ts-sub">' + u.xp_total + ' XP' +
+				(naechst > jetzt ? ' \u00b7 ' + Math.max(0, naechst - u.xp_total) + ' ' + T('accBisLevel') : '') + '</div>' +
+			'<h3>' + T('accStats') + '</h3><div class="acc-grid">' +
+				chip(st.runs, T('accRuns')) +
+				chip(st.best_round === null ? '\u2013' : st.best_round, T('accBestRound')) +
+				chip(st.best_score === null ? '\u2013' : st.best_score, T('accBestScore')) +
+				chip(erf.freigeschaltet + '/' + erf.erreichbar, T('accAch')) +
+			'</div>' +
+			'<h3>' + T('accAch') + '</h3><div class="acc-ach">' + kachel + '</div>';
+	},
+
+	schliessen: function(){
+		var el = document.getElementById('accountui');
+		if (el) el.style.display = 'none';
+	}
+};
+(function(){
+	var zu = document.getElementById('acc-zu');
+	if (zu) zu.addEventListener('click', function(){ TS_KONTO.schliessen(); });
+	// Zweiter Zugang ueber das Start-Gate: das Zahnrad-Sheet gibt es nur auf
+	// Touch-Geraeten, ein Desktop-Spieler kaeme sonst nie an sein Konto.
+	// stopPropagation, sonst startet derselbe Klick zugleich das Spiel.
+	var gk = document.getElementById('gate-konto');
+	if (gk) gk.addEventListener('click', function(e){
+		e.stopPropagation(); e.preventDefault(); TS_KONTO.zeigen();
+	});
+})();
+
 // ---- Update-Erkennung: version.json (immer frisch, am SW vorbei) gegen
 // TS_BUILD dieser Seite. Aeltere Shell? Vor dem Spielstart: einmal automatisch
 // frisch laden; im Spiel: Update-Pille zeigen (nichts verlieren). Heilt
@@ -1633,6 +1766,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		row('gs-duck', function(){ sendKey('keydown', 18, 'AltLeft'); sendKey('keyup', 18, 'AltLeft'); });  // impulse 30
 		row('gs-nade', function(){ tsCmd('impulse 25\n'); });   // 2. Granate waehlen
 		row('gs-fs',   fsToggle);
+		row('gs-konto', function(){ sheetShow(false); if (window.TS_KONTO) TS_KONTO.zeigen(); });
 		row('gs-help', function(){ sheetShow(false); showHints(true); });
 		row('gs-close', function(){ sheetShow(false); });
 		releasers.push(function(){ sheetShow(false); });
