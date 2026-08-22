@@ -205,6 +205,7 @@ string(string next_id) Menu_Video_GetPreviousButton =
 
 void() Menu_Video =
 {
+	Menu_Page_Begin(10, 2);
     if (!menu_video_init)
         Menu_Video_Init();
     
@@ -290,6 +291,8 @@ void() Menu_Video =
     Menu_DrawDivider(11.5);
     Menu_Button(-2, "vm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Video_ApplySettings() : 0;
     Menu_Button(-1, "vm_back", T("BACK"), T("Return to Configuration Menu.")) ? current_menu = MENU_OPTIONS : 0;
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };

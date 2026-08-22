@@ -383,6 +383,7 @@ void(int idx) Menu_Bios_EnterSubMenu =
 
 void() Menu_Bios =
 {
+	Menu_Page_Begin(12, 1);
     Menu_DrawBackground();
     Menu_DrawTitle(T("CHARACTER BIOS"));
     Menu_DrawMapPanel();
@@ -430,5 +431,7 @@ void() Menu_Bios =
         Menu_Button(-1, "bi_back", T("BACK"), "") ? Menu_Bios_EnterSubMenu(0) : 0;
     }
     
+	Menu_Page_End();
+
 	sui_pop_frame();	
 };

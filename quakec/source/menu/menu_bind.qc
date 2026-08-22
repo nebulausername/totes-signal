@@ -91,6 +91,7 @@ string(string next_id) Menu_Bindings_GetPreviousButton =
 
 void() Menu_Bindings =
 {
+	Menu_Page_Begin(11, 2);
     Menu_DrawBackground();
     Menu_DrawTitle(T("CONTROL BINDINGS"));
     Menu_DrawMapPanel();
@@ -131,6 +132,8 @@ void() Menu_Bindings =
     Menu_DrawDivider(11.5);
     Menu_Button(-2, "bm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Gamepad_ApplySettings() : 0;
     Menu_Button(-1, "bm_back", T("BACK"), T("Return to Control Options.")) ? Menu_Bindings_Back() : 0;
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };

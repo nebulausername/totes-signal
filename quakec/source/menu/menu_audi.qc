@@ -48,6 +48,7 @@ string(string next_id) Menu_Audio_GetPreviousButton =
 
 void() Menu_Audio =
 {
+	Menu_Page_Begin(3, 2);
     Menu_DrawBackground();
     Menu_DrawTitle(T("AUDIO OPTIONS"));
     Menu_DrawMapPanel();
@@ -64,6 +65,8 @@ void() Menu_Audio =
     Menu_DrawDivider(11.5);
     Menu_Button(-2, "am_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Audio_ApplySettings() : 0;
     Menu_Button(-1, "am_back", T("BACK"), T("Return to Configuration.")) ? current_menu = MENU_OPTIONS : 0;
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };

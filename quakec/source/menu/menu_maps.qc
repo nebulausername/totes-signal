@@ -134,6 +134,11 @@ void() Menu_Maps =
     if (menu_map_mode == MAP_SOLOSTOCK || menu_map_mode == MAP_COOPSTOCK) {
         int blank_map_spots = 0;
 
+        // Auf Touch passen nur noch ~5 Zeilen zwischen die Leisten -- ohne das
+        // hier stehen die letzten Karten in der Fussleiste. Auf dem Desktop
+        // bleibt alles auf einer Seite (Menu_Page_Begin steigt dort sofort aus).
+        Menu_Page_Begin(stock_maps.length + 2.5, 1);
+
         for(i = 0; i < stock_maps.length; i++) {
             if (stock_maps[i].bsp_name == "") {
                 blank_map_spots++;
@@ -166,15 +171,18 @@ void() Menu_Maps =
         menu_maps_buttons[i + 2] = "map_back";
     } else {
         // calculate the amount of usermaps we can display on this page.
-        int maps_on_page = 9; // 9 Zeilen: Pager/BACK wurden um 25px angehoben
-        int maps_start_position = (user_maps_page * 9);
+        // Auf Touch bestimmt die Zeilenhoehe, wie viele Karten auf eine Seite
+        // passen; auf dem Desktop bleiben es die bisherigen 9.
+        int pro_seite = MENU_TOUCH ? MENU_ROWS_PER_PAGE : 9;
+        int maps_on_page = pro_seite;
+        int maps_start_position = (user_maps_page * pro_seite);
 
         // Not all 10 slots can be filled..
         if (maps_on_page > user_maps_count - maps_start_position)
             maps_on_page = user_maps_count - maps_start_position;
 
         for (i = maps_start_position; i < maps_on_page + maps_start_position; i++) {
-            int menu_position = (i + 1) - (user_maps_page * 9);
+            int menu_position = (i + 1) - (user_maps_page * pro_seite);
             string bsp_name = user_maps[i].map_name;
 
             // Build the map strings
@@ -193,7 +201,7 @@ void() Menu_Maps =
             Menu_MapButton(menu_position, sprintf("map_%s", bsp_name), bsp_name, map_category, i) ? Menu_Maps_LoadMap(bsp_name) : 0;
         }
 
-        int current_registry_position = ((i + 1) - (user_maps_page * 9)) - 1;
+        int current_registry_position = ((i + 1) - (user_maps_page * pro_seite)) - 1;
 
         Menu_DrawDivider(10.25);
 
@@ -217,6 +225,7 @@ void() Menu_Maps =
     }
 
     Menu_Button(-1, "map_back", T("BACK"), back_string) ? current_menu = back_menudest : 0;
+    Menu_Page_End();
 
 	sui_pop_frame();	
 };

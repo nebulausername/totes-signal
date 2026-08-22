@@ -465,6 +465,30 @@ function tsMarker(msg)
 		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
 		if (window.TS_RUN && TS_ORIGIN_OK) TS_RUN.erfolgeWiederherstellen();
 		if (window.TS_SET) TS_SET.allesAnwenden();
+		if (window.__ts_renderMode) __ts_renderMode('game');
+	}
+	if (msg.indexOf('TSUI:menu') !== -1){
+		// Das Menue hat einen EIGENEN virtuellen Raum: 480 Zeilen, der Wert aus
+		// nzportable.cfg. Ohne diese Zeile erbt das Menue nach dem ersten Spiel
+		// den HUD-Preset des Spielers (380/300) -- und mehrere Zeichenroutinen in
+		// m_menu.qc sind hart auf 480 ausgelegt (u. a. die Ja/Nein-Abfrage, deren
+		// unterer Rand auf frame_h-160 sitzt und nur bei 480 auf die Blockkante
+		// faellt). ts_touchui gehoert ebenfalls hierher und nicht erst nach
+		// TSUI:game, sonst laeuft das erste Menue nach dem Kaltstart in
+		// Desktop-Metrik.
+		if (window.tsCmd)
+			tsCmd('vid_conheight 480\n' + (IS_TOUCH ? 'ts_touchui 1\n' : ''));
+		if (window.__ts_renderMode) __ts_renderMode('menu');
+	}
+	// Pausemenue (CSQC): gleiche absolute Cursorlogik wie das Hauptmenue, aber im
+	// HUD-Raum -- vid_conheight bleibt deshalb unangetastet, nur 1:1-Rendern.
+	var mp = msg.match(/TSUI:pause:([01])/);
+	if (mp){
+		if (window.__ts_renderMode) __ts_renderMode(mp[1] === '1' ? 'menu' : 'game');
+		// Das Touch-HUD gehoert waehrend der Pause weg: Joystick und FEUER lagen
+		// sonst ueber den Menuezeilen (der Stick genau ueber "NEIN, ICH MACHE
+		// WEITER"). Vor TSUI:pause wusste die Shell von diesem Zustand nichts.
+		if (window.TS_CTRL) TS_CTRL.setInGame(mp[1] === '0');
 	}
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
@@ -500,7 +524,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22o';
+var TS_BUILD = '2026-08-22q';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1789,7 +1813,7 @@ function mobileStart()
 // Wir cappen NUR devicePixelRatio (per Getter) — die engine-eigene onresize
 // (inkl. korrektem FTEC.evcb.resize für Input-Koordinaten) nutzt dann unseren
 // Wert. Für dynamische Auflösung ändern wir M9.eff und rufen window.onresize().
-var M9 = { on:false, cap:1.5, eff:1.5, floor:0.66, tier:'mid' };
+var M9 = { on:false, cap:1.5, eff:1.5, dyn:1.5, floor:0.66, tier:'mid', lock:false };
 (function(){
 	if (!IS_TOUCH) return;
 	var dpr   = window.devicePixelRatio || 1;
@@ -1801,6 +1825,7 @@ var M9 = { on:false, cap:1.5, eff:1.5, floor:0.66, tier:'mid' };
 	M9.tier = tier;
 	M9.cap  = ({ low:1.0, mid:1.25, high:1.5 })[tier];
 	M9.eff  = Math.min(dpr, M9.cap);          // Start: gecappter nativer DPR
+	M9.dyn  = M9.eff;                         // zuletzt von der Dyn-Res gewaehlte Stufe
 	try {
 		Object.defineProperty(window, 'devicePixelRatio', {
 			configurable:true, get:function(){ return M9.eff; }
@@ -1809,6 +1834,27 @@ var M9 = { on:false, cap:1.5, eff:1.5, floor:0.66, tier:'mid' };
 	} catch(e) { M9.on = false; }
 })();
 
+// Menue und Pausemenue positionieren den Cursor ABSOLUT. Der Touch-Pfad der
+// Engine uebergibt dabei rohe CSS-Koordinaten (t.pageX/t.pageY) an eine
+// Schnittstelle, die Backbuffer-Pixel erwartet -- der Maus-Pfad daneben rechnet
+// korrekt mit canvas.width/rect.width um. Bei eff != 1 landet jeder Fingertipp
+// deshalb bei 1/eff seines wahren Abstands zur linken oberen Canvas-Ecke: bei
+// eff 1.5 auf zwei Dritteln. An diesem Build gemessen.
+//
+// Solange ein Menue offen ist, rendern wir darum 1:1 -- dann sind CSS-Pixel und
+// Backbuffer-Pixel dasselbe und der Tipp trifft. Aufloesung ist im Menue
+// belanglos; die Dyn-Res-Stufe wird in M9.dyn gemerkt und beim Ruecksprung ins
+// Spiel wieder angewandt.
+window.__ts_renderMode = function(mode)
+{
+	if (!M9.on) return;
+	M9.lock = (mode === 'menu');
+	var wollen = M9.lock ? 1.0 : M9.dyn;
+	if (Math.abs(M9.eff - wollen) < 1e-3) return;
+	M9.eff = wollen;
+	if (typeof window.onresize === 'function') window.onresize();
+};
+
 function startDynRes()
 {	if (!M9.on) return;
 	var STEPS = [1.5, 1.25, 1.0, 0.85, 0.75, 0.66].filter(function(s){ return s <= M9.cap + 1e-3; });
@@ -1816,7 +1862,13 @@ function startDynRes()
 	var idx = 0;                              // 0 = höchste (Cap)
 	var ema = 60, last = 0, lowSince = 0, highSince = 0;
 	function apply(){
-		M9.eff = STEPS[idx];
+		M9.dyn = STEPS[idx];
+		// Im Menue rendern wir bewusst 1:1 (siehe __ts_renderMode). Die Stufe
+		// wird nur gemerkt und beim naechsten TSUI:game angewandt -- ohne diese
+		// Sperre wuerde der Sampler bei hoher Bildrate (im Menue der Normalfall)
+		// nach 6 s wieder hochstufen und die Trefferlage erneut verschieben.
+		if (M9.lock) return;
+		M9.eff = M9.dyn;
 		// Nicht mitten in der Beruehrung resizen: ein Canvas-Resize kann ein
 		// pointercancel auf JEDEN gehaltenen Finger ausloesen (Joystick UND
 		// Look/Feuer) — der beruechtigte "nach paar Sekunden tot"-Bug. Warten,
@@ -1902,7 +1954,17 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		var ev = new KeyboardEvent(type, {code: code, bubbles: true, cancelable: true});
 		Object.defineProperty(ev, 'keyCode', {get: function(){return keyCode;}});
 		Object.defineProperty(ev, 'which',   {get: function(){return keyCode;}});
-		canvas.dispatchEvent(ev);
+		// AUF document dispatchen, NICHT auf den Canvas: die Engine haengt ihre
+		// Tastatur-Listener an BEIDE (jeweils capture). Ein auf dem Canvas
+		// dispatchtes Ereignis laeuft document -> canvas und wird deshalb ZWEIMAL
+		// verarbeitet. Bei +-Binds faellt das nicht auf (Druecken und Loslassen
+		// sind idempotent) -- bei Umschaltern schon: MENUE (togglemenu) oeffnete
+		// das Pausemenue und schloss es im selben Tipp, Haltung (impulse 30) sprang
+		// eine Stufe zu weit. An diesem Build nachgemessen: auf dem Canvas
+		// dispatchtes Escape -> TSUI:pause:1 UND :0, auf document -> nur :1.
+		// Ein echter Tastendruck landet ebenfalls nur einmal (er zielt auf body,
+		// der Canvas liegt dann gar nicht im Ausbreitungspfad).
+		document.dispatchEvent(ev);
 	}
 
 	// --- action buttons ---

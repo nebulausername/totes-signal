@@ -98,6 +98,7 @@ void() Menu_GameSettings_ApplyFastRounds =
 
 void() Menu_GameSettings = 
 {
+	Menu_Page_Begin(7, 1);
     Menu_DrawBackground();
     Menu_DrawTitle(T("GAME SETTINGS"));
 
@@ -172,6 +173,8 @@ void() Menu_GameSettings =
     Menu_DrawOptionValue(7, fast_string);
 
     Menu_Button(-1, "ge_back", T("BACK"), T("Return to Pre-Game Menu.")) ? current_menu = MENU_LOBBY : 0;
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };

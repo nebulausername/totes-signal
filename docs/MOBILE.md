@@ -41,7 +41,13 @@ mit NOCHMAL (`restart`) und ZUR LOBBY (`disconnect` + `ts_maps`).
 
 - Die Engine liest das Legacy-Feld `event.keyCode`; der `KeyboardEvent`-
   Konstruktor kann es nicht setzen, daher wird es per `Object.defineProperty`
-  erzwungen. Events werden auf dem Canvas mit `bubbles: true` dispatcht.
+  erzwungen. Events werden **auf `document`** mit `bubbles: true` dispatcht —
+  **nicht auf den Canvas**: die Engine haengt ihre Tastatur-Listener an beide
+  (jeweils `capture`), ein Canvas-Dispatch lief also `document -> canvas` und
+  wurde ZWEIMAL verarbeitet. Bei `+`-Binds fiel das nicht auf (Druecken und
+  Loslassen sind idempotent), bei Umschaltern schon: der MENUE-Knopf oeffnete
+  das Pausemenue und schloss es im selben Tipp, Haltung (`impulse 30`) sprang
+  eine Stufe zu weit.
 - `viewport-fit=cover` + `env(safe-area-inset-*)` für Geräte mit Notch;
   `touch-action: none` und `overscroll-behavior: none` verhindern Scroll/Zoom.
 - Der Ladehinweis nennt die Downloadgröße (~95 MB); der Browser cached die
@@ -57,6 +63,25 @@ mit NOCHMAL (`restart`) und ZUR LOBBY (`disconnect` + `ts_maps`).
 - Der dedizierte **FEUER**-Button löst das frühere „Tap aufs Spielfeld feuert
   immer" — Look-Drag feuert nicht mehr versehentlich. (Native Tap-Feuerung
   bleibt möglich, ist aber nicht mehr nötig.)
+## Trefferlage im Menue (1:1-Rendern)
+
+Menue und Pausemenue positionieren den Cursor **absolut**. Der Touch-Pfad der
+Engine uebergibt dabei rohe CSS-Koordinaten (`t.pageX`/`t.pageY`) an eine
+Schnittstelle, die **Backbuffer-Pixel** erwartet; der Maus-Pfad daneben rechnet
+korrekt mit `canvas.width/rect.width` um. Solange der Backbuffer groesser ist
+als die CSS-Flaeche, landet jeder Fingertipp bei `1/eff` seines wahren Abstands
+zur linken oberen Canvas-Ecke — bei `eff 1.5` auf zwei Dritteln.
+
+Die Shell zwingt deshalb im Menuezustand auf `M9.eff = 1` (`__ts_renderMode`,
+ausgeloest von `TSUI:menu` bzw. `TSUI:pause:1`); `startDynRes` haelt dann still
+und merkt die Stufe in `M9.dyn`, die bei `TSUI:game` bzw. `TSUI:pause:0` wieder
+gilt. Aufloesung ist im Menue belanglos. Regressionstest:
+`tools/verify/specs/20-menu.spec.js`.
+
+Ebenfalls dort gesetzt: `vid_conheight 480` — das Menue hat einen eigenen
+virtuellen Raum und darf nicht den HUD-Preset des Spielers erben (mehrere
+Zeichenroutinen in `m_menu.qc` sind hart auf 480 ausgelegt).
+
 ## Performance (mobil, M9)
 
 Nur auf Touch-Geräten aktiv; Desktop-Browser rendern unverändert in voller

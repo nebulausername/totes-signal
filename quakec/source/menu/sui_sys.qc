@@ -320,6 +320,24 @@ float(string id) sui_hold_index =
 	return -1;
 };
 
+//
+// sui_is_pressed_at(pos, size)
+// Touch-tauglicher Druckzustand: prueft die aktuelle Cursorlage direkt gegen ein
+// Rechteck, statt sich auf _hold_actions zu verlassen. Die Hold-Liste wird beim
+// Mouse-Down aus der HOVER-Liste kopiert -- und dass die auf Touch verspaetet
+// eintrifft, ist genau der Grund, warum es den Tap-Nachzuegler in sui_end gibt.
+// Beim ersten Tipp ist die Hold-Liste deshalb regelmaessig leer.
+//
+// pos/size sind Parameter, also Locals: der __inout-Rueckschreibvorgang von
+// sui_transform_box trifft nur die Kopie.
+//
+float(vector pos, vector size) sui_is_pressed_at =
+{
+	if (!_holding_click) return FALSE;
+	sui_transform_box(pos, size);
+	return is_2dpoint_in_bbox(_cursor_position, pos, size);
+};
+
 
 // last clicked: is this the last action element that was clicked, good for focusing on input boxes for example
 

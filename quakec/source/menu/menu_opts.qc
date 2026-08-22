@@ -42,6 +42,7 @@ string(string next_id) Menu_Options_GetPreviousButton =
 
 void() Menu_Options =
 {
+	Menu_Page_Begin(6.25, 1);
     Menu_DrawBackground();
     Menu_DrawTitle(T("CONFIGURATION"));
 
@@ -66,6 +67,8 @@ void() Menu_Options =
     Menu_Button(-1, "om_back", T("BACK"), T("Return to Pause Menu.")) ? current_menu = MENU_PAUSE : 0;
 
 #endif // MENU
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };

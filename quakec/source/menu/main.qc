@@ -203,6 +203,12 @@ void() m_init =
 	if (cvar_string("name") == "Unknown Soldier")
 		localcmd("seta name Ueberlebender\n");
 
+	// Die Web-Shell setzt ts_touchui auf Touch-Geraeten bei jedem TSUI:menu.
+	// MenuQC ist ein eigenes Progs -- die Deklaration in client/main.qc gilt hier
+	// NICHT, und ohne diese Zeile existiert die Cvar beim allerersten Hauptmenue
+	// noch gar nicht (CSQC laedt erst spaeter).
+	autocvar(ts_touchui, 0);
+
 	// Cvars for controlable/modifiable menu music
 	autocvar(menu_trackname, "tensioned_by_the_damned");
 	autocvar(menu_tracklength, 490);

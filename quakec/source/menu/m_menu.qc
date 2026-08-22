@@ -14,8 +14,273 @@ vector MENU_TEXT_SMALL = '12 12 0';
 vector MENU_TEXT_MEDIUM = '14 14 0';
 vector MENU_TEXT_LARGE = '28 28 0';
 
+// Touch-Kartenwahl: id der Karte, deren Vorschau gerade steht. Erster Tipp
+// waehlt aus und zeigt Bild, Beschreibung und Badge; erst der zweite startet.
+// Ohne das waehlt ein Handyspieler blind -- die Vorschau haengt im Original an
+// is_hovered, und auf Touch entsteht nie ein Hover.
+string menu_map_vorschau;
+
+// Seitenblaetterung. Bei 60er-Zeilen passen auf ein Handy nur noch rund fuenf
+// Zeilen zwischen die Leisten -- Screens wie die Kartenwahl (11 Zeilen) laufen
+// sonst in die Fussleiste. Nur auf Touch aktiv; auf dem Desktop bleibt alles
+// auf einer Seite. Die Sichtbarkeit steckt in Menu_PageOrder, die Aufrufe in
+// den Screens (Menu_Button(3, ...)) bleiben unveraendert.
+float menu_page;
+float menu_page_total;
+float menu_row_first;
+float menu_row_count;
+
+// ---------------------------------------------------------------------------
+// Layout-Metrik
+//
+// Alle Basiswerte gelten fuer vid_conheight 480 -- den Raum, fuer den dieses
+// Menue gebaut wurde und den die Web-Shell bei jedem TSUI:menu wiederherstellt.
+// MENU_UI_SCALE rechnet sie auf den tatsaechlichen Frame um; noetig fuers
+// PAUSEMENUE, das im HUD-Raum laeuft (480/380/300, vom Spieler einstellbar).
+//
+// Der Desktop-Zweig bildet die frueheren Zahlen exakt ab (Raster 25, Kasten
+// 290x22) -- dort darf sich kein Pixel bewegen. Der Touch-Zweig ist die
+// eigentliche Aenderung: 60er-Zeilen, damit die Klickflaeche auf einem Handy
+// die 44-CSS-px-Empfehlung erreicht.
+//
+// Diese Datei wird in ZWEI Progs kompiliert (menu.dat und csprogs.dat) --
+// jede absolute Zahl hier ist automatisch auch eine Pausemenue-Zahl.
+// ---------------------------------------------------------------------------
+float  MENU_TOUCH;          // 0 = Zeiger, 1 = Finger (cvar ts_touchui)
+float  MENU_UI_SCALE;       // frame_h / 480
+float  MENU_ROW_PITCH;      // Abstand zweier Zeilen
+float  MENU_ROW_H;          // Hoehe der Klickflaeche
+float  MENU_ROW_W;          // Breite der Klickflaeche
+float  MENU_ROW_TOP;        // pos_y der Zeile order == 1   (START, von oben)
+float  MENU_ROW_BOTTOM;     // pos_y der Zeile order == -1  (END, von unten)
+float  MENU_LABEL_PAD;      // Innenabstand der Beschriftung
+float  MENU_VALUE_X;        // x der Wertespalte
+float  MENU_PANEL_X;        // x, ab dem das rechte Panel beginnt
+float  MENU_BAR_TOP;        // Hoehe der Kopfleiste
+float  MENU_BAR_BOTTOM;     // Hoehe der Fussleiste
+float  MENU_DIVIDER_W;      // Breite der Trennlinie
+float  MENU_ROWS_PER_PAGE;  // Zeilen zwischen erster Zeile und Fusszeile
+vector MENU_LABEL_SIZE;
+vector MENU_VALUE_SIZE;
+vector MENU_DESC_SIZE;
+
+void(vector frame) Menu_Metrics_Update =
+{
+	MENU_TOUCH = (cvar("ts_touchui") != 0);
+
+	if (!MENU_TOUCH) {
+		// Bit fuer Bit die alten Werte. MENU_ROW_TOP 70 == "45 + order*25" bei
+		// order 1; MENU_ROW_BOTTOM -95 == "-70 + order*25" bei order -1.
+		MENU_UI_SCALE   = 1;
+		MENU_ROW_PITCH  = 25;
+		MENU_ROW_H      = 22;
+		MENU_ROW_W      = 290;
+		MENU_ROW_TOP    = 70;
+		MENU_ROW_BOTTOM = -95;
+		MENU_LABEL_PAD  = 9;
+		MENU_VALUE_X    = 320;
+		MENU_PANEL_X    = 300;
+		MENU_BAR_TOP    = 55;
+		MENU_BAR_BOTTOM = 55;
+		MENU_DIVIDER_W  = 285;
+		MENU_LABEL_SIZE = MENU_TEXT_MEDIUM;
+		MENU_VALUE_SIZE = MENU_TEXT_MEDIUM;
+		MENU_DESC_SIZE  = MENU_TEXT_MEDIUM;
+	} else {
+		MENU_UI_SCALE   = frame_y / 480;
+		MENU_ROW_PITCH  = 60 * MENU_UI_SCALE;
+		MENU_ROW_H      = 60 * MENU_UI_SCALE;   // luecklos: Luecken zwischen
+		MENU_ROW_TOP    = 60 * MENU_UI_SCALE;   // Trefferflaechen sind auf Touch
+		MENU_ROW_BOTTOM = -59 * MENU_UI_SCALE;  // verschenkter Platz
+		MENU_ROW_W      = min(620 * MENU_UI_SCALE, frame_x - 24 * MENU_UI_SCALE);
+		MENU_LABEL_PAD  = 16 * MENU_UI_SCALE;
+		MENU_VALUE_X    = 0;                    // 0 = rechtsbuendig in der Zeile
+		MENU_PANEL_X    = MENU_ROW_W + 24 * MENU_UI_SCALE;
+		MENU_BAR_TOP    = 55 * MENU_UI_SCALE;
+		MENU_BAR_BOTTOM = 55 * MENU_UI_SCALE;
+		MENU_DIVIDER_W  = MENU_ROW_W;
+		MENU_LABEL_SIZE = [22, 22, 0] * MENU_UI_SCALE;
+		MENU_VALUE_SIZE = [20, 20, 0] * MENU_UI_SCALE;
+		MENU_DESC_SIZE  = [18, 18, 0] * MENU_UI_SCALE;
+	}
+
+	// Wie viele Zeilen liegen zwischen der ersten Zeile und der Fusszeile (-1)?
+	float fuss_oben = MENU_ROW_BOTTOM + frame_y - MENU_ROW_H;
+	MENU_ROWS_PER_PAGE = floor((fuss_oben - MENU_ROW_TOP) / MENU_ROW_PITCH);
+	if (MENU_ROWS_PER_PAGE < 1) MENU_ROWS_PER_PAGE = 1;
+
+	// Jeder Frame beginnt ohne Blaetterung; wer sie braucht, ruft Menu_Page_Begin.
+	menu_row_first  = 0;
+	menu_row_count  = 0;
+	menu_page_total = 1;
+};
+
+//
+// Menu_Page_Begin(max_order) / Menu_Page_End()
+// Klammern einen Screen, dessen Zeilen auf einem Handy nicht mehr auf eine
+// Seite passen. max_order ist die hoechste benutzte Zeilennummer.
+// Fusszeilen (order <= 0) bleiben ausgenommen -- ZURUECK steht immer.
+//
+void(float max_order, float fusszeilen) Menu_Page_Begin =
+{
+	if (!MENU_TOUCH) return;
+
+	// Jede zusaetzliche Fusszeile (UEBERNEHMEN neben ZURUECK) frisst eine
+	// Inhaltszeile: sie waechst von unten in denselben Raum hinein.
+	float pro_seite = MENU_ROWS_PER_PAGE - (fusszeilen - 1);
+	if (pro_seite < 1) pro_seite = 1;
+	if (max_order <= pro_seite + 0.001) return;
+
+	menu_row_count  = pro_seite;
+	menu_page_total = ceil(max_order / menu_row_count);
+	menu_page       = bound(0, menu_page, menu_page_total - 1);
+	menu_row_first  = 1 + menu_page * menu_row_count;
+};
+
+//
+// Menu_PageOrder(order)
+// Logische Zeilennummer -> Bildschirmzeile, oder 0 wenn sie auf dieser Seite
+// nicht vorkommt. Beim Blaettern werden gebrochene Nummern (3.25, 5.5 -- im
+// Original blosse Abstandshalter) auf ganze Zeilen gelegt, sonst rutscht die
+// letzte Zeile in die Fusszeile.
+//
+float(float order) Menu_PageOrder =
+{
+	if (order <= 0 || menu_row_count <= 0) return order;
+	if (order < menu_row_first) return 0;
+	if (order >= menu_row_first + menu_row_count) return 0;
+	return floor(order - menu_row_first) + 1;
+};
+
+//
+// Menu_PageButton(id, x, breite, beschriftung)
+// Quadratischer Knopf in der Fusszeile, fuer das Blaettern. Eigene Funktion,
+// weil Menu_Button an das Zeilenraster gebunden ist.
+//
+float(string id, float x, float breite, string beschriftung) Menu_PageButton =
+{
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_END]);
+
+	vector box  = [x, MENU_ROW_BOTTOM];
+	vector groesse = [breite, MENU_ROW_H];
+
+	float gedrueckt = sui_is_pressed_at(box, groesse);
+	float hell = sui_is_hovered(id) || gedrueckt;
+
+	sui_fill(box, groesse, [0, 0, 0], hell ? 0.95 : 0.55, 0);
+	sui_fill(box, [groesse_x, max(2, 2 * MENU_UI_SCALE)],
+	         hell ? [0.8, 0.11, 0.03] : [0.35, 0.08, 0.03], 1, 0);
+
+	float rest = (MENU_ROW_H - MENU_LABEL_SIZE_y) * 0.5;
+	sui_text(box + [(breite - getTextWidth(beschriftung, MENU_LABEL_SIZE_x)) * 0.5, 0 - rest],
+	         MENU_LABEL_SIZE, beschriftung,
+	         hell ? [1, 0.16, 0.06] : [0.94, 0.90, 0.82], 1, 0);
+
+	sui_action_element(box, groesse, id, sui_noop);
+	return sui_is_clicked(id);
+};
+
+//
+// Menu_Page_End()
+// Blaetter-Bedienung rechts in der Fusszeile: "<"  2/3  ">".
+// Nach der letzten Zeile aufrufen, aber VOR dem sui_pop_frame des Screens --
+// danach zeichnet alles in einen Nullframe (siehe Kommentar dort).
+//
+void() Menu_Page_End =
+{
+	if (menu_page_total <= 1) return;
+
+	float bw     = MENU_ROW_H;
+	float zaehl  = 70 * MENU_UI_SCALE;
+	float rechts = MENU_ROW_W;
+
+	if (Menu_PageButton("pg_next", rechts - bw, bw, ">")) {
+		Menu_PlaySound(MENU_SND_ENTER);
+		menu_page = min(menu_page + 1, menu_page_total - 1);
+	}
+	if (Menu_PageButton("pg_prev", rechts - bw - zaehl - bw, bw, "<")) {
+		Menu_PlaySound(MENU_SND_ENTER);
+		menu_page = max(menu_page - 1, 0);
+	}
+
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_END]);
+	string zaehler = sprintf("%d/%d", menu_page + 1, menu_page_total);
+	float rest = (MENU_ROW_H - MENU_VALUE_SIZE_y) * 0.5;
+	sui_text([rechts - bw - zaehl + (zaehl - getTextWidth(zaehler, MENU_VALUE_SIZE_x)) * 0.5,
+	          MENU_ROW_BOTTOM - rest],
+	         MENU_VALUE_SIZE, zaehler, [0.94, 0.90, 0.82], 0.9, 0);
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
+};
+
+//
+// Menu_RowBox(order)
+// Obere linke Ecke der Zeilenflaeche, in DER Ausrichtung, die der Aufrufer
+// vorher gesetzt hat: order > 0 zaehlt von oben (START), order <= 0 von unten
+// (END). -1 ist per Konvention ZURUECK, -2 UEBERNEHMEN.
+//
+vector(float order) Menu_RowBox =
+{
+	if (order > 0)
+		return [0, MENU_ROW_TOP + (order - 1) * MENU_ROW_PITCH];
+	return [0, MENU_ROW_BOTTOM + (order + 1) * MENU_ROW_PITCH];
+};
+
+//
+// Menu_RowTextPos(box, order, text, size)
+// Position der Beschriftung innerhalb der Zeile. Die Umrechnung ist nicht
+// trivial: sui_text transformiert mit der TEXTBREITE und der Texthoehe,
+// sui_fill dagegen mit der Kastengroesse -- unter SUI_ALIGN_END verschiebt das
+// beide gegeneinander um (Kastenhoehe - Texthoehe).
+//
+vector(vector box, float order, string text, vector size) Menu_RowTextPos =
+{
+	if (!MENU_TOUCH) {
+		// Original: rechtsbuendig, und die alte 5/3-Asymmetrie beibehalten.
+		float dy = (order > 0) ? 5 : 3;
+		return box + [MENU_ROW_W - MENU_LABEL_PAD - getTextWidth(text, size_x), dy];
+	}
+
+	// Touch: linksbuendig, senkrecht in der Zeile zentriert.
+	float rest = (MENU_ROW_H - size_y) * 0.5;
+	if (order > 0)
+		return box + [MENU_LABEL_PAD, rest];
+	return box + [MENU_LABEL_PAD, 0 - rest];
+};
+
+//
+// Menu_ValuePos(order, text, size)
+// Position der Wertespalte. Auf dem Desktop eine eigene Spalte bei x=320; auf
+// Touch gibt es die nicht -- der Wert steht rechtsbuendig in derselben Zeile
+// wie die Beschriftung (MENU_VALUE_X == 0).
+//
+vector(float order, string text, vector size) Menu_ValuePos =
+{
+	vector box = Menu_RowBox(order);
+
+	if (MENU_VALUE_X > 0)
+		return [MENU_VALUE_X, box_y + ((order > 0) ? 5 : 3)];
+
+	float rest = (MENU_ROW_H - size_y) * 0.5;
+	return [MENU_ROW_W - MENU_LABEL_PAD - getTextWidth(text, size_x),
+	        box_y + ((order > 0) ? rest : (0 - rest))];
+};
+
+//
+// Menu_InputBox(order)
+// Kasten eines Texteingabefeldes. Auf dem Desktop in der Wertespalte, auf Touch
+// in der Zeile selbst. (Ohne Bildschirmtastatur sind die Felder auf dem Handy
+// ohnehin nicht bedienbar -- sie sollen nur nicht daneben liegen.)
+//
+vector(float order) Menu_InputBox =
+{
+	if (MENU_VALUE_X > 0)
+		return [MENU_VALUE_X, 45 + (order * 25)];
+	return Menu_RowBox(order);
+};
+
 float menu_leftarrow_pressed;
 float menu_rightarrow_pressed;
+
 
 void() input_tester =
 {
@@ -76,10 +341,19 @@ void(string id, vector pos, vector size, float maxlen, __inout string text, __in
 //
 void(float order) Menu_DrawDivider =
 {
+
+	// Auf Touch weglassen: bei 60er-Zeilen mit sichtbarer Flaeche trennen die
+	// Zeilen sich selbst, und die gebrochenen Ordnungszahlen der Trenner
+	// kollidieren beim Blaettern mit den Knopfzeilen.
+	if (MENU_TOUCH) return;
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 
-	vector position = [0, 45 + (order * 25)];
-	sui_fill(position, [285, 2], [0.2, 0.2, 0.2], 1, 0);
+	// Sitzt auf der Oberkante der Zeile "order".
+	vector position = Menu_RowBox(order);
+	sui_fill(position, [MENU_DIVIDER_W, max(2, 2 * MENU_UI_SCALE)], [0.2, 0.2, 0.2], 1, 0);
 };
 
 #ifdef MENU
@@ -95,11 +369,34 @@ void() Menu_DrawMapPreview =
 	string map_preview_name = UserMapNameLookup(current_selected_bsp);
 	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
 
-	// Map thumbnail
-	sui_fill([150, 100], [228, 130], [0.4, 0.4, 0.4], 1, 0);
-	sui_pic([150, 100], [225, 127], strcat("menu/custom/", current_selected_bsp, ".png"), [1, 1, 1], 1, 0);
+	// Map thumbnail -- x wie in Menu_MapButton die halbe Panelkante.
+	float vx = MENU_PANEL_X * 0.5;
 
-	sui_text([150, 152], MENU_TEXT_MEDIUM, map_preview_name, [1, 1, 0], 1, 0);
+	if (MENU_TOUCH) {
+		// Im Panel liegt darunter die Einstellungsliste: Bild nach oben und
+		// kleiner, sonst ueberlagern sich beide.
+		float fb = sui_current_frame_size()[0];
+		float pb = fb - MENU_PANEL_X;
+		float bb = pb * 0.52;
+		float bh = bb * 0.5625;
+		// Linke Kante statt Zentrierung: sui_* zentriert unter SUI_ALIGN_CENTER
+		// nach der jeweiligen Elementgroesse -- Bild, Rahmen und Text lägen
+		// dann unterschiedlich weit links.
+		sui_set_align([SUI_ALIGN_START, SUI_ALIGN_CENTER]);
+		float bx = MENU_PANEL_X + (pb - bb) * 0.5;
+		sui_fill([bx - 2, -152], [bb + 4, bh + 4], [0.4, 0.4, 0.4], 1, 0);
+		sui_pic([bx, -150], [bb, bh], strcat("menu/custom/", current_selected_bsp, ".png"), [1, 1, 1], 1, 0);
+		// Name auf das Bild legen: darunter beginnt sofort die Einstellungsliste.
+		sui_fill([bx, -150 + bh - MENU_DESC_SIZE_y - 6], [bb, MENU_DESC_SIZE_y + 6], [0, 0, 0], 0.65, 0);
+		sui_text([bx + 4, -150 + bh - MENU_DESC_SIZE_y - 3], MENU_DESC_SIZE, map_preview_name, [1, 1, 0], 1, 0);
+		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
+		return;
+	}
+
+	sui_fill([vx, 100], [228, 130], [0.4, 0.4, 0.4], 1, 0);
+	sui_pic([vx, 100], [225, 127], strcat("menu/custom/", current_selected_bsp, ".png"), [1, 1, 1], 1, 0);
+
+	sui_text([vx, 152], MENU_VALUE_SIZE, map_preview_name, [1, 1, 0], 1, 0);
 };
 
 #endif // MENU
@@ -144,16 +441,31 @@ void(string line_1, string line_2) Menu_DrawYesNoPanel =
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 	sui_fill([0, 0], sui_current_frame_size(), [0.01, 0, 0], 0.5, 0);
 
+	// BESTEHENDER FEHLER, hier behoben: der schwarze Block lag absolut auf
+	// y 160..320, der untere gelbe Rand aber relativ auf frame_h - 160. Nur bei
+	// vid_conheight 480 fielen beide zusammen. Das Pausemenue laeuft aber im
+	// HUD-Raum, den der Spieler selbst einstellt: bei Preset "Gross" (380) sass
+	// der Rand mitten im Block, bei "Sehr gross" (300) OBERHALB davon.
+	float breite = sui_current_frame_size()[0];
+	float hoehe  = sui_current_frame_size()[1];
+	// Die Ja/Nein-Knoepfe sitzen INNERHALB des Panels. Bei 60er-Zeilen brauchen
+	// zwei davon plus zwei Textzeilen mehr als die alten 160 Einheiten.
+	float oben   = hoehe * (MENU_TOUCH ? (120.0 / 480) : (160.0 / 480));
+	float block  = hoehe * (MENU_TOUCH ? (280.0 / 480) : (160.0 / 480));
+	float linie  = max(3, 3 * MENU_UI_SCALE);
+
 	// Black Fill
-	sui_fill([0, 160], [sui_current_frame_size()[0], 160], [0, 0, 0], 1, 0);
+	sui_fill([0, oben], [breite, block], [0, 0, 0], 1, 0);
 
 	// Yellow borders
-	sui_fill([0, 160], [sui_current_frame_size()[0], 3], [1, 1, 0], 0.9, 0);
-	sui_fill([0, sui_current_frame_size()[1] - 160], [sui_current_frame_size()[0], 3], [1, 1, 0], 0.9, 0);
+	sui_fill([0, oben], [breite, linie], [1, 1, 0], 0.9, 0);
+	sui_fill([0, oben + block - linie], [breite, linie], [1, 1, 0], 0.9, 0);
 
 	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_START]);
-	sui_text([0, 170], MENU_TEXT_MEDIUM, line_1, [1, 1, 1], 1, 0);
-	sui_text([0, 190], MENU_TEXT_MEDIUM, line_2, [1, 1, 1], 1, 0);
+	vector tg = MENU_TOUCH ? MENU_LABEL_SIZE : MENU_TEXT_MEDIUM;
+	float  ty = MENU_TOUCH ? (oben + 12 * MENU_UI_SCALE) : (oben + block * 0.0625 + 10);
+	sui_text([0, ty], tg, line_1, [1, 1, 1], 1, 0);
+	sui_text([0, ty + tg_y + 6], tg, line_2, [1, 1, 1], 1, 0);
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 };
 
@@ -204,8 +516,9 @@ void(string l1, string l2, string l3, string l4, string l5, string l6, string l7
 void() Menu_DrawMapPanel =
 {
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
-	sui_fill([300, 55], [sui_current_frame_size()[0], sui_current_frame_size()[1] - 55 - 58], [0, 0, 0], 0.9, 0);
-	sui_fill([300, 55], [3, sui_current_frame_size()[1] - 55 - 58], [1, 1, 0], 0.9, 0);
+	float hoehe = sui_current_frame_size()[1] - MENU_BAR_TOP - MENU_BAR_BOTTOM - 3;
+	sui_fill([MENU_PANEL_X, MENU_BAR_TOP], [sui_current_frame_size()[0], hoehe], [0, 0, 0], 0.9, 0);
+	sui_fill([MENU_PANEL_X, MENU_BAR_TOP], [max(3, 3 * MENU_UI_SCALE), hoehe], [1, 1, 0], 0.9, 0);
 };
 
 //
@@ -214,10 +527,12 @@ void() Menu_DrawMapPanel =
 //
 void(float order, string value) Menu_DrawOptionValue =
 {
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 
-	vector position = [320, 50 + (order * 25)];
-	sui_text(position, MENU_TEXT_MEDIUM, value, [1, 1, 1], 1, 0);
+	sui_text(Menu_ValuePos(order, value, MENU_VALUE_SIZE), MENU_VALUE_SIZE, value, [1, 1, 1], 1, 0);
 };
 
 //
@@ -226,9 +541,12 @@ void(float order, string value) Menu_DrawOptionValue =
 //
 void(float order, string bind) Menu_DrawOptionKey =
 {
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 
-	vector position = [320, 50 + (order * 25)];
+	vector position = Menu_ValuePos(order, bind, MENU_VALUE_SIZE);
 	float keynum = stringtokeynum(bind);
 
 	if (keynum >= 816 && keynum <= 839) {
@@ -254,10 +572,11 @@ void(float order, string bind) Menu_DrawOptionKey =
 			case K_GP_DPAD_RIGHT: tilemap_position = [0.875, 0]; break;
 		}
 
-		sui_subpic([position_x, position_y - 2], [MENU_TEXT_MEDIUM_x + 5, MENU_TEXT_MEDIUM_x + 5], sprintf("gfx/controller_glyphs/%s.tga", cvar_string("cl_controllerglyphs")), [1, 1, 1], tilemap_position, [0.125, 0.125], 1, 0);
+		float kachel = MENU_VALUE_SIZE_x + 5;
+		sui_subpic([position_x, position_y - 2], [kachel, kachel], sprintf("gfx/controller_glyphs/%s.tga", cvar_string("cl_controllerglyphs")), [1, 1, 1], tilemap_position, [0.125, 0.125], 1, 0);
 	}
 	else {
-		sui_text(position, MENU_TEXT_MEDIUM, bind, [1, 1, 0], 1, 0);
+		sui_text(position, MENU_VALUE_SIZE, bind, [1, 1, 0], 1, 0);
 	}
 };
 
@@ -269,29 +588,46 @@ void(float order, string bind) Menu_DrawOptionKey =
 //
 float(float order, string id, string char_name, string map, string portrait, vector coords) Menu_BioButton =
 {
+
+	// Seitenblaetterung: gehoert die Zeile nicht auf diese Seite, wird sie
+	// gar nicht erst gezeichnet UND nicht als Klickflaeche registriert.
+	// Muss VOR sui_is_hovered stehen -- das hat Nebenwirkungen (Navigationston).
+	order = Menu_PageOrder(order);
+	if (!order) return FALSE;
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 
-	float is_hovered = sui_is_hovered(id);
-	vector text_color = is_hovered ? [1, 0, 0] : [1, 1, 1];
-	vector position = [6, 50 + (order * 25)];
-	vector bbox_pos = position - [6, 5, 0];
-	vector bbox_size = [290, 22];
+	vector bbox_pos  = Menu_RowBox(order);
+	vector bbox_size = [MENU_ROW_W, MENU_ROW_H];
 
-	if (is_hovered) {
+	float is_hovered = sui_is_hovered(id);
+	float is_pressed = MENU_TOUCH ? sui_is_pressed_at(bbox_pos, bbox_size)
+	                              : sui_is_held(id);
+	float lit = is_hovered || is_pressed;
+	// Auf Touch bleibt der Steckbrief stehen, nachdem der Finger weg ist --
+	// sonst saehe ihn niemand (es gibt keinen Hover).
+	float zeigen = MENU_TOUCH ? sui_is_last_clicked(id) : is_hovered;
+	vector text_color = lit ? [1, 0, 0] : [1, 1, 1];
+	float kante = max(2, 2 * MENU_UI_SCALE);
+
+	if (MENU_TOUCH && !lit && !zeigen)
+		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.35, 0);
+
+	if (lit || zeigen) {
 		// Background
 		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.9, 0);
 		// Top
-		sui_fill(bbox_pos, [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos, [bbox_size_x, kante], [0.4, 0, 0], 1, 0);
 		// Bottom
-		sui_fill(bbox_pos + [0, bbox_size_y - 2], [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos + [0, bbox_size_y - kante], [bbox_size_x, kante], [0.4, 0, 0], 1, 0);
 		// Right
-		sui_fill(bbox_pos + [bbox_size_x - 2, 0], [2, bbox_size_y], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos + [bbox_size_x - kante, 0], [kante, bbox_size_y], [0.4, 0, 0], 1, 0);
 	}
 
 	// Character Name
-	sui_text(position - [getTextWidth(char_name, MENU_TEXT_MEDIUM_x), 0, 0] + [275, 0, 0], MENU_TEXT_MEDIUM, strtoupper(char_name), text_color, 1, 0);
+	sui_text(Menu_RowTextPos(bbox_pos, order, strtoupper(char_name), MENU_LABEL_SIZE),
+	         MENU_LABEL_SIZE, strtoupper(char_name), text_color, 1, 0);
 
-	if (is_hovered) {
+	if (zeigen) {
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
 
 		// Character Portrait
@@ -318,23 +654,41 @@ float(float order, string id, string char_name, string map, string portrait, vec
 //
 float(float order, string id, string bsp_name, float map_category, float usermap_index) Menu_MapButton =
 {
+
+	// Seitenblaetterung: gehoert die Zeile nicht auf diese Seite, wird sie
+	// gar nicht erst gezeichnet UND nicht als Klickflaeche registriert.
+	// Muss VOR sui_is_hovered stehen -- das hat Nebenwirkungen (Navigationston).
+	order = Menu_PageOrder(order);
+	if (!order) return FALSE;
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 
-	float is_hovered = sui_is_hovered(id);
-	vector text_color = is_hovered ? [1, 0, 0] : [1, 1, 1];
-	vector position = [6, 50 + (order * 25)];
-	vector bbox_pos = position - [6, 5, 0];
-	vector bbox_size = [290, 22];
+	vector bbox_pos  = Menu_RowBox(order);
+	vector bbox_size = [MENU_ROW_W, MENU_ROW_H];
 
-	if (is_hovered) {
+	float is_hovered = sui_is_hovered(id);
+	float is_pressed = MENU_TOUCH ? sui_is_pressed_at(bbox_pos, bbox_size)
+	                              : sui_is_held(id);
+	float lit = is_hovered || is_pressed;
+	// Vorschaubild, Beschreibung und Badge haengen im Original an is_hovered --
+	// auf Touch entsteht nie ein Hover, der Spieler waehlte also blind aus einer
+	// Liste nackter Zeilen. Auf Touch bleibt die Vorschau darum an der zuletzt
+	// angetippten Karte stehen.
+	float zeigen = MENU_TOUCH ? (menu_map_vorschau == id) : is_hovered;
+	vector text_color = lit ? [1, 0, 0] : [1, 1, 1];
+	float kante = max(2, 2 * MENU_UI_SCALE);
+
+	if (MENU_TOUCH && !lit && !zeigen)
+		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.35, 0);
+
+	if (lit || zeigen) {
 		// Background
 		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.9, 0);
 		// Top
-		sui_fill(bbox_pos, [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos, [bbox_size_x, kante], [0.4, 0, 0], 1, 0);
 		// Bottom
-		sui_fill(bbox_pos + [0, bbox_size_y - 2], [bbox_size_x, 2], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos + [0, bbox_size_y - kante], [bbox_size_x, kante], [0.4, 0, 0], 1, 0);
 		// Right
-		sui_fill(bbox_pos + [bbox_size_x - 2, 0], [2, bbox_size_y], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos + [bbox_size_x - kante, 0], [kante, bbox_size_y], [0.4, 0, 0], 1, 0);
 	}
 
 	int i;
@@ -356,20 +710,26 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 	string title = user_maps[index].map_name_pretty;
 	if (!title)
 		title = user_maps[index].map_name;
-	sui_text(position - [getTextWidth(strtoupper(title), MENU_TEXT_MEDIUM_x), 0, 0] + [275, 0, 0], MENU_TEXT_MEDIUM, strtoupper(title), text_color, 1, 0);
+	sui_text(Menu_RowTextPos(bbox_pos, order, strtoupper(title), MENU_LABEL_SIZE),
+	         MENU_LABEL_SIZE, strtoupper(title), text_color, 1, 0);
 
-	if (is_hovered) {
+	if (zeigen) {
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
+
+		// Der x-Versatz ist die halbe Panelkante -- auf dem Desktop ergibt das
+		// exakt die frueheren 150, auf Touch wandert die Vorschau mit dem
+		// breiteren Zeilenblock nach rechts ins Panel.
+		float vx = MENU_PANEL_X * 0.5;
 
 		// Map thumbnail
 		if (user_maps[index].map_use_thumbnail) {
-			sui_fill([150, -70], [302, 174], [0.4, 0.4, 0.4], 1, 0);
-			sui_pic([150, -70], [300, 170], strcat("menu/custom/", user_maps[index].map_name, ".png"), [1, 1, 1], 1, 0);
+			sui_fill([vx, -70], [302, 174], [0.4, 0.4, 0.4], 1, 0);
+			sui_pic([vx, -70], [300, 170], strcat("menu/custom/", user_maps[index].map_name, ".png"), [1, 1, 1], 1, 0);
 		}
 			
 		// Map description
 		for(i = 0; i < 8; i++) {
-			sui_text([150, 30 + (i * 14)], MENU_TEXT_SMALL, user_maps[index].map_desc[i], [1, 1, 1], 1, 0);
+			sui_text([vx, 30 + (i * 14)], MENU_TEXT_SMALL, user_maps[index].map_desc[i], [1, 1, 1], 1, 0);
 		}
 
 		// Map Badge
@@ -385,11 +745,14 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 			case MAP_CATEGORY_USER: coords_pos = [0.5, 0]; badge_name = "EIGENE KARTE"; break;
 		}
 
-		sui_text([30 + (getTextWidth(badge_name, MENU_TEXT_SUPERSMALL_x)/2), 5], MENU_TEXT_SUPERSMALL, badge_name, [1, 1, 0], 1, 0);
-		sui_subpic([12, 4], [20, 20], "gfx/menu/map_badges", [1, 1, 1], coords_pos, coords_size, 1, 0);
+		float bx = vx - 150;   // linke Kante des Vorschaubildes
+		sui_text([bx + 30 + (getTextWidth(badge_name, MENU_TEXT_SUPERSMALL_x)/2), 5], MENU_TEXT_SUPERSMALL, badge_name, [1, 1, 0], 1, 0);
+		sui_subpic([bx + 12, 4], [20, 20], "gfx/menu/map_badges", [1, 1, 1], coords_pos, coords_size, 1, 0);
 
-		// Author/Description
-		if (user_maps[index].map_author != "") {
+		// Author/Description -- auf Touch weggelassen: die Zeile liegt in der
+		// Fussleiste und stiesse dort mit der Wortmarke zusammen; der Kartenname
+		// steht ohnehin in der Zeile und spaeter in der Lobby.
+		if (user_maps[index].map_author != "" && !MENU_TOUCH) {
 			sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
 			string author = user_maps[index].map_author;
 
@@ -402,7 +765,18 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 
 	sui_action_element(bbox_pos, bbox_size, id, sui_noop);
 	
-	return sui_is_clicked(id);
+	float geklickt = sui_is_clicked(id);
+	if (!MENU_TOUCH || !geklickt)
+		return geklickt;
+
+	// Touch, zweistufig: der erste Tipp waehlt nur aus (und laesst damit Bild,
+	// Beschreibung und Badge stehen), erst ein zweiter Tipp auf DIESELBE Zeile
+	// startet. Sonst waehlt ein Handyspieler ohne jede Information.
+	if (menu_map_vorschau == id)
+		return TRUE;
+
+	menu_map_vorschau = id;
+	return FALSE;
 }
 
 //
@@ -412,6 +786,9 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 //
 void(float order, string title) Menu_GreyButton =
 {
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
 	vector alignment;
 
 	if (order > 0) alignment = [SUI_ALIGN_START, SUI_ALIGN_START];
@@ -420,15 +797,10 @@ void(float order, string title) Menu_GreyButton =
 	sui_set_align(alignment);
 
 	vector text_color = [0.5, 0.3, 0.3]; // make it kinda red, for flavor.
-	vector position;
+	vector box = Menu_RowBox(order);
 
-	if (order > 0) {
-		position = [6, 50 + (order * 25)];
-	} else {
-		position = [6, -75 + (order * 25)];   // -75: untere Buttons ueber Bottom-Bar/Phone-Gesten-Zone gehoben
-	}
-
-	sui_text(position  - [getTextWidth(title, MENU_TEXT_MEDIUM_x), 0, 0] + [275, 0, 0], MENU_TEXT_MEDIUM, title, text_color, 1, 0);
+	sui_text(Menu_RowTextPos(box, order, title, MENU_LABEL_SIZE),
+	         MENU_LABEL_SIZE, title, text_color, 1, 0);
 };
 
 //
@@ -438,6 +810,12 @@ void(float order, string title) Menu_GreyButton =
 //
 float(float order, string id, string title, string description) Menu_Button =
 {
+
+	// Seitenblaetterung: gehoert die Zeile nicht auf diese Seite, wird sie
+	// gar nicht erst gezeichnet UND nicht als Klickflaeche registriert.
+	// Muss VOR sui_is_hovered stehen -- das hat Nebenwirkungen (Navigationston).
+	order = Menu_PageOrder(order);
+	if (!order) return FALSE;
 	vector alignment;
 
 	if (order > 0) alignment = [SUI_ALIGN_START, SUI_ALIGN_START];
@@ -445,46 +823,64 @@ float(float order, string id, string title, string description) Menu_Button =
 
 	sui_set_align(alignment);
 
+	vector bbox_pos  = Menu_RowBox(order);
+	vector bbox_size = [MENU_ROW_W, MENU_ROW_H];
+
+	// Sitzt rechts in der Fusszeile ein Pager, macht ZURUECK ihm Platz.
+	if (order == -1 && menu_page_total > 1)
+		bbox_size_x -= 2 * MENU_ROW_H + 70 * MENU_UI_SCALE + MENU_LABEL_PAD;
+
 	float is_hovered = sui_is_hovered(id);
-	vector text_color = is_hovered ? [1, 0.16, 0.06] : [0.94, 0.90, 0.82];
-	vector position, bbox_pos;
+	// Auf Touch gibt es keinen Hover -- ohne einen Druckzustand haette der
+	// Spieler ueberhaupt keine Rueckmeldung. sui_is_held reicht dafuer nicht:
+	// _hold_actions wird beim Down aus der Hover-Liste kopiert, und genau deren
+	// Verspaetung ist der Grund, warum es den Tap-Nachzuegler in sui_end gibt.
+	float is_pressed = MENU_TOUCH ? sui_is_pressed_at(bbox_pos, bbox_size)
+	                              : sui_is_held(id);
+	float lit = is_hovered || is_pressed;
+	vector text_color = lit ? [1, 0.16, 0.06] : [0.94, 0.90, 0.82];
 
-	if (order > 0) {
-		position = [6, 50 + (order * 25)];
-		bbox_pos = position - [6, 5, 0];
-	} else {
-		position = [6, -75 + (order * 25)];   // -75: untere Buttons ueber Bottom-Bar/Phone-Gesten-Zone gehoben
-		bbox_pos = position + [-6, 5, 0];
-	}
+	// Auf Touch die Flaeche IMMER andeuten: vorher sah der Spieler nur
+	// schwebenden Text und hatte keinen Hinweis, wo er hintippen soll.
+	if (MENU_TOUCH && !lit)
+		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.35, 0);
 
-	vector bbox_size = [290, 22];
-
-	if (is_hovered) {
-		// Description
-		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
-		sui_text([0, -30], MENU_TEXT_MEDIUM, description, [0.94, 0.90, 0.82], 1, 0);
-		sui_set_align(alignment);
+	if (lit) {
+		// Beschreibung: auf Touch entfaellt sie -- sie erschiene nur, solange
+		// der Finger liegt, und verdeckt dann die Fussleiste.
+		if (!MENU_TOUCH) {
+			sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
+			sui_text([0, -30], MENU_DESC_SIZE, description, [0.94, 0.90, 0.82], 1, 0);
+			sui_set_align(alignment);
+		}
 
 		// Background
-		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.9, 0);
+		sui_fill(bbox_pos, bbox_size, [0, 0, 0], is_pressed ? 0.95 : 0.9, 0);
 
+		float kante = max(2, 2 * MENU_UI_SCALE);
 		if (order > 0) {
 			// Top
-			sui_fill(bbox_pos, [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
+			sui_fill(bbox_pos, [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
 			// Bottom
-			sui_fill(bbox_pos + [0, bbox_size_y - 2], [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
+			sui_fill(bbox_pos + [0, bbox_size_y - kante], [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
 		} else {
 			// Top
-			sui_fill(bbox_pos - [0, bbox_size_y], [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
+			sui_fill(bbox_pos - [0, bbox_size_y], [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
 			// Bottom
-			sui_fill(bbox_pos, [bbox_size_x, 2], [0.8, 0.11, 0.03], 1, 0);
+			sui_fill(bbox_pos, [bbox_size_x, kante], [0.8, 0.11, 0.03], 1, 0);
 		}
 
 		// Right accent (Signal-Balken)
-		sui_fill(bbox_pos + [bbox_size_x - 3, 0], [3, bbox_size_y], [1, 0.18, 0.05], 1, 0);
+		float akzent = max(3, 3 * MENU_UI_SCALE);
+		sui_fill(bbox_pos + [bbox_size_x - akzent, 0], [akzent, bbox_size_y],
+		         is_pressed ? [1, 0.45, 0.15] : [1, 0.18, 0.05], 1, 0);
+
+		if (is_pressed)
+			sui_fill(bbox_pos, bbox_size, [1, 0.16, 0.05], 0.18, 0);
 	}
 
-	sui_text(position  - [getTextWidth(title, MENU_TEXT_MEDIUM_x), 0, 0] + [275, 0, 0], MENU_TEXT_MEDIUM, title, text_color, 1, 0);
+	sui_text(Menu_RowTextPos(bbox_pos, order, title, MENU_LABEL_SIZE),
+	         MENU_LABEL_SIZE, title, text_color, 1, 0);
 	sui_action_element(bbox_pos, bbox_size, id, sui_noop);
 	
 	return sui_is_clicked(id);
@@ -514,14 +910,25 @@ float(string id, vector pos, vector size, string text) my_button =
 //
 void(float order) Menu_DrawControllerGlyphDemo =
 {
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 
 	vector tilemap_positions[4] = {[0, 0], [0.125, 0], [0.250, 0], [0.375, 0]};
-	vector position = [450, 50 + (order * 25)];
+	float  schritt = MENU_VALUE_SIZE_x;
+	vector position;
+	if (MENU_VALUE_X > 0) {
+		position = [450, 50 + (order * 25)];
+	} else {
+		vector box = Menu_RowBox(order);
+		position = [MENU_ROW_W - MENU_LABEL_PAD - 4 * schritt,
+		            box_y + (MENU_ROW_H - schritt) * 0.5];
+	}
 
 	for(int i = 0; i < 4; i++) {
-		sui_subpic(position, [MENU_TEXT_MEDIUM_x, MENU_TEXT_MEDIUM_x], sprintf("gfx/controller_glyphs/%s.tga", cvar_string("cl_controllerglyphs")), [1, 1, 1], tilemap_positions[i], [0.125, 0.125], 1, 0);
-		position_x += 14;
+		sui_subpic(position, [schritt, schritt], sprintf("gfx/controller_glyphs/%s.tga", cvar_string("cl_controllerglyphs")), [1, 1, 1], tilemap_positions[i], [0.125, 0.125], 1, 0);
+		position_x += schritt;
 	}
 };
 
@@ -605,18 +1012,29 @@ void() Menu_DrawBackground =
 
 #endif // MENU
 
+	float breite = sui_current_frame_size()[0];
+	float hoehe  = sui_current_frame_size()[1];
+	float linie  = max(3, 3 * MENU_UI_SCALE);
+
 	// Top Bars
-	sui_fill([0, 0], [sui_current_frame_size()[0], 55], [0, 0, 0], 0.9, 0);
-	sui_fill([0, 52], [sui_current_frame_size()[0], 3], [0.55, 0.10, 0.03], 1, 0);
+	sui_fill([0, 0], [breite, MENU_BAR_TOP], [0, 0, 0], 0.9, 0);
+	sui_fill([0, MENU_BAR_TOP - linie], [breite, linie], [0.55, 0.10, 0.03], 1, 0);
 
 	// Bottom Bars
-	sui_fill([0, sui_current_frame_size()[1] - 55], [sui_current_frame_size()[0], 55], [0, 0, 0], 0.9, 0);
-	sui_fill([0, sui_current_frame_size()[1] - 58], [sui_current_frame_size()[0], 3], [0.55, 0.10, 0.03], 1, 0);
+	sui_fill([0, hoehe - MENU_BAR_BOTTOM], [breite, MENU_BAR_BOTTOM], [0, 0, 0], 0.9, 0);
+	sui_fill([0, hoehe - MENU_BAR_BOTTOM - linie], [breite, linie], [0.55, 0.10, 0.03], 1, 0);
 
 	// Persistente TOTES-SIGNAL-Wortmarke, zentriert in der Unterleiste (jeder Screen).
+	// Auf Touch nur einzeilig: die Fussleiste ist dort knapp und die Zeile
+	// darueber ist eine Klickflaeche.
 	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_END]);
-	sui_text([0, -21], MENU_TEXT_SMALL, "TOTES SIGNAL", [0.85, 0.12, 0.04], 0.9, 0);
-	sui_text([0, -9],  MENU_TEXT_SUPERSMALL, "TOTERSIGNAL.DE", [0.5, 0.46, 0.42], 0.75, 0);
+	if (MENU_TOUCH) {
+		sui_text([0, 0 - (MENU_BAR_BOTTOM - MENU_LABEL_SIZE_y) * 0.5], MENU_LABEL_SIZE,
+		         "TOTES SIGNAL", [0.85, 0.12, 0.04], 0.9, 0);
+	} else {
+		sui_text([0, -21], MENU_TEXT_SMALL, "TOTES SIGNAL", [0.85, 0.12, 0.04], 0.9, 0);
+		sui_text([0, -9],  MENU_TEXT_SUPERSMALL, "TOTERSIGNAL.DE", [0.5, 0.46, 0.42], 0.75, 0);
+	}
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 };
 
@@ -630,9 +1048,13 @@ void(string menu_title) Menu_DrawTitle =
 	// Der grosse Masthead ("TOTES SIGNAL") steckt in Menu_DrawBackground; hier
 	// nur noch der kleine Sektionsname oben links + rote Signal-Linie darunter.
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
-	sui_text([9, 37], MENU_TEXT_SMALL, menu_title, [0.55, 0.05, 0.02], 0.8, 0);      // Rot-Glow
-	sui_text([8, 36], MENU_TEXT_SMALL, menu_title, [0.95, 0.90, 0.82], 1, 0);        // Knochenweiss
-	sui_fill([8, 49], [getTextWidth(menu_title, MENU_TEXT_SMALL_x) + 6, 2], [0.8, 0.11, 0.03], 0.9, 0);
+	vector groesse = MENU_TOUCH ? MENU_LABEL_SIZE : MENU_TEXT_SMALL;
+	// -4 ist so gewaehlt, dass der Desktop-Fall (Leiste 55, Schrift 12) exakt
+	// auf der alten y=36 landet und die Signal-Linie auf y=49.
+	float  oben    = MENU_BAR_TOP - max(3, 3 * MENU_UI_SCALE) - groesse_y - 4;
+	sui_text([9, oben + 1], groesse, menu_title, [0.55, 0.05, 0.02], 0.8, 0);   // Rot-Glow
+	sui_text([8, oben],     groesse, menu_title, [0.95, 0.90, 0.82], 1, 0);     // Knochenweiss
+	sui_fill([8, oben + groesse_y + 1], [getTextWidth(menu_title, groesse_x) + 6, max(2, 2 * MENU_UI_SCALE)], [0.8, 0.11, 0.03], 0.9, 0);
 };
 
 void(string id, vector pos, vector size, vector minmaxsteps, __inout float value) my_slider =
@@ -668,13 +1090,35 @@ void(vector pos, vector size, vector minmaxsteps, string cvar_s, string name, st
 //
 void(float order, string button_id, vector minmaxsteps, string cvar_s, float is_int, float no_text, float zero_is_one) Menu_CvarSlider =
 {
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
 	float current = cvar(cvar_s);
 	float old = current;
 
-	vector position = [320, 50 + (order * 25)];
-	vector size = [150, 30];
+	// Auf Touch gehoert der Regler in die Zeile selbst (es gibt keine
+	// Wertespalte) und braucht eine greifbare Hoehe -- 15 virtuelle px sind mit
+	// dem Daumen nicht bedienbar.
+	vector reglerpos = [0, 0];
+	vector reglergroesse = [0, 0];
+	vector zahlpos = [0, 0];
+	if (MENU_VALUE_X > 0) {
+		vector position = [MENU_VALUE_X, 50 + (order * 25)];
+		vector size = [150, 30];
+		reglerpos     = [position_x, (position_y - 17) + size_y * 0.5];
+		reglergroesse = [size_x, size_y * 0.5];
+		zahlpos       = position + [175, 0, 0];
+	} else {
+		vector box = Menu_RowBox(order);
+		float  breite = MENU_ROW_W * 0.42;
+		float  hoehe  = MENU_ROW_H * 0.42;
+		reglerpos     = [MENU_ROW_W * 0.40, box_y + (MENU_ROW_H - hoehe) * 0.5];
+		reglergroesse = [breite, hoehe];
+		zahlpos       = [reglerpos_x + breite + MENU_LABEL_PAD,
+		                 box_y + (MENU_ROW_H - MENU_VALUE_SIZE_y) * 0.5];
+	}
 
-	my_slider(strcat(cvar_s, "sldr"), [position_x, (position_y - 17) + size_y * 0.5], [size_x, size_y * 0.5], minmaxsteps, current);
+	my_slider(strcat(cvar_s, "sldr"), reglerpos, reglergroesse, minmaxsteps, current);
 
 	// For keyboard/gamepad navigation -- we need to check if the button associated
 	// with this slider is active and then do input checks to test if we should
@@ -708,9 +1152,9 @@ void(float order, string button_id, vector minmaxsteps, string cvar_s, float is_
 			number_to_draw = 1;
 
 		if (is_int)
-			sui_text(position + [175, 0, 0], MENU_TEXT_MEDIUM, ftos(rint(number_to_draw)), [1, 1, 1], 1, 0);
+			sui_text(zahlpos, MENU_VALUE_SIZE, ftos(rint(number_to_draw)), [1, 1, 1], 1, 0);
 		else
-			sui_text(position + [175, 0, 0], MENU_TEXT_MEDIUM, sprintf("%.2f", number_to_draw), [1, 1, 1], 1, 0);
+			sui_text(zahlpos, MENU_VALUE_SIZE, sprintf("%.2f", number_to_draw), [1, 1, 1], 1, 0);
 	}
 };
 
@@ -749,8 +1193,11 @@ static void(string id, vector pos, vector size, string text, float cursor) draw_
 //
 void(string id, float order, __inout string text, __inout float cursor) Menu_TextInput =
 {
-	vector pos = [320, 50 + (order * 25)];
-	vector size = [290, 22];
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
+	vector pos  = Menu_InputBox(order);
+	vector size = [MENU_ROW_W, MENU_ROW_H];
 
 	handle_text_input(id, pos, size, text, cursor);
 
@@ -763,8 +1210,11 @@ void(string id, float order, __inout string text, __inout float cursor) Menu_Tex
 //
 void(string id, float order, __inout string text, __inout float cursor) Menu_PasswordInput =
 {
-	vector pos = [320, 50 + (order * 25)];
-	vector size = [290, 22];
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
+	vector pos  = Menu_InputBox(order);
+	vector size = [MENU_ROW_W, MENU_ROW_H];
 	string safe = "";
 
 	for (int i = 0; i < strlen(text); i++)
@@ -1013,6 +1463,9 @@ void() Menu_RightArrowPressed =
 float last_menu;
 void(vector size) root_menu =
 {
+	// Genau EIN cvar()-Zugriff pro Frame statt einer je Knopf.
+	Menu_Metrics_Update(size);
+
 	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
 	sui_fill([0, 0], size, '0 0 0', 0.5, 0);
 	switch (current_menu)
@@ -1060,5 +1513,7 @@ void(vector size) root_menu =
 		Menu_PlaySound(MENU_SND_ENTER);
 		last_menu = current_menu;
 		sui_reset_hover();
+		menu_map_vorschau = "";   // Vorschau gilt nur innerhalb einer Kartenliste
+		menu_page = 0;
 	}
 };

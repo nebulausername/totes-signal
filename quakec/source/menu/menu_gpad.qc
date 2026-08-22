@@ -86,6 +86,7 @@ string(string next_id) Menu_Gamepad_GetPreviousButton =
 
 void() Menu_Gamepad =
 {
+	Menu_Page_Begin(5, 2);
     Menu_DrawBackground();
     Menu_DrawTitle(T("GAMEPAD OPTIONS"));
     Menu_DrawMapPanel();
@@ -129,6 +130,8 @@ void() Menu_Gamepad =
     Menu_DrawDivider(11.5);
     Menu_Button(-2, "gp_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Gamepad_ApplySettings() : 0;
     Menu_Button(-1, "gp_back", T("BACK"), T("Return to Control Options.")) ? current_menu = MENU_CONTROL : 0;
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };

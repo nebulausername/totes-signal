@@ -37,12 +37,18 @@ void() ToggleMenu =
 		{
 			current_menu = MENU_PAUSE;
 			setcursormode(TRUE, cvar_string("cl_cursor"), __NULL__, cvar("cl_cursor_scale"));
+			// QuakeC->JS: das Pausemenue positioniert den Cursor ABSOLUT, genau wie
+			// das Hauptmenue. Die Shell muss davon wissen, um 1:1 zu rendern --
+			// sonst landet jeder Fingertipp bei 1/eff seines wahren Abstands.
+			// TSUI:menu/TSUI:game kommen aus MenuQC und decken diesen Zustand nicht ab.
+			print("\nTSUI:pause:1\n");
 		}
 		else
 		{
 			menu_paus_submenu = 0;
 			current_menu = MENU_NONE;
 			setcursormode(FALSE);
+			print("\nTSUI:pause:0\n");
 		}
 	}
 }

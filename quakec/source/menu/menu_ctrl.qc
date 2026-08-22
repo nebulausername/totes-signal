@@ -101,6 +101,7 @@ string(string next_id) Menu_Control_GetPreviousButton =
 
 void() Menu_Control =
 {
+	Menu_Page_Begin(5, 2);
     if (!menu_ctrl_init)
         Menu_Control_Init();
 
@@ -135,6 +136,8 @@ void() Menu_Control =
     Menu_DrawDivider(11.5);
     Menu_Button(-2, "cm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Control_ApplySettings() : 0;
     Menu_Button(-1, "cm_back", T("BACK"), T("Return to Configuration.")) ? current_menu = MENU_OPTIONS : 0;
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };

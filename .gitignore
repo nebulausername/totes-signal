@@ -11,3 +11,6 @@ node_modules/
 
 # Local headless verification screenshots
 docs/verify/
+
+# Sitzungs-Beiwerk des Werkzeugs, kein Projektinhalt
+.claude/

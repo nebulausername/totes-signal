@@ -112,8 +112,12 @@ void() Menu_Pause =
         else if (menu_paus_submenu == 2)
             Menu_DrawYesNoPanel(T("Are you sure you want to quit?"), T("You will lose any progress that you have made."));
 
-        Menu_Button(8, "pm_yes", T("GET ME OUTTA HERE!"), "") ? Menu_Pause_Yes() : 0;
-        Menu_Button(9, "pm_no", T("I WILL PERSEVERE"), "") ? Menu_Pause_No() : 0;
+        // Zeilen 8 und 9 lagen bei 60er-Zeilen weit unterhalb des Bildes.
+        // Auf Touch direkt unter das Panel, sonst unveraendert.
+        float ja   = MENU_TOUCH ? 4 : 8;
+        float nein = MENU_TOUCH ? 5 : 9;
+        Menu_Button(ja,   "pm_yes", T("GET ME OUTTA HERE!"), "") ? Menu_Pause_Yes() : 0;
+        Menu_Button(nein, "pm_no",  T("I WILL PERSEVERE"), "") ? Menu_Pause_No() : 0;
 
         menu_paus_buttons[0] = "pm_yes";
         menu_paus_buttons[1] = "pm_no";

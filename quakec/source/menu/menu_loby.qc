@@ -71,6 +71,50 @@ void() Menu_Lobby_StopCountdown =
     menu_loby_last = 0;
 }
 
+//
+// Lobby_Info(spalte, zeile, titel, wert)
+// Ein Feld des Infoblocks. Auf dem Desktop zweispaltig wie bisher (x 65/235,
+// Zeilenabstand 40); auf Touch einspaltig im rechten Panel -- zwei Spalten
+// passen in die schmalere Flaeche nicht mehr, und untereinander liest es sich
+// mit dem Daumen besser.
+//
+void(float spalte, float zeile, string titel, string wert) Lobby_Info =
+{
+    vector tg = MENU_TOUCH ? MENU_DESC_SIZE : MENU_TEXT_MEDIUM;
+    vector wg = MENU_TOUCH ? MENU_DESC_SIZE : MENU_TEXT_SMALL;
+    float x, y, breite, wy, dy;
+
+    if (!MENU_TOUCH) {
+        x = spalte ? 235 : 65;
+        y = -160 + zeile * 40;
+        breite = 90;
+        wy = y + 15;
+        dy = y + 25;
+
+        sui_text([x, y],  tg, titel, [1, 1, 1], 1, 0);
+        sui_text([x, wy], wg, wert,  [1, 1, 0], 1, 0);
+        sui_fill([x, dy], [breite, 2], [0.2, 0.2, 0.2], 1, 0);
+        return;
+    }
+
+    // Touch: eine Zeile je Feld, linksbuendig im Panel. sui_text ZENTRIERT
+    // unter SUI_ALIGN_CENTER -- fuer eine linke Kante muss die Ausrichtung
+    // gewechselt werden, sonst laeuft der Block ueber die Panelkante hinaus.
+    // Untereinander bleibt kein Platz fuer Titel UND Wert getrennt: das
+    // Vorschaubild sitzt darueber im selben Panel.
+    float i  = zeile * 2 + spalte;
+    float fb = sui_current_frame_size()[0];
+    float pb = fb - MENU_PANEL_X;
+
+    sui_set_align([SUI_ALIGN_START, SUI_ALIGN_CENTER]);
+    x = MENU_PANEL_X + pb * 0.07;
+    y = -30 + i * 28;
+
+    sui_text([x, y], MENU_DESC_SIZE, titel, [1, 1, 1], 1, 0);
+    sui_text([x + pb * 0.55, y], MENU_DESC_SIZE, wert, [1, 1, 0], 1, 0);
+    sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
+};
+
 void() Menu_Lobby =
 {
     Menu_DrawBackground();
@@ -141,33 +185,13 @@ void() Menu_Lobby =
     if (cvar("sv_fastrounds") == 1) fast_rounds = T("ENABLED");
     else fast_rounds = T("DISABLED");
 
-    sui_text([65, -160], MENU_TEXT_MEDIUM, T("Game Mode"), [1, 1, 1], 1, 0);
-    sui_text([65, -145], MENU_TEXT_SMALL, gamemode, [1, 1, 0], 1, 0);
-    sui_fill([65, -135], [90, 2], [0.2, 0.2, 0.2], 1, 0);
-
-    sui_text([235, -160], MENU_TEXT_MEDIUM, T("Difficulty"), [1, 1, 1], 1, 0);
-    sui_text([235, -145], MENU_TEXT_SMALL, difficulty, [1, 1, 0], 1, 0);
-    sui_fill([235, -135], [90, 2], [0.2, 0.2, 0.2], 1, 0);
-
-    sui_text([65, -120], MENU_TEXT_MEDIUM, T("Start Round"), [1, 1, 1], 1, 0);
-    sui_text([65, -105], MENU_TEXT_SMALL, start_round, [1, 1, 0], 1, 0);
-    sui_fill([65, -95], [90, 2], [0.2, 0.2, 0.2], 1, 0);
-
-    sui_text([235, -120], MENU_TEXT_MEDIUM, T("Magic"), [1, 1, 1], 1, 0);
-    sui_text([235, -105], MENU_TEXT_SMALL, magic, [1, 1, 0], 1, 0);
-    sui_fill([235, -95], [90, 2], [0.2, 0.2, 0.2], 1, 0);
-
-    sui_text([65, -80], MENU_TEXT_MEDIUM, T("Headshots Only"), [1, 1, 1], 1, 0);
-    sui_text([65, -65], MENU_TEXT_SMALL, headshots, [1, 1, 0], 1, 0);
-    sui_fill([65, -55], [90, 2], [0.2, 0.2, 0.2], 1, 0);
-
-    sui_text([235, -80], MENU_TEXT_MEDIUM, T("Horde Size"), [1, 1, 1], 1, 0);
-    sui_text([235, -65], MENU_TEXT_SMALL, sprintf("%d", cvar("sv_maxai")), [1, 1, 0], 1, 0);
-    sui_fill([235, -55], [90, 2], [0.2, 0.2, 0.2], 1, 0);
-
-    sui_text([65, -40], MENU_TEXT_MEDIUM, T("Fast Rounds"), [1, 1, 1], 1, 0);
-    sui_text([65, -25], MENU_TEXT_SMALL, fast_rounds, [1, 1, 0], 1, 0);
-    sui_fill([65, -15], [90, 2], [0.2, 0.2, 0.2], 1, 0);
+    Lobby_Info(0, 0, T("Game Mode"),      gamemode);
+    Lobby_Info(1, 0, T("Difficulty"),     difficulty);
+    Lobby_Info(0, 1, T("Start Round"),    start_round);
+    Lobby_Info(1, 1, T("Magic"),          magic);
+    Lobby_Info(0, 2, T("Headshots Only"), headshots);
+    Lobby_Info(1, 2, T("Horde Size"),     sprintf("%d", cvar("sv_maxai")));
+    Lobby_Info(0, 3, T("Fast Rounds"),    fast_rounds);
 
     float lobby_delta = menu_loby_countdown - time;
     if (lobby_delta > 0) {

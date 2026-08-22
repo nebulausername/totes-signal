@@ -98,6 +98,7 @@ void() Menu_Accessibility_UpdateMonthSpoof =
 
 void() Menu_Accessibility =
 {
+	Menu_Page_Begin(5, 2);
     if (!menu_accessibility_init)
         Menu_Accessibility_Init();
 
@@ -162,6 +163,8 @@ void() Menu_Accessibility =
     Menu_DrawDivider(11.5);
     Menu_Button(-2, "ac_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Accessibility_ApplySettings() : 0;
     Menu_Button(-1, "ac_back", T("BACK"), T("Return to Configuration Menu.")) ? current_menu = MENU_OPTIONS : 0;
+
+	Menu_Page_End();
 
 	sui_pop_frame();	
 };
