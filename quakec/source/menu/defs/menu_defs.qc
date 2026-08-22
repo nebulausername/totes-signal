@@ -200,3 +200,37 @@ var struct
     {"lexi_temple", MAP_CATEGORY_BLACKOPSDS, 0},
     {"lexi_overlook", MAP_CATEGORY_BLACKOPSDS, 0},
 };
+
+// Karten, die in game.pk3 liegen, aber NICHT ausgeliefert sind.
+//
+// Menu_MapFinder durchsucht maps/*.bsp ohne jeden Filter, EIGENE KARTEN zeigte
+// also von Anfang an alle 19 BSPs -- die elf hier waren ueber SOLO -> KARTE
+// WAEHLEN -> EIGENE KARTEN startbar, ohne dass es jemand vorhatte. Sie bleiben
+// sichtbar (Bild, Beschreibung, Autor), aber gesperrt, und tragen einen
+// Fertigstellungsstand.
+//
+// Die Prozentzahl ist eine SCHAETZUNG fuer die Anzeige, keine Messung. Fest je
+// Karte und bewusst gestreut: eine Zahl, die beim zweiten Hinsehen springt,
+// entlarvt sich selbst.
+//
+// Die Sperre selbst haengt in Menu_MapButton (m_menu.qc) -- an EINER Stelle,
+// durch die beide Kartenlisten laufen. Eine Pruefung an den Aufrufstellen
+// waere beim naechsten Aufrufer vergessen worden (Footgun 14).
+var struct
+{
+    string bsp_name;
+    float prozent;
+} wip_maps[] =
+{
+    {"b1oodv3", 82},
+    {"hangar", 78},
+    {"fegefeuer", 71},
+    {"4all", 64},
+    {"loop", 60},
+    {"dung3on", 55},
+    {"b1oodv4", 47},
+    {"bunker-defense", 40},
+    {"wahnsinn", 34},
+    {"boxxer", 25},
+    {"weapon_test", 15},
+};

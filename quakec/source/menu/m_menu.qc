@@ -749,6 +749,22 @@ float(float order, string id, string char_name, string map, string portrait, vec
 }
 
 //
+// Menu_Maps_WipProzent(bsp_name)
+// Fertigstellungsstand einer noch nicht ausgelieferten Karte, 0 = spielbar.
+// Steht hier und nicht in menu_maps.qc, weil m_menu.qc in BEIDE Programme
+// kompiliert wird (menu.dat und csprogs.dat), menu_maps.qc aber nur in
+// menu.dat -- ein Aufruf von hier dorthin liesse csprogs.dat nicht mehr binden.
+//
+float(string bsp_name) Menu_Maps_WipProzent =
+{
+    for (int i = 0; i < wip_maps.length; i++) {
+        if (wip_maps[i].bsp_name == bsp_name)
+            return wip_maps[i].prozent;
+    }
+    return 0;
+};
+
+//
 // Menu_MapButton(order, id, bsp_name, map_category, usermap_index)
 // Displays a fancy menu option that loads
 // and draws the details for the given
@@ -776,21 +792,32 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 	// Liste nackter Zeilen. Auf Touch bleibt die Vorschau darum an der zuletzt
 	// angetippten Karte stehen.
 	float zeigen = MENU_TOUCH ? (menu_map_vorschau == id) : is_hovered;
+	// Noch nicht ausgeliefert? Dann wird die Zeile gezeichnet wie jede andere,
+	// aber gedaempft -- und sie startet nichts. Die Pruefung sitzt HIER und
+	// nicht bei den Aufrufern: durch diese Funktion laufen beide Kartenlisten
+	// (Stock und Eigene), eine Regel an den Aufrufstellen waere beim naechsten
+	// Aufrufer vergessen worden (Footgun 14).
+	float wip = Menu_Maps_WipProzent(bsp_name);
 	vector text_color = lit ? [1, 0, 0] : [1, 1, 1];
+	// Dieselben Toene wie Menu_GreyButton -- "gerade nicht verfuegbar" sieht
+	// dann ueberall im Menue gleich aus.
+	if (wip)
+		text_color = MENU_TOUCH ? [0.46, 0.31, 0.28] : [0.5, 0.3, 0.3];
 	float kante = max(2, 2 * MENU_UI_SCALE);
+	vector kantenfarbe = wip ? [0.20, 0.07, 0.05] : [0.4, 0, 0];
 
 	if (MENU_TOUCH && !lit && !zeigen)
-		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.35, 0);
+		sui_fill(bbox_pos, bbox_size, [0, 0, 0], wip ? 0.28 : 0.35, 0);
 
 	if (lit || zeigen) {
 		// Background
 		sui_fill(bbox_pos, bbox_size, [0, 0, 0], 0.9, 0);
 		// Top
-		sui_fill(bbox_pos, [bbox_size_x, kante], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos, [bbox_size_x, kante], kantenfarbe, 1, 0);
 		// Bottom
-		sui_fill(bbox_pos + [0, bbox_size_y - kante], [bbox_size_x, kante], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos + [0, bbox_size_y - kante], [bbox_size_x, kante], kantenfarbe, 1, 0);
 		// Right
-		sui_fill(bbox_pos + [bbox_size_x - kante, 0], [kante, bbox_size_y], [0.4, 0, 0], 1, 0);
+		sui_fill(bbox_pos + [bbox_size_x - kante, 0], [kante, bbox_size_y], kantenfarbe, 1, 0);
 	}
 
 	int i;
@@ -832,6 +859,38 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 	if (vorschau_b > 0) titelpos_x = bbox_pos_x + vorschau_b;
 	sui_text(titelpos, MENU_LABEL_SIZE, strtoupper(title), text_color, 1, 0);
 
+	// Fertigstellungsstand in derselben Zeile, auf der Seite, die der Titel
+	// NICHT belegt: auf dem Desktop steht der Kartenname rechtsbuendig, auf
+	// Touch linksbuendig hinter dem Vorschaubild. Erster Versuch setzte beides
+	// nach rechts -- am Bild lief "IN ARBEIT 47%" mitten durch "B1OOD
+	// VERSION 4". NUR ASCII 33..126, der Engine-Font kann nichts anderes
+	// (Footgun 3): also "IN ARBEIT 78%" ohne Umlaut und ohne Halbgeviertstrich.
+	if (wip) {
+		vector sg = MENU_TOUCH ? ([15, 15, 0] * MENU_UI_SCALE) : MENU_TEXT_SUPERSMALL;
+		// Was neben dem Titel uebrig bleibt. Auf dem Desktop sind es nur
+		// 290 Einheiten Zeilenbreite, und "B1OOD VERSION 3" frisst davon so
+		// viel, dass die volle Beschriftung am Bild in den Titel lief.
+		// Deshalb drei Stufen statt einer festen Zeichenkette.
+		float titelbreite = getTextWidth(strtoupper(title), MENU_LABEL_SIZE_x);
+		float platz = MENU_ROW_W - vorschau_b - titelbreite - 3 * MENU_LABEL_PAD;
+		string stand = sprintf("%s %d%%", T("IN PROGRESS"), wip);
+		float  sb = getTextWidth(stand, sg_x);
+		if (sb > platz) {
+			stand = sprintf("%d%%", wip);
+			sb = getTextWidth(stand, sg_x);
+		}
+		// Passt nicht einmal die Kurzform, bleibt die Zeile leer -- der
+		// gedaempfte Ton und "Noch nicht spielbar." im Panel sagen es auch.
+		if (sb <= platz) {
+			// Auf der Seite, die der Titel NICHT belegt: Desktop rechtsbuendiger
+			// Titel -> Beschriftung nach links, Touch umgekehrt.
+			float sx = MENU_TOUCH ? (bbox_pos_x + MENU_ROW_W - sb - MENU_LABEL_PAD)
+			                      : (bbox_pos_x + MENU_LABEL_PAD);
+			sui_text([sx, bbox_pos_y + (MENU_ROW_H - sg_y) * 0.5],
+			         sg, stand, [0.72, 0.50, 0.22], 1, 0);
+		}
+	}
+
 	if (zeigen) {
 		if (MENU_TOUCH) Menu_PanelHintergrund();
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
@@ -851,6 +910,11 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 		for(i = 0; i < 8; i++) {
 			sui_text([vx, 30 + (i * 14)], MENU_TEXT_SMALL, user_maps[index].map_desc[i], [1, 1, 1], 1, 0);
 		}
+
+		// Der Klartext gehoert dazu: das Abzeichen allein sagt nicht, dass ein
+		// Tipp nichts bewirkt -- und eine Zeile, die stumm bleibt, wirkt kaputt.
+		if (wip)
+			sui_text([vx, 30 + (8 * 14)], MENU_TEXT_SMALL, T("Not playable yet."), [0.72, 0.50, 0.22], 1, 0);
 
 		// Map Badge
 		string badge_name = "";
@@ -886,6 +950,16 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 	sui_action_element(bbox_pos, bbox_size, id, sui_noop);
 	
 	float geklickt = sui_is_clicked(id);
+
+	// Gesperrte Karte: der Tipp waehlt weiterhin aus -- Bild, Beschreibung
+	// und Hinweis bleiben dadurch stehen, und genau dafuer steht sie noch in
+	// der Liste. Gestartet wird sie nie, auch nicht beim zweiten Tipp.
+	if (wip) {
+		if (geklickt && MENU_TOUCH)
+			menu_map_vorschau = id;
+		return FALSE;
+	}
+
 	if (!MENU_TOUCH || !geklickt)
 		return geklickt;
 

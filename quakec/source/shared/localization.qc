@@ -322,6 +322,9 @@ string(string english) T =
 	case "Return to Stock Map selection.": return "Zurueck zur Standard-Map-Auswahl.";
 	case "Return to Create Game Menu.": return "Zurueck zum Spiel-Erstellen-Menue.";
 	case "USER MAPS": return "EIGENE KARTEN";
+	// Karten aus wip_maps (menu_defs.qc): sichtbar, aber gesperrt.
+	case "IN PROGRESS": return "IN ARBEIT";
+	case "Not playable yet.": return "Noch nicht spielbar.";
 	case "View User-Created Maps.": return "Von Nutzern erstellte Maps ansehen.";
 	case "RANDOM": return "ZUFALL";
 	case "Feeling indecisive? Try rolling the dice.": return "Unentschlossen? Lass den Zufall entscheiden.";

@@ -2057,9 +2057,21 @@ var TS_WEITER = {
 	name: '',        // aus TSUI:rname, kommt VOR rstart
 	offen: false,    // Spieler hat WEITERSPIELEN getippt, Engine laedt noch
 
+	// Karten, die es in game.pk3 gibt, die aber nicht ausgeliefert sind.
+	// BEWUSSTE DOPPELUNG von wip_maps[] in quakec/source/menu/defs/menu_defs.qc:
+	// die Shell kann die QC-Tabelle nicht lesen, und ohne diese Liste boete
+	// WEITERSPIELEN weiter eine Karte an, die das Menue daneben sperrt. Wer
+	// dort etwas aendert, muss es hier nachziehen.
+	WIP: ['b1oodv3', 'hangar', 'fegefeuer', '4all', 'loop', 'dung3on',
+	      'b1oodv4', 'bunker-defense', 'wahnsinn', 'boxxer', 'weapon_test'],
+
 	// Ein BSP-Name wandert gleich in eine Konsolenzeile, und tsCmd fuehrt JEDE
-	// aus. Nur zulassen, was ueberhaupt ein Dateiname sein kann.
-	gueltig: function(k){ return /^[a-z0-9_]{1,32}$/.test(String(k || '')); },
+	// aus. Nur zulassen, was ueberhaupt ein Dateiname sein kann -- und nichts,
+	// was gesperrt ist.
+	gueltig: function(k){
+		k = String(k || '');
+		return /^[a-z0-9_]{1,32}$/.test(k) && this.WIP.indexOf(k) === -1;
+	},
 
 	merken: function(roh){
 		var p = String(roh).split('|');

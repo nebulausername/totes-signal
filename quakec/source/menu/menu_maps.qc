@@ -163,8 +163,32 @@ void() Menu_Maps =
 
         if (Menu_Button(i + 2.5 - blank_map_spots, "map_randommap", T("RANDOM"), T("Feeling indecisive? Try rolling the dice.")))
         {
-            int random_map_index = rint(random() * user_maps_count);
-            Menu_Maps_LoadMap(user_maps[random_map_index].map_name);
+            // Zwei Fehler in zwei Zeilen, beide hier behoben:
+            //
+            // 1. rint() rundet zur naechsten ganzen Zahl, rint(random() * n)
+            //    liefert also auch n selbst -- einen Schritt hinter das Ende
+            //    des Arrays. floor() kann das nicht.
+            // 2. Gewuerfelt wurde ueber ALLE gefundenen Karten, also auch die
+            //    gesperrten aus wip_maps. ZUFALL haette damit genau das
+            //    gestartet, was Menu_MapButton verweigert.
+            //
+            // Ein Versuchsfenster statt einer Vorauswahlliste: QuakeC hat hier
+            // kein dynamisches Array, und bei 8 von 19 spielbaren Karten ist
+            // die Wahrscheinlichkeit, 32-mal hintereinander danebenzugreifen,
+            // verschwindend. Der Rueckfall auf die erste Stock-Karte ist die
+            // Sicherheitsleine, keine erwartete Ausgabe.
+            string gewuerfelt = stock_maps[0].bsp_name;
+            for (int versuch = 0; versuch < 32; versuch++) {
+                int random_map_index = floor(random() * user_maps_count);
+                if (random_map_index >= user_maps_count)
+                    random_map_index = user_maps_count - 1;
+                string kandidat = user_maps[random_map_index].map_name;
+                if (Menu_Maps_WipProzent(kandidat) == 0) {
+                    gewuerfelt = kandidat;
+                    break;
+                }
+            }
+            Menu_Maps_LoadMap(gewuerfelt);
         }
 
         // Usermaps and back button registry
@@ -175,7 +199,15 @@ void() Menu_Maps =
         // calculate the amount of usermaps we can display on this page.
         // Auf Touch bestimmt die Zeilenhoehe, wie viele Karten auf eine Seite
         // passen; auf dem Desktop bleiben es die bisherigen 9.
-        int pro_seite = MENU_TOUCH ? MENU_ROWS_PER_PAGE : 9;
+        //
+        // MENU_ROWS_PER_PAGE laesst GENAU EINE Fusszeile frei (die Rechnung in
+        // Menu_Frame zieht ein MENU_ROW_H ab). Dieser Schirm hat aber DREI:
+        // NAECHSTE SEITE, VORHERIGE SEITE und ZURUECK. Ohne den Abzug wurden
+        // die beiden letzten Kartenzeilen von den Blaetterknoepfen ueberdruckt
+        // -- am Bild nachgemessen: "NAECHSTE SEITE" lag mitten auf HANGAR,
+        // "VORHERIGE SEITE" auf B1OOD VERSION 3. Der Stock-Schirm nebenan
+        // macht dasselbe ueber Menu_Page_Begin(..., fusszeilen).
+        int pro_seite = MENU_TOUCH ? max(1, MENU_ROWS_PER_PAGE - 2) : 9;
         int maps_on_page = pro_seite;
         int maps_start_position = (user_maps_page * pro_seite);
 
