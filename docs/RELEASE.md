@@ -13,11 +13,21 @@
 ```bash
 ts=$(cat /var/backups/totersignal/LATEST)
 tar -xzf "/var/backups/totersignal/webroot-totersignal-$ts.tgz" -C /var/www
+chattr -i /srv/totersignal/assets/game.pk3
 ln -f /srv/totersignal/assets/game.pk3 /var/www/totersignal.de/nzp/game.pk3
+chattr +i /srv/totersignal/assets/game.pk3
 ```
 
 Die Tarballs enthalten `game.pk3` **nicht** (sonst 97 MB statt 4 MB). Deshalb
-die zweite Zeile — sie hängt die kanonische Kopie wieder ein.
+die `ln`-Zeile — sie hängt die kanonische Kopie wieder ein.
+
+⚠️ **Ohne das `chattr -i` davor schlägt genau diese Zeile fehl.** Die kanonische
+Datei ist unveränderlich gesetzt, und ein Hardlink auf eine solche Datei ändert
+ihren Link-Zähler — der Kernel lehnt das mit `Operation not permitted` ab. Das
+sieht nach einem Rechteproblem aus, ist aber keins (Footgun 4). Am 2026-08-22
+nachgemessen: `ln -f` scheitert, nach `chattr -i` gelingt es. Die alte Fassung
+dieser Datei nannte das `chattr` nicht — nach einem Rollback hätte im Webroot
+**gar keine** `game.pk3` gelegen und das Spiel wäre nicht gestartet.
 
 **2. Prüfen**
 
@@ -41,8 +51,11 @@ weitere vhosts mit — darunter die Hauptseite und die Statusseite.
 
 ```bash
 rsync -a --delete --exclude='nzp/game.pk3' /var/www/totersignal.de/ /var/www/demo/zombie/
-ln -f /srv/totersignal/assets/game.pk3 /var/www/demo/zombie/nzp/game.pk3
 ```
+
+`game.pk3` bleibt dabei stehen — `--exclude` heißt, dass rsync sie weder
+überträgt noch löscht. Nur wenn sie im Ziel fehlt, braucht es die
+`chattr -i` / `ln -f` / `chattr +i`-Folge von oben.
 
 ---
 
@@ -76,6 +89,28 @@ chattr +i /srv/totersignal/assets/game.pk3
 
 Ohne dieses Wissen sieht ein `Operation not permitted` wie ein Rechteproblem
 aus und kostet eine halbe Stunde.
+
+### Schnappschuss anlegen (vor JEDEM Deploy)
+
+Bis 2026-08-22 stand hier nur, wie man einen Schnappschuss **zurückspielt** —
+nicht, wie man einen anlegt. Genau daran ging es schief: ein von Hand gebauter
+Tarball hatte `./index.html` statt `totersignal.de/index.html`, und das
+dokumentierte `tar -xzf … -C /var/www` hätte den Webroot damit über `/var/www`
+ausgeschüttet. **Das Präfix ist Teil des Vertrags.**
+
+```bash
+ts=$(date +%Y%m%d-%H%M%S); d=/var/backups/totersignal
+tar -czf "$d/webroot-totersignal-$ts.tgz" -C /var/www --exclude='totersignal.de/nzp/game.pk3' totersignal.de
+tar -czf "$d/webroot-demo-zombie-$ts.tgz" -C /var/www/demo --exclude='zombie/nzp/game.pk3' zombie
+mkdir -p "$d/nginx-$ts" && cp /etc/nginx/sites-available/* "$d/nginx-$ts/"
+echo "$ts" > "$d/LATEST"
+```
+
+Prüfen, dass das Präfix stimmt und `game.pk3` draußen ist:
+
+```bash
+tar -tzf "/var/backups/totersignal/webroot-totersignal-$(cat /var/backups/totersignal/LATEST).tgz" | head -3
+```
 
 ---
 
@@ -113,10 +148,16 @@ diff <(unzip -p A/progs.pk3 csprogs.dat | strings -n 6 | sort -u) \
 ```bash
 cd /root/projects/zombie-app
 rsync -a --delete --exclude='nzp/game.pk3' web/ /var/www/totersignal.de/
-ln -f /srv/totersignal/assets/game.pk3 /var/www/totersignal.de/nzp/game.pk3
 rsync -a --delete --exclude='nzp/game.pk3' /var/www/totersignal.de/ /var/www/demo/zombie/
-ln -f /srv/totersignal/assets/game.pk3 /var/www/demo/zombie/nzp/game.pk3
 ```
+
+**Kein `ln -f` im normalen Deploy.** `--exclude='nzp/game.pk3'` lässt die
+vorhandene Kopie in Ruhe; sie muss also gar nicht neu eingehängt werden. Die
+frühere Fassung rief `ln -f` trotzdem auf, und das brach jeden Deploy mitten
+im Ablauf ab (`Operation not permitted`, siehe Rollback oben). In beiden
+Webroots liegt heute eine **eigene Kopie**, kein Hardlink — am 2026-08-22
+geprüft: drei verschiedene Inodes, Link-Zähler je 1, sha256 aller drei
+identisch (`7a799699…`).
 
 **Die Dreifach-Bump-Regel:** Jede Änderung an `web/index.html`, `web/sw.js`
 oder den Icons verlangt, dass **alle drei** hochgezählt werden:
