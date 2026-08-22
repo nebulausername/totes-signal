@@ -112,6 +112,49 @@ float() GetTouchTopInset =
 	return cvar("ts_hudtop");
 }
 
+// Zusaetzlicher Hub NUR fuer die Rundenanzeige. Sie sitzt am UNTEREN linken
+// Rand -- auf Touch liegt dort der Joystick, und die roten Blutmarken lagen
+// zur Haelfte darunter. Der Punkteblock ist bereits um GetTouchLift()
+// angehoben; die Runde stapelt sich knapp darueber, damit beide lesbar
+// bleiben. 97 = Abstand des Punkteblocks von der Unterkante (g_height - 97)
+// plus etwas Luft.
+float() GetTouchRoundLift =
+{
+	if (!cvar("ts_touchui"))
+		return 0;
+
+	float hub = GetTouchLift() + 97;
+
+	// Aber nicht ueber den oberen linken Streifen hinaus. Im
+	// Linkshaender-Modus setzt die Shell ts_hudlift auf 205 (dort ist die
+	// linke Bildhaelfte unten voller Knoepfe), und der volle Hub schob die
+	// Blutmarken mitten in den MENUE-Knopf -- am Bild gesehen.
+	// 65 ist die Hoehe der Rundengrafik (roundheight in HUD_Rounds), 8 Luft.
+	float grenze = g_height - 65 - GetTouchTopInset() - 8;
+	if (hub > grenze)
+		hub = grenze;
+	if (hub < 0)
+		hub = 0;
+
+	return hub;
+}
+
+// Musste der Hub gedeckelt werden, ist ueber dem Punkteblock kein Platz mehr
+// (im Linkshaender-Modus liegt zwischen MENUE und der Knopfspalte nur ein
+// schmales Band, und die Rundengrafik allein ist 65 Einheiten hoch). Dann
+// stehen Runde und Punkte NEBENEINANDER statt uebereinander -- der
+// Punkteblock ist 96 Einheiten breit.
+float() GetTouchRoundShift =
+{
+	if (!cvar("ts_touchui"))
+		return 0;
+
+	if (GetTouchLift() + 97 > GetTouchRoundLift())
+		return 104;
+
+	return 0;
+}
+
 //return hud images, makes drawpic slightly cleaner..
 string(string img) getImage = {
 	return strcat(huddir, img);
@@ -659,8 +702,8 @@ void() HUD_Rounds =
 
 		if (round_center_x <= 3 + GetUltraWideOffset())
 			round_center_x = 3 + GetUltraWideOffset();
-		if (round_center_y >= g_height - 1 - roundheight)
-			round_center_y = g_height - 1 - roundheight;
+		if (round_center_y >= g_height - 1 - roundheight - GetTouchRoundLift())
+			round_center_y = g_height - 1 - roundheight - GetTouchRoundLift();
 	}
 	else if (rounds_change == 3)//shift to white
 	{
@@ -692,7 +735,7 @@ void() HUD_Rounds =
 			{
 				if (i == 4)
 				{
-					drawpic([5 + GetUltraWideOffset(), g_height - roundheight, 0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+					drawpic([5 + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - GetTouchRoundLift(), 0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 					
 					savex = x_offset + (10*g_width/480);
 					x_offset = x_offset + (10*g_width/480);
@@ -700,7 +743,7 @@ void() HUD_Rounds =
 				}
 				if (i == 9)
 				{
-					drawpic([5 + savex + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+					drawpic([5 + savex + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 					continue;
 				}
 				if (i > 4)
@@ -708,7 +751,7 @@ void() HUD_Rounds =
 				else
 					icon_num = i;
 
-				drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[icon_num], [roundwidth,roundheight, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+				drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[icon_num], [roundwidth,roundheight, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth + (3*g_width/480);
 			}
@@ -718,7 +761,7 @@ void() HUD_Rounds =
 			if (rounds >= 100)
 			{
 				num[2] = (int)(rounds/100);
-				drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[2]], [roundwidth_num, roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+				drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[2]], [roundwidth_num, roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 								
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -727,7 +770,7 @@ void() HUD_Rounds =
 			if (rounds >= 10)
 			{
 				num[1] = (int)((rounds - num[2]*100)/10);
-				drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+				drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -735,7 +778,7 @@ void() HUD_Rounds =
 				num[1] = 0;
 
 			num[0] = rounds - num[2]*100 - num[1]*10;
-			drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+			drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 			x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 		}
@@ -763,7 +806,7 @@ void() HUD_Rounds =
 			{
 				if (i == 4)
 				{
-					drawpic([5 + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
+					drawpic([5 + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
 
 					savex = x_offset + (10*g_width/480);
 					x_offset = x_offset + (10*g_width/480);
@@ -771,7 +814,7 @@ void() HUD_Rounds =
 				}
 				if (i == 9)
 				{
-					drawpic([5 + savex + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
+					drawpic([5 + savex + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
 
 					continue;
 				}
@@ -780,7 +823,7 @@ void() HUD_Rounds =
 				else
 					icon_num = i;
 
-					drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[icon_num], [roundwidth,roundheight, 1], [1,1,1], blinking/255);
+					drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[icon_num], [roundwidth,roundheight, 1], [1,1,1], blinking/255);
 
 				x_offset = x_offset +  roundwidth + (3*g_width/480);
 			}
@@ -790,7 +833,7 @@ void() HUD_Rounds =
 			if (rounds >= 100)
 			{
 				num[2] = (int)(rounds/100);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 					
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -799,7 +842,7 @@ void() HUD_Rounds =
 			if (rounds >= 10)
 			{
 				num[1] = (int)((rounds - num[2]*100)/10);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 				
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -807,7 +850,7 @@ void() HUD_Rounds =
 				num[1] = 0;
 
 			num[0] = rounds - num[2]*100 - num[1]*10;
-			drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+			drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 			
 			x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 		}
@@ -829,7 +872,7 @@ void() HUD_Rounds =
 			{
 				if (i == 4)
 				{
-					drawpic([5 + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
+					drawpic([5 + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
 
 					savex = x_offset + (10*g_width/480);
 					x_offset = x_offset + (10*g_width/480);
@@ -837,7 +880,7 @@ void() HUD_Rounds =
 				}
 				if (i == 9)
 				{
-					drawpic([5 + savex + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
+					drawpic([5 + savex + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
 					continue;
 				}
 				if (i > 4)
@@ -845,7 +888,7 @@ void() HUD_Rounds =
 				else
 					icon_num = i;
 
-				drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[icon_num], [roundwidth,roundheight, 1], [1,1,1], blinking/255);
+				drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[icon_num], [roundwidth,roundheight, 1], [1,1,1], blinking/255);
 
 				x_offset = x_offset +  roundwidth + (3*g_width/480);
 			}
@@ -855,7 +898,7 @@ void() HUD_Rounds =
 			if (rounds >= 100)
 			{
 				num[2] = (int)(rounds/100);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -864,7 +907,7 @@ void() HUD_Rounds =
 			if (rounds >= 10)
 			{
 				num[1] = (int)((rounds - num[2]*100)/10);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -872,7 +915,7 @@ void() HUD_Rounds =
 				num[1] = 0;
 
 			num[0] = rounds - num[2]*100 - num[1]*10;
-			drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+			drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 
 			x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 		}
@@ -891,7 +934,7 @@ void() HUD_Rounds =
 			{
 				if (i == 4)
 				{
-					drawpic([5 + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
+					drawpic([5 + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
 								
 					savex = x_offset + (10*g_width/480);
 					x_offset = x_offset + (10*g_width/480);
@@ -899,7 +942,7 @@ void() HUD_Rounds =
 				}
 				if (i == 9)
 				{
-					drawpic([5 + savex + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
+					drawpic([5 + savex + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [1,1,1], blinking/255);
 
 					continue;
 				}
@@ -908,7 +951,7 @@ void() HUD_Rounds =
 				else
 					icon_num = i;
 
-				drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[icon_num], [roundwidth,roundheight, 1], [1,1,1], blinking/255);
+				drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[icon_num], [roundwidth,roundheight, 1], [1,1,1], blinking/255);
 
 				x_offset = x_offset +  roundwidth + (3*g_width/480);
 			}
@@ -918,7 +961,7 @@ void() HUD_Rounds =
 			if (rounds >= 100)
 			{
 				num[2] = (int)(rounds/100);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 				
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -927,7 +970,7 @@ void() HUD_Rounds =
 			if (rounds >= 10)
 			{
 				num[1] = (int)((rounds - num[2]*100)/10);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -935,7 +978,7 @@ void() HUD_Rounds =
 				num[1] = 0;
 
 			num[0] = rounds - num[2]*100 - num[1]*10;
-			drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
+			drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [1,1,1], blinking/255);
 
 			x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 		}
@@ -970,7 +1013,7 @@ void() HUD_Rounds =
 			{
 				if (i == 4)
 				{
-					drawpic([5 + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+					drawpic([5 + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 					savex = x_offset + (10*g_width/480);
 					x_offset = x_offset + (10*g_width/480);
@@ -978,7 +1021,7 @@ void() HUD_Rounds =
 				}
 				if (i == 9)
 				{
-					drawpic([5 + savex + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+					drawpic([5 + savex + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 					continue;
 				}
@@ -987,7 +1030,7 @@ void() HUD_Rounds =
 				else
 					icon_num = i;
 
-				drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[icon_num], [roundwidth,roundheight, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+				drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[icon_num], [roundwidth,roundheight, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth + (3*g_width/480);
 			}
@@ -997,7 +1040,7 @@ void() HUD_Rounds =
 			if (rounds >= 100)
 			{
 				num[2] = (int)(rounds/100);
-				drawpic([2+x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+				drawpic([2+x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -1006,7 +1049,7 @@ void() HUD_Rounds =
 			if (rounds >= 10)
 			{
 				num[1] = (int)((rounds - num[2]*100)/10);
-				drawpic([2+x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+				drawpic([2+x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -1014,7 +1057,7 @@ void() HUD_Rounds =
 				num[1] = 0;
 
 			num[0] = rounds - num[2]*100 - num[1]*10;
-			drawpic([2+x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
+			drawpic([2+x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [color_shift[0]/255,color_shift[1]/255,color_shift[2]/255], 1);
 
 			x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 		}
@@ -1032,7 +1075,7 @@ void() HUD_Rounds =
 			{
 				if (i == 4)
 				{
-					drawpic([5 + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
+					drawpic([5 + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
 
 					savex = x_offset + (10*g_width/480);
 					x_offset = x_offset + (10*g_width/480);
@@ -1040,7 +1083,7 @@ void() HUD_Rounds =
 				}
 				if (i == 9)
 				{
-					drawpic([5 + savex + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
+					drawpic([5 + savex + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[4], [roundwidth_4,roundheight_4, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
 
 					continue;
 				}
@@ -1049,7 +1092,7 @@ void() HUD_Rounds =
 				else
 					icon_num = i;
 
-				drawpic([5 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round[icon_num], [roundwidth,roundheight, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
+				drawpic([5 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round[icon_num], [roundwidth,roundheight, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth + (3*g_width/480);
 			}
@@ -1059,7 +1102,7 @@ void() HUD_Rounds =
 			if (rounds >= 100)
 			{
 				num[2] = (int)(rounds/100);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[2]], [roundwidth_num,roundheight_num, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -1068,7 +1111,7 @@ void() HUD_Rounds =
 			if (rounds >= 10)
 			{
 				num[1] = (int)((rounds - num[2]*100)/10);
-				drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
+				drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[1]], [roundwidth_num,roundheight_num, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
 
 				x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 			}
@@ -1080,7 +1123,7 @@ void() HUD_Rounds =
 			if(rounds == 0)
 				return;
 			
-			drawpic([2 + x_offset + GetUltraWideOffset(), g_height - roundheight - (4*g_height/272),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
+			drawpic([2 + x_offset + GetUltraWideOffset() + GetTouchRoundShift(), g_height - roundheight - (4*g_height/272) - GetTouchRoundLift(),0], sb_round_num[num[0]], [roundwidth_num,roundheight_num, 1], [round_colors[0]/255, round_colors[1]/255, round_colors[2]/255], 1);
 
 			x_offset = x_offset +  roundwidth_num - (8*g_width/480);
 		}
