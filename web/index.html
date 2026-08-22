@@ -242,7 +242,19 @@
 	#deathui .play.alt { border-color:rgba(210,200,180,0.55); background:rgba(40,36,32,0.4);
 		box-shadow:0 0 18px rgba(0,0,0,0.5); color:#e0d9c8; }
 	#deathui .play.alt:active { background:rgba(90,80,70,0.5); }
-	#deathui .box { width:min(680px,94%); max-height:94vh; overflow-y:auto; }
+	/* Der Todes-Bildschirm ist eine SPALTE: fester Kopf, fester Fuss, und genau
+	   ein nachgiebiger Teil dazwischen -- die Tab-Seite. Vorher wuchs die Box
+	   mit ihrem Inhalt und schob NOCHMAL/ZUR LOBBY unter den Bildschirmrand,
+	   also genau die beiden Knoepfe, wegen derer der Bildschirm da ist.
+	   Nachgemessen (844x390 Querformat): auf iOS reichte EIN frisch verdienter
+	   Erfolg im Kopf -- Knopfunterkante 391 px bei 390 px Viewport; auf Android
+	   kippte es bei sechs (404 px). Die alte Deckelung an #rank-liste half nur
+	   der Liste, nicht dem Kopf darueber. */
+	#deathui .box { width:min(680px,94%); max-height:94vh; overflow-y:auto;
+		display:flex; flex-direction:column; }
+	#deathui #dpage-stats, #deathui #dpage-board, #deathui #dpage-rank {
+		flex:1 1 auto; min-height:0; overflow-y:auto; }
+	#deathui .death-actions { flex:0 0 auto; }
 	#deathui #deathart { position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
 		z-index:0; opacity:0.32; filter:saturate(0.8); }
 	#deathui .ts-skull { width:min(9vh,44px); margin-bottom:0; }
@@ -278,14 +290,24 @@
 	   sondern weiter unten, muss das sichtbar sein -- sonst liest sich Platz 47
 	   wie Platz 11. */
 	#dpage-rank tr.luecke td { border-top:2px dotted rgba(255,255,255,0.22); }
-	/* Auf einem Handy im Querformat sind keine 400 px Hoehe uebrig. Ohne
-	   Deckelung schiebt eine lange Liste NOCHMAL und ZUR LOBBY unter den
-	   Bildschirmrand -- und damit genau die beiden Knoepfe, wegen derer der
-	   Bildschirm ueberhaupt da ist. Lieber scrollen als verdraengen. */
-	/* NUR die Liste scrollt. Lag der Rollbereich auf #dpage-rank, verschwand
-	   die Kopfzeile mit Platz und XP nach oben aus dem Bild, sobald die eigene
-	   Zeile eingeblendet wurde. */
-	#rank-liste { max-height:min(34vh, 200px); overflow-y:auto; }
+	/* Die Hoehe rastet in GANZE Zeilen ein (TS_BOARD.hoeheEinrasten). Die alte
+	   feste Deckelung min(34vh,200px) stand in keinem Verhaeltnis zur
+	   Zeilenhoehe: nachgemessen 27-px-Zeilen in einem 200-px-Fenster, also
+	   sechs ganze Zeilen und eine halbierte. Ein aufgeschnittener
+	   Tabelleneintrag sieht aus wie ein Zeichenfehler, nicht wie
+	   "hier geht es weiter". */
+	/* Frische Erfolge: golden, aber nicht breiter als die Liste darunter --
+	   ueber die volle Kastenbreite gesetzt brauchte die Zeile zwei Zeilen
+	   und nahm der Bestenliste zwei Plaetze. */
+	.dfoot.neuerfolg { color:#e8b04b; max-width:min(520px,92%); margin-left:auto; margin-right:auto; }
+	.rank-wrap { position:relative; }
+	/* Weiche Kante als einziger Hinweis darauf, dass die Liste laenger ist als
+	   das Fenster -- ohne sie sind auf dem Handy vier von zehn Plaetzen zu
+	   sehen und nichts sagt, dass es sechs weitere gibt. */
+	.rank-wrap.mehr::after { content:''; position:absolute; left:0; right:0; bottom:0;
+		height:22px; pointer-events:none;
+		background:linear-gradient(rgba(11,9,8,0), rgba(11,9,8,0.96)); }
+	#rank-liste { overflow-y:auto; }
 	#rank-liste thead th { position:sticky; top:0; background:#0b0908; }
 	#dpage-board table { margin:0 auto; border-collapse:collapse; font-family:monospace;
 		font-size:min(2.8vh,13px); color:#ece5d7; }
@@ -809,7 +831,8 @@ var I18N = {
 		statTab:'STATISTIK', boardTab:'SCOREBOARD',
 		rankTab:'BESTENLISTE', colRound:'RUNDE', rankAus:'Bestenliste und Fortschritt sind aus.',
 		rankAnBtn:'AKTIVIEREN', rankLaedt:'Laedt ...', rankLeer:'Noch keine Eintraege.',
-		rankFehler:'Nicht erreichbar.', rankPlatz:'Platz',
+		rankFehler:'Nicht erreichbar.', rankNochmal:'ERNEUT VERSUCHEN', rankPlatz:'Platz',
+		rankWeitere:'weitere',
 		rankPruefung:'Lauf wird geprueft.', rankAbgelehnt:'Lauf nicht gewertet.',
 		rankFremd:'Konto und Bestenliste: auf totersignal.de spielen.',
 		gsKonto:'KONTO & ERFOLGE', gsSet:'STEUERUNG & BILD',
@@ -870,7 +893,8 @@ var I18N = {
 		statTab:'STATS', boardTab:'SCOREBOARD',
 		rankTab:'LEADERBOARD', colRound:'ROUND', rankAus:'Leaderboard and progress are off.',
 		rankAnBtn:'ENABLE', rankLaedt:'Loading ...', rankLeer:'No entries yet.',
-		rankFehler:'Unavailable.', rankPlatz:'Rank',
+		rankFehler:'Unavailable.', rankNochmal:'TRY AGAIN', rankPlatz:'Rank',
+		rankWeitere:'more',
 		rankPruefung:'Run under review.', rankAbgelehnt:'Run not counted.',
 		rankFremd:'Account and leaderboard: play on totersignal.de.',
 		gsKonto:'ACCOUNT & ACHIEVEMENTS', gsSet:'CONTROLS & VIDEO',
@@ -1462,7 +1486,16 @@ var TS_BOARD = {
 				this.fenster + '&map=' + encodeURIComponent(karte) + '&limit=10');
 			this.zeichnen(d);
 		} catch(e){
-			ziel.innerHTML = '<div class="dfoot">' + T('rankFehler') + '</div>';
+			// Frueher endete es hier bei zwei Woertern ohne jede Handhabe: wer
+			// einmal ein Funkloch erwischte, kam an seinen Platz nur ueber
+			// einen Tab-Wechsel und zurueck. Der Knopf ist derselbe wie im
+			// Zweig ohne Konto -- also .play in .death-actions (Footgun 14).
+			ziel.innerHTML = '<div class="dfoot">' + T('rankFehler') + '</div>' +
+				// .alt, nicht der rote Hauptknopf: sonst stehen drei leuchtende
+				// Knoepfe untereinander und der Blick findet NOCHMAL nicht mehr.
+				'<div class="death-actions"><span class="play alt" id="rankNeu">' + T('rankNochmal') + '</span></div>';
+			var w = document.getElementById('rankNeu');
+			if (w) w.addEventListener('click', function(){ TS_BOARD.laden(); });
 		}
 	},
 
@@ -1478,11 +1511,21 @@ var TS_BOARD = {
 					' &middot; +' + this.letztes.xp_gained + ' XP</div>';
 				// Frisch verdiente Erfolge sind der schoenste Moment nach dem
 				// Sterben -- die gehoeren nach oben, nicht in ein Untermenue.
+				// ... aber gedeckelt. Sechs frische Erfolge fuellten zwei volle
+				// Zeilen ueber die ganze Breite und drueckten die Liste
+				// darunter von fuenf sichtbaren Plaetzen auf drei. Zwei Namen
+				// und eine Restangabe sagen dasselbe in einer Zeile: die
+				// Erfolgsnamen sind im Mittel 14 und hoechstens 25 Zeichen lang
+				// (server/data/erfolge.json), mit " (+100 XP)" passen zwei davon
+				// in die 520-px-Zeile, drei nicht mehr.
 				var ne = this.letztes.achievements_neu || [];
-				if (ne.length)
-					kopf += '<div class="dfoot" style="color:#e8b04b">&#9733; ' +
-						ne.map(function(x){ return TS_DEATH.strip(x.name) + ' (+' + x.xp + ' XP)'; }).join(' &middot; ') +
-						'</div>';
+				if (ne.length){
+					var zeig = ne.slice(0, 2).map(function(x){
+						return TS_DEATH.strip(x.name) + ' (+' + x.xp + ' XP)'; });
+					if (ne.length > zeig.length)
+						zeig.push('+' + (ne.length - zeig.length) + ' ' + T('rankWeitere'));
+					kopf += '<div class="dfoot neuerfolg">&#9733; ' + zeig.join(' &middot; ') + '</div>';
+				}
 			}
 			else
 				// Ehrlich benennen statt still verschweigen: ein markierter Lauf
@@ -1511,23 +1554,77 @@ var TS_BOARD = {
 				TS_DEATH.strip(x.display_name) + '</td><td>' + x.rounds + '</td><td>' + x.score + '</td></tr>';
 		}).join('');
 		ziel.innerHTML = kopf +
-			'<div id="rank-liste"><table><thead><tr><th>#</th><th>' + T('colName') + '</th><th>' +
+			'<div class="rank-wrap"><div id="rank-liste"><table><thead><tr><th>#</th><th>' + T('colName') + '</th><th>' +
 			T('colRound') + '</th><th>' + T('stPoints') + '</th></tr></thead><tbody>' +
-			zeilen + '</tbody></table></div>';
+			zeilen + '</tbody></table></div></div>';
 
-		// Die eigene Zeile ins Sichtfeld holen. Bei Platz 5 in einer auf drei
-		// Zeilen gedeckelten Liste stuende sonst zwar "Platz 5" ueber der
-		// Tabelle, die goldene Zeile selbst aber ausserhalb -- der Spieler
-		// muesste suchen, was er eigentlich sehen wollte.
-		// scrollTop von Hand statt scrollIntoView: letzteres scrollt AUCH alle
-		// Vorfahren mit und schob dabei "SIGNAL VERLOREN" samt Platzangabe aus
-		// dem Bild. Hier soll sich ausschliesslich die Liste bewegen.
-		var liste = document.getElementById('rank-liste');
-		var eigene = liste && liste.querySelector('tr.ich');
-		if (liste && eigene){
-			var mitte = eigene.offsetTop - (liste.clientHeight / 2) + (eigene.offsetHeight / 2);
-			liste.scrollTop = Math.max(0, mitte);
-		}
+		var box = document.getElementById('rank-liste');
+		if (!box) return;
+		this.hoeheEinrasten(box);
+		this.eigeneZeigen(box);
+		this.rollhinweis(box);
+	},
+
+	// Hoehe auf ganze Zeilen einrasten. Die frueher fest verdrahtete Deckelung
+	// min(34vh,200px) kannte die Zeilenhoehe nicht: 27-px-Zeilen in einem
+	// 200-px-Fenster ergaben sechs ganze und eine halbierte Zeile, und ein
+	// aufgeschnittener Eintrag liest sich als Zeichenfehler.
+	// Der Platz kommt jetzt aus der Tab-Seite selbst -- die ist seit dem
+	// Spalten-Layout der nachgiebige Teil und laesst Kopf und Knopfreihe in
+	// Ruhe.
+	hoeheEinrasten: function(box){
+		var kopf   = box.querySelector('thead');
+		var zeilen = box.querySelectorAll('tbody tr');
+		var seite  = document.getElementById('dpage-rank');
+		if (!kopf || !zeilen.length || !seite) return;
+		var kh = kopf.getBoundingClientRect().height;
+		var zh = zeilen[0].getBoundingClientRect().height;
+		if (zh <= 0) return;
+		// Was die Seite hergibt, minus alles, was ueber der Liste steht
+		// (Platzangabe, frische Erfolge) und minus der Tabellenkopf.
+		var frei = seite.clientHeight - box.offsetTop - kh;
+		var n = Math.floor(frei / zh);
+		if (n < 2) n = 2;                                  // unter zwei Zeilen ist es keine Liste mehr
+		if (n >= zeilen.length){ box.style.maxHeight = ''; return; }   // passt ohnehin ganz
+		// Die Kante an der ECHTEN Lage der ersten abgeschnittenen Zeile
+		// ausrichten, nicht an kopf + n * zeilenhoehe. Bei
+		// border-collapse:collapse teilen sich benachbarte Zeilen ihren Rand,
+		// die gerundete Rechnung lag deshalb um Bruchteile daneben -- und ein
+		// Bruchteil reicht, damit die naechste Zeile mit einem Haar
+		// hereinragt und wie ein Zeichenfehler aussieht.
+		box.style.maxHeight = (zeilen[n].offsetTop - box.offsetTop) + 'px';
+	},
+
+	// Die eigene Zeile ins Sichtfeld holen -- aber NUR, wenn sie sonst
+	// ausserhalb laege. Vorher wurde immer zentriert, und bei Platz 3 schob das
+	// den Ersten aus dem Bild: eine Bestenliste, deren oberste sichtbare Zeile
+	// die Zwei ist, sieht kaputt aus (nachgemessen: scrollTop 21 bei Platz 3).
+	// scrollTop von Hand statt scrollIntoView: letzteres scrollt AUCH alle
+	// Vorfahren mit und schob dabei "SIGNAL VERLOREN" samt Platzangabe aus
+	// dem Bild.
+	eigeneZeigen: function(box){
+		var eigene = box.querySelector('tr.ich');
+		if (!eigene) return;
+		var kh = (box.querySelector('thead') || { getBoundingClientRect: function(){ return { height: 0 }; } })
+			.getBoundingClientRect().height;
+		// offsetTop zaehlt ab .rank-wrap, nicht ab der Liste -- der Versatz
+		// muss raus, sonst rollt die Liste um ihre eigene Oberkante zu weit.
+		var oben  = eigene.offsetTop - box.offsetTop - box.scrollTop - kh;
+		var unten = eigene.offsetTop - box.offsetTop - box.scrollTop + eigene.offsetHeight;
+		if (oben >= 0 && unten <= box.clientHeight) return;   // schon im Bild
+		box.scrollTop = Math.max(0, (eigene.offsetTop - box.offsetTop) - (box.clientHeight / 2) + (eigene.offsetHeight / 2));
+	},
+
+	// Weiche Kante, solange unterhalb noch etwas steht.
+	rollhinweis: function(box){
+		var wrap = box.parentNode;
+		if (!wrap || !wrap.classList) return;
+		var pruefen = function(){
+			var mehr = box.scrollHeight - box.scrollTop - box.clientHeight > 2;
+			wrap.classList.toggle('mehr', mehr);
+		};
+		box.addEventListener('scroll', pruefen);
+		pruefen();
 	},
 
 	zeigeErgebnis: function(j){ this.letztes = j; this.laden(); }
