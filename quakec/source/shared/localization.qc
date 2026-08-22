@@ -468,7 +468,7 @@ string(string english) T =
 	case "Get a Zombie stuck for 5 minutes": return "Lass einen Zombie fuenf Minuten feststecken";
 	case "Increase your Firepower!": return "Mehr Feuerkraft!";
 	case "Use the Pack-A-Punch for the first  time": return "Benutze zum ersten Mal Pack-a-Punch";
-	case "Kraut Got Your Tongue?": return "Kopfsache";
+	case "Heads Will Roll": return "Kopfsache";
 	case "Get 25 Headshots": return "Lande 25 Kopfschuesse";
 	case "Mindblowing": return "Umwerfend";
 	case "Get 250 Headshots": return "Lande 250 Kopfschuesse";

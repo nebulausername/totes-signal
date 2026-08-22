@@ -139,7 +139,14 @@ void() Achievement_Init =
     Achievement_Create(26, "slasher", T("Slasher"), T("Perform 100 total Melee kills"));
     Achievement_Create(27, "made_by_children", T("Made by Children"), T("Get a Zombie stuck for 5 minutes"));
     Achievement_Create(28, "increase_firepower", T("Increase your Firepower!"), T("Use the Pack-A-Punch for the first  time"));
-    Achievement_Create(29, "kraut_tongue", T("Kraut Got Your Tongue?"), T("Get 25 Headshots"));
+    // Der englische Titel hiess bis 2026-08-22 "Kraut Got Your Tongue?".
+    // "Kraut" ist ein abwertender Ausdruck fuer Deutsche -- in einem
+    // deutsch-first Projekt, dessen ganzer Zweck die Loesung vom
+    // NS-Motiv ist, hat der nichts verloren. Der SCHLUESSEL bleibt
+    // "kraut_tongue": er steht so in der Datenbank und in
+    // server/data/erfolge.json, ein Wechsel dort waere eine Migration.
+    // Der deutsche Text war ohnehin schon "Kopfsache".
+    Achievement_Create(29, "kraut_tongue", T("Heads Will Roll"), T("Get 25 Headshots"));
     Achievement_Create(30, "mindblowing", T("Mindblowing"), T("Get 250 Headshots"));
     Achievement_Create(31, "thanks_explosions", T("Big Thanks to Explosions"), T("Kill 10 Zombies with a single       Grenade"));
     Achievement_Create(32, "mbox_maniac", T("Mystery Box Manaic"), T("Use the Mystery Box 20 times in a   single Game"));
