@@ -628,7 +628,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22ah';
+var TS_BUILD = '2026-08-22ai';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -2645,7 +2645,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		// Der Stick MUSS mitgezaehlt werden: im Linkshaender-Modus wandert er
 		// nach rechts und stand dann genau ueber der Munitionsanzeige -- am Bild
 		// gesehen, nachdem die erste Fassung nur .tbtn befragte.
-		var teile = ui.querySelectorAll('.tbtn, #stick');
+		var teile = ui.querySelectorAll('.tbtn, #stick');   // Zahnrad steckt in .tbtn
 		for (var i = 0; i < teile.length; i++){
 			var b = teile[i];
 			if (getComputedStyle(b).display === 'none') continue;
@@ -2655,10 +2655,31 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			if (r.left < linkeste) linkeste = r.left;
 		}
 		var cssRand = Math.max(0, breit - linkeste);
+
+		// Und dasselbe fuer OBEN LINKS: dort steht das Zahnrad, und die
+		// Perk-Zeichen laufen als Spalte von der oberen linken Ecke nach unten.
+		// Am Bild ueberdeckten sich Zahnrad und Speed-Cola-Flasche zur Haelfte.
+		// Gemessen wird nur, was wirklich oben links steht -- im
+		// Linkshaender-Modus wandert das Zahnrad nach rechts und der Wert faellt
+		// von selbst auf 0.
+		var unterste = 0;
+		for (var j = 0; j < teile.length; j++){
+			var t = teile[j];
+			if (getComputedStyle(t).display === 'none') continue;
+			var q = t.getBoundingClientRect();
+			if (!q.width) continue;
+			if (q.left + q.width / 2 >= breit / 2) continue;   // rechte Haelfte zaehlt hier nicht
+			if (q.top > hoch / 3) continue;                    // und nur der obere Streifen
+			if (q.bottom > unterste) unterste = q.bottom;
+		}
+
 		// CSS-Pixel -> HUD-Einheiten: die 2D-Ebene ist conheight hoch.
-		var rand = Math.round(cssRand * (conheight / hoch)) + 6;   // 6 Einheiten Luft
-		tsCmd('ts_hudright ' + rand + '\n');
-		return { cssRand: cssRand, rand: rand, linkeste: Math.round(linkeste) };
+		var faktor = conheight / hoch;
+		var rand = Math.round(cssRand * faktor) + 6;      // 6 Einheiten Luft
+		var oben = unterste > 0 ? Math.round(unterste * faktor) + 4 : 0;
+		tsCmd('ts_hudright ' + rand + '\nts_hudtop ' + oben + '\n');
+		return { cssRand: cssRand, rand: rand, linkeste: Math.round(linkeste),
+		         cssOben: Math.round(unterste), oben: oben };
 	}
 
 	var HUD_PRESETS = [

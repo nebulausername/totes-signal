@@ -185,6 +185,9 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	// zurueck und `ts_hudright 210` waere fuer die Konsole ein unbekannter
 	// Befehl. Genau so ist der erste Versuch lautlos wirkungslos geblieben.
 	autocvar(ts_hudright, 0);
+	// Hoehe, die die Shell oben links belegt (Zahnrad). Ohne sie liegen die
+	// Perk-Zeichen darunter.
+	autocvar(ts_hudtop, 0);
 	autocvar(in_aimassist, 1);   // Default an (mobile-first); im Optionsmenue abschaltbar, seta-Wahl bleibt
 	autocvar(cl_hitmarkers, 1);
 	autocvar(cl_textopacity, 0.20);

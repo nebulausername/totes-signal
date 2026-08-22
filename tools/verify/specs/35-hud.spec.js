@@ -31,19 +31,25 @@ async function messen(page, lefty) {
     if (!window.__ts_hudRand) return { fehlt: true };
     const ergebnis = window.__ts_hudRand();    // setzt ts_hudright und gibt die Rechnung zurueck
     const breit = window.innerWidth;
-    let linkeste = breit, teile = [];
+    const hoch = window.innerHeight;
+    let linkeste = breit, unterste = 0, teile = [], obenLinks = [];
     ui.querySelectorAll('.tbtn, #stick').forEach((e) => {
       if (getComputedStyle(e).display === 'none') return;
       const r = e.getBoundingClientRect();
       if (!r.width) return;
-      if (r.left + r.width / 2 < breit / 2) return;
-      teile.push({ id: e.id || (e.textContent || '').trim().slice(0, 8), left: Math.round(r.left) });
-      if (r.left < linkeste) linkeste = r.left;
+      const id = e.id || (e.textContent || '').trim().slice(0, 8);
+      if (r.left + r.width / 2 >= breit / 2) {
+        teile.push({ id, left: Math.round(r.left) });
+        if (r.left < linkeste) linkeste = r.left;
+      } else if (r.top <= hoch / 3) {
+        obenLinks.push({ id, bottom: Math.round(r.bottom) });
+        if (r.bottom > unterste) unterste = r.bottom;
+      }
     });
     // NICHT runden: die Shell rechnet mit Subpixeln, und ein gerundetes
     // Vergleichsmass liess den Test um 0,4 px scheitern, ohne dass am Bild
     // irgendetwas falsch war.
-    return { ergebnis, breit, linkeste, teile };
+    return { ergebnis, breit, linkeste, teile, unterste, obenLinks };
   }, lefty);
 }
 
@@ -63,7 +69,19 @@ test('Der reservierte Streifen deckt die ganze rechte Knopfspalte', async ({ pag
   expect(m.ergebnis.rand, 'in HUD-Einheiten, an die Engine gemeldet').toBeGreaterThan(0);
 });
 
-test('Linkshaender: der Stick zaehlt mit', async ({ page }) => {
+test('Der obere linke Streifen deckt das Zahnrad', async ({ page }) => {
+  // Die Perk-Zeichen laufen als Spalte von der oberen linken Ecke nach unten
+  // und lagen deshalb unter dem Zahnrad -- am Bild ueberdeckten sich beide zur
+  // Haelfte. GetTouchTopInset schiebt sie darunter.
+  const m = await messen(page, false);
+  expect(m.obenLinks.map((t) => t.id), 'Zahnrad steht oben links').toContain('gearbtn');
+  expect(m.ergebnis.cssOben, 'gemeldeter Streifen (' + m.ergebnis.cssOben + ' px) muss bis unter das '
+    + 'unterste Element oben links reichen (' + JSON.stringify(m.obenLinks) + ')')
+    .toBeGreaterThanOrEqual(m.unterste - 0.01);
+  expect(m.ergebnis.oben, 'in HUD-Einheiten, an die Engine gemeldet').toBeGreaterThan(0);
+});
+
+test('Linkshaender: der Stick zaehlt mit, das Zahnrad nicht mehr', async ({ page }) => {
   const m = await messen(page, true);
   expect(m.fehlt).toBeUndefined();
   // Im gespiegelten Layout liegt der Stick rechts -- er MUSS in der Messung
@@ -71,4 +89,11 @@ test('Linkshaender: der Stick zaehlt mit', async ({ page }) => {
   expect(m.teile.map((t) => t.id), 'Stick in der rechten Haelfte').toContain('stick');
   expect(m.ergebnis.cssRand, 'Streifen deckt auch den Stick')
     .toBeGreaterThanOrEqual(m.breit - m.linkeste - 0.01);
+  // Gespiegelt sitzt das Zahnrad rechts -- oben links steht dafuer MENUE.
+  // Der Streifen bleibt also noetig, nur mit anderem Nachbarn. (Erst
+  // erwartet, oben links sei dann frei -- falsch, das Layout spiegelt
+  // vollstaendig.)
+  expect(m.obenLinks.map((t) => t.id), 'oben links steht jetzt MENUE').toContain('MENÜ');
+  expect(m.ergebnis.cssOben, 'Streifen deckt auch den gespiegelten Knopf')
+    .toBeGreaterThanOrEqual(m.unterste - 0.01);
 });

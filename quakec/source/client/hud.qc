@@ -97,6 +97,21 @@ float() GetTouchRightInset =
 	return cvar("ts_hudright");
 }
 
+// Wie viel Platz die Shell OBEN LINKS belegt (das Zahnrad). Die Perk-Zeichen
+// laufen als zwei Spalten von der oberen linken Ecke nach unten und lagen
+// deshalb genau darunter -- am Bild ueberdeckten sich Zahnrad und
+// Speed-Cola-Flasche zur Haelfte.
+//
+// Im Linkshaender-Modus wandert das Zahnrad nach rechts; dann meldet die Shell
+// 0 und die Spalten stehen wieder ganz oben.
+float() GetTouchTopInset =
+{
+	if (!cvar("ts_touchui"))
+		return 0;
+
+	return cvar("ts_hudtop");
+}
+
 //return hud images, makes drawpic slightly cleaner..
 string(string img) getImage = {
 	return strcat(huddir, img);
@@ -1374,7 +1389,7 @@ void() HUD_DrawPerksDefault =
 	scale = 32;
 
 	x = 20;
-	y = 6;
+	y = 6 + GetTouchTopInset();
 
 	if (cvar("vid_ultrawide_limiter"))
 		x += ULTRAWIDE_OFFSET;
@@ -1404,7 +1419,7 @@ void() HUD_DrawPerksDefault =
 	}
 
 	x = 3;
-	y = 6;
+	y = 6 + GetTouchTopInset();
 
 	if (cvar("vid_ultrawide_limiter"))
 		x += ULTRAWIDE_OFFSET;
