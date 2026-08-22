@@ -125,7 +125,7 @@
 	   Elemente nicht, also lag der ganze Einstellungsschirm als normaler
 	   Block UNTER dem 100%-hohen Canvas: top 408 bei 390 px Viewport, und
 	   body hat overflow:hidden. Er war nie zu sehen. */
-	#mstart, #rotate, #loadscreen, #deathui, #accountui, #settingsui {
+	#mstart, #rotate, #loadscreen, #deathui, #accountui, #settingsui, #joinui {
 		position:fixed; inset:0; z-index:50; display:none;
 		background:radial-gradient(120% 90% at 50% 35%, #12100e 0%, #070605 55%, #000 100%);
 		color:#e6e1d2; font-family:monospace;
@@ -168,6 +168,20 @@
 	   Zeilen enger -- so passen Empfindlichkeit bis Sparsam-Modus ohne Scrollen. */
 	#settingsui .ts-mark { font-size:min(4.6vh,26px); letter-spacing:3px; margin:0 0 6px; }
 	#settingsui .set-row { padding:7px 12px; }
+	/* Server beitreten: das einzige echte Eingabefeld der Anwendung. Die
+	   Engine kann auf dem Handy keine Texteingabe, ein HTML-input schon --
+	   mitsamt Systemtastatur, Einfuegen und Autokorrektur-Abschaltung. */
+	#joinui { z-index:51; }
+	/* Wie beim Einstellungsschirm: im Querformat ist Hoehe knapp, die
+	   60-px-Wortmarke schoebe Feld und Knoepfe unter die Kante. */
+	#joinui .ts-mark { font-size:min(5vh,28px); letter-spacing:3px; margin:0 0 4px; }
+	#joinui .death-actions { gap:14px; margin-top:6px; }
+	#joinui .play, #joinui .play.alt { margin-top:10px; }
+	#joinui input { width:min(560px,86vw); margin-top:14px; padding:12px 14px;
+		font-family:monospace; font-size:min(4.4vw,17px); letter-spacing:0.5px;
+		color:#f2ede0; background:rgba(20,14,12,0.9); border:2px solid #6b3a2a;
+		border-radius:10px; outline:none; }
+	#joinui input:focus { border-color:#c21500; }
 	.set-row { display:flex; align-items:center; gap:10px; padding:10px 12px; text-align:left;
 		border-bottom:1px solid rgba(255,255,255,0.07); }
 	.set-row label { flex:1 1 auto; font-size:min(2.2vh,12px); letter-spacing:1px; color:#e6e1d2; }
@@ -205,17 +219,17 @@
 	.ts-sub { color:#9a9384; font-size:min(3.2vw,14px); letter-spacing:5px; margin:3px 0 0; opacity:0.85; }
 	@keyframes tsflk { 0%,92%,100%{opacity:1} 93%{opacity:0.35} 94%{opacity:1} 96%{opacity:0.55} 97%{opacity:1} }
 	#mstart p.hint, #rotate p, #loadscreen p.hint { font-size:min(4.2vw,17px); line-height:1.55; opacity:0.82; margin:12px 0 0; }
-	#mstart .play, #deathui .play {
+	#mstart .play, #deathui .play, #joinui .play {
 		margin-top:26px; display:inline-block; padding:16px 32px; cursor:pointer;
 		border:2px solid #c21500; border-radius:12px; color:#f2ede0;
 		font-size:min(6vw,24px); font-weight:bold; letter-spacing:1px;
 		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(194,21,0,0.4);
 		vertical-align:middle;
 	}
-	#mstart .play:active, #deathui .play:active { background:rgba(194,21,0,0.55); }
+	#mstart .play:active, #deathui .play:active, #joinui .play:active { background:rgba(194,21,0,0.55); }
 	/* Zweitknopf im Gate: gleiche Groesse, ruhiger -- er ist ein Angebot,
 	   nicht der Hauptweg. */
-	#mstart .play.alt { margin-top:14px; border-color:#6b3a2a; color:#e6e1d2;
+	#mstart .play.alt, #joinui .play.alt { margin-top:14px; border-color:#6b3a2a; color:#e6e1d2;
 		background:rgba(40,24,18,0.55); box-shadow:none; font-size:min(4.4vw,18px);
 		padding:12px 24px; }
 	#deathui .death-actions { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
@@ -434,6 +448,17 @@
 			<span class="play alt" id="deathlobby" data-i18n="lobby"></span>
 		</div>
 	</div></div>
+	<div id="joinui"><div class="box">
+		<p class="ts-mark" data-i18n="joinTitle"></p>
+		<p class="hint" data-i18n="joinHint"></p>
+		<input id="join-adr" type="text" inputmode="url" autocapitalize="off" autocomplete="off"
+		       spellcheck="false" placeholder="wss://beispiel.de/spiel">
+		<p class="hint" id="join-fehler" style="color:#e0603a; min-height:1.2em"></p>
+		<div class="death-actions">
+			<span class="play" id="join-los" data-i18n="joinGo"></span>
+			<span class="play alt" id="join-zu" data-i18n="close"></span>
+		</div>
+	</div></div>
 	<div id="settingsui"><div class="box">
 		<p class="ts-mark" data-i18n="setTitle"></p>
 		<div id="set-inhalt"></div>
@@ -515,6 +540,8 @@ function tsMarker(msg)
 	// man musste erst ein Spiel starten und das Zahnrad oeffnen.
 	if (msg.indexOf('TSUI:open:settings') !== -1 && window.TS_SET)
 		TS_SET.zeigen();
+	if (msg.indexOf('TSUI:open:join') !== -1 && window.TS_JOIN)
+		TS_JOIN.zeigen();
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
 		if (m) TS_DEATH.show(parseInt(m[1], 10));
@@ -550,7 +577,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22t';
+var TS_BUILD = '2026-08-22w';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -738,6 +765,11 @@ var I18N = {
 		sub:'▚ KEIN SIGNAL ▚',
 		tap:'Koop-Zombie-Shooter im Browser. Kein Empfang. Nur Untote.',
 		play:'▶ TIPPEN ZUM SPIELEN',
+		joinTitle: 'SERVER BEITRETEN',
+		joinHint: 'Adresse des Spielservers eingeben.',
+		joinGo: 'VERBINDEN',
+		joinBad: 'Das sieht nicht nach einer Serveradresse aus.',
+		close: 'ABBRECHEN',
 		resume: 'WEITERSPIELEN',
 		gateGroesse:'Erster Start: rund 90 MB werden geladen. Danach laeuft das Spiel offline.',
 		rotate:'Bitte Gerät ins Querformat drehen.',
@@ -791,6 +823,11 @@ var I18N = {
 		sub:'▚ NO SIGNAL ▚',
 		tap:'Co-op zombie shooter in your browser. No signal. Only the undead.',
 		play:'▶ TAP TO PLAY',
+		joinTitle: 'JOIN SERVER',
+		joinHint: 'Enter the game server address.',
+		joinGo: 'CONNECT',
+		joinBad: 'That does not look like a server address.',
+		close: 'CANCEL',
 		resume: 'CONTINUE',
 		gateGroesse:'First launch downloads about 90 MB. After that it runs offline.',
 		rotate:'Please rotate your device to landscape.',
@@ -1811,6 +1848,61 @@ function gateHinweis(){
 		if (!hit) e.textContent = T('gateGroesse');   // noch nichts im Cache
 	}).catch(function(){ e.textContent = T('gateGroesse'); });
 }
+
+// ---- Server beitreten ----
+// Die Engine kann auf dem Handy keine Texteingabe: ihre Eingabefelder haengen an
+// einer Tastatur, die es dort nicht gibt. Ein HTML-input kann es -- samt
+// Systemtastatur. Deshalb liegt der Beitritt in der Shell, das Menue schickt
+// nur den Marker TSUI:open:join.
+//
+// Es gibt (noch) keinen Server, zu dem man sich verbinden koennte -- der Weg
+// existiert fuer den Fall, dass jemand einen betreibt.
+var TS_JOIN = {
+	SCHLUESSEL: 'ts_letzte_adresse',
+
+	// Die Adresse wandert in eine Konsolenzeile, und tsCmd fuehrt JEDE aus.
+	// Erlaubt ist nur, was eine Serveradresse sein kann -- kein Leerzeichen,
+	// kein Semikolon, kein Zeilenumbruch.
+	gueltig: function(a){
+		return /^(wss?:\/\/)?[A-Za-z0-9.\-]{1,253}(:\d{1,5})?(\/[A-Za-z0-9._~\-\/]*)?$/.test(String(a || ''));
+	},
+
+	zeigen: function(){
+		var el = document.getElementById('joinui'); if (!el) return;
+		var f  = document.getElementById('join-adr');
+		try { f.value = localStorage.getItem(this.SCHLUESSEL) || ''; } catch(e){}
+		document.getElementById('join-fehler').textContent = '';
+		el.style.display = 'flex';
+		setTimeout(function(){ try { f.focus(); } catch(e){} }, 60);
+	},
+
+	schliessen: function(){
+		var el = document.getElementById('joinui'); if (el) el.style.display = 'none';
+	},
+
+	verbinden: function(){
+		var f = document.getElementById('join-adr');
+		var a = (f.value || '').trim();
+		if (!this.gueltig(a)){
+			document.getElementById('join-fehler').textContent = T('joinBad');
+			return;
+		}
+		try { localStorage.setItem(this.SCHLUESSEL, a); } catch(e){}
+		this.schliessen();
+		if (window.tsCmd) tsCmd('connect ' + a + '\n');
+	},
+
+	start: function(){
+		var self = this;
+		var los = document.getElementById('join-los');
+		var zu  = document.getElementById('join-zu');
+		var f   = document.getElementById('join-adr');
+		if (los) los.addEventListener('click', function(){ self.verbinden(); });
+		if (zu)  zu.addEventListener('click',  function(){ self.schliessen(); });
+		if (f)   f.addEventListener('keydown', function(e){ if (e.key === 'Enter') self.verbinden(); });
+	}
+};
+TS_JOIN.start();
 
 // ---- Weiterspielen: der letzte Lauf als Ein-Tipp-Angebot im Start-Gate ----
 // Ein Wiederkehrer brauchte bisher fuenf Interaktionen und zwei Wartezeiten bis

@@ -47,8 +47,10 @@ string(string english) T =
 	case "MAIN MENU": return "HAUPTMENUE";
 	case "SOLO": return "SOLO";
 	case "Play Solo.": return "Alleine spielen.";
-	case "COOPERATIVE": return "KOOPERATIV";
+	case "COOPERATIVE": return "MULTIPLAYER";   // gelaeufiger und genauer: bis zu vier Spieler
 	case "Play with up to Four Players.": return "Mit bis zu vier Spielern spielen.";
+	case "JOIN SERVER": return "SERVER BEITRETEN";
+	case "HOST GAME": return "SPIEL ANBIETEN";
 	case "CONFIGURATION": return "EINSTELLUNGEN";
 	case "Tweak Game related Options.": return "Spieloptionen anpassen.";
 	case "CHARACTER BIOS": return "DIE UEBERLEBENDEN";

@@ -260,9 +260,23 @@ void() Menu_Coop =
 	Menu_Button(1, "cm_playername", T("PLAYER NAME"), T("Name that appears in-game and on the Scoreboard."));
 	Menu_TextInput("cm_playername", 1, player_name, player_name_cursor);
 
-	Menu_DrawDivider(2);
-	Menu_Button(2.25, "cm_join", T("JOIN GAME"), T("Join an in-progress Match.")) ? Menu_Coop_EnterJoin() : 0;
-	Menu_Button(3.25, "cm_create", T("CREATE GAME"), T("Create a new Match for others to join.")) ? Menu_Coop_EnterCreate() : 0;
+	if (MENU_TOUCH) {
+		// Auf Touch fuehren die Unterschirme ins Leere: sie bestehen aus
+		// Texteingaben, und ohne Bildschirmtastatur laesst sich dort nichts
+		// eintippen. Das Beitreten uebernimmt die Web-Shell -- sie hat ein
+		// echtes Eingabefeld samt Tastatur. Marker statt Bildschirmwechsel.
+		menu_primary_id = "cm_join";
+		Menu_Button(2, "cm_join", T("JOIN SERVER"), "") ? print("\nTSUI:open:join\n") : 0;
+
+		// Anbieten kann ein Browser NICHT: er nimmt keine Verbindungen an.
+		// Sichtbar gesperrt statt weggelassen -- sonst fragt sich der Spieler,
+		// wo die Haelfte des Bildschirms hin ist.
+		Menu_GreyButton(3, T("HOST GAME"));
+	} else {
+		Menu_DrawDivider(2);
+		Menu_Button(2.25, "cm_join", T("JOIN GAME"), T("Join an in-progress Match.")) ? Menu_Coop_EnterJoin() : 0;
+		Menu_Button(3.25, "cm_create", T("CREATE GAME"), T("Create a new Match for others to join.")) ? Menu_Coop_EnterCreate() : 0;
+	}
 
 	Menu_Button(-1, "cm_back", T("BACK"), T("Return to Main Menu.")) ? Menu_Coop_EnterBack() : 0;
 
