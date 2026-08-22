@@ -544,6 +544,9 @@ function tsMarker(msg)
 		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
 		if (window.TS_RUN && TS_ORIGIN_OK) TS_RUN.erfolgeWiederherstellen();
 		if (window.TS_SET) TS_SET.allesAnwenden();
+		// NACH TS_SET: Knopfgroesse und Linkshaender-Modus verschieben die
+		// Knoepfe, und erst danach stimmt die gemessene Randbreite.
+		if (window.__ts_hudRand) __ts_hudRand();
 		if (window.TS_LANG) TS_LANG.anwenden();
 		if (window.__ts_renderMode) __ts_renderMode('game');
 	}
@@ -625,7 +628,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22ag';
+var TS_BUILD = '2026-08-22ah';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1823,7 +1826,12 @@ var TS_SET = {
 		{ id:'aim', typ:'schalter', std:1,
 		  anwenden:function(v){ tsCmd('in_aimassist ' + (Number(v) ? 1 : 0) + '\n'); } },
 		{ id:'btnsize', typ:'regler', min:0.8, max:1.4, schritt:0.05, std:1,
-		  anwenden:function(v){ document.documentElement.style.setProperty('--tscale', v); },
+		  anwenden:function(v){
+			document.documentElement.style.setProperty('--tscale', v);
+			// Groessere Knoepfe brauchen mehr Rand -- sonst rutscht die
+			// Munitionsanzeige wieder darunter.
+			if (window.__ts_hudRand) __ts_hudRand();
+		  },
 		  zeigen:function(v){ return Math.round(v * 100) + '%'; } },
 		{ id:'btnalpha', typ:'regler', min:0.35, max:1, schritt:0.05, std:1,
 		  anwenden:function(v){ document.documentElement.style.setProperty('--talpha', v); },
@@ -1841,6 +1849,9 @@ var TS_SET = {
 			// der naechsten Knopfspalte. Stattdessen weiter nach oben, in die
 			// freie Zone unter MENUE.
 			if (window.tsCmd) tsCmd('ts_hudx 0\nts_hudlift ' + (Number(v) ? 205 : 0) + '\n');
+			// Im gespiegelten Layout ist der rechte Rand frei -- die Messung
+			// faellt dann von selbst auf 0.
+			if (window.__ts_hudRand) __ts_hudRand();
 		  } },
 		{ id:'qualitaet', typ:'schalter', std:0,
 		  // Sparsam-Modus. Die Cvars sind an DIESEM Build per Konsole geprueft.
@@ -2617,6 +2628,39 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	// ein explizit gesetztes vid_conheight schlaegt die Automatik -- ebenfalls
 	// an diesem Build geprueft. Und `fps_preset` ohne Argument oeffnet ein
 	// blockierendes Engine-Menue ueber dem Spiel; niemals ohne Stufe aufrufen.
+	// Wie breit die Knopfspalte am rechten Rand ist -- in HUD-Einheiten, damit
+	// die Engine Munition, Granaten und Kapitelkarte davor zeichnet statt
+	// darunter. GetTouchLift/GetTouchShift machen dasselbe fuer den
+	// Punkteblock links; rechts fehlte es, und am Bild lag "8/32" unter dem
+	// Feuerknopf.
+	//
+	// Gemessen wird das echte Layout, nicht geschaetzt: im Linkshaender-Modus
+	// wandern die Knoepfe nach links, dann faellt der Abstand von selbst auf 0.
+	function meldeRandbreite(conheight){
+		var ui = document.getElementById('touchui');
+		if (!ui || !window.tsCmd) return;
+		var breit = window.innerWidth, hoch = window.innerHeight;
+		if (!breit || !hoch) return;
+		var linkeste = breit;
+		// Der Stick MUSS mitgezaehlt werden: im Linkshaender-Modus wandert er
+		// nach rechts und stand dann genau ueber der Munitionsanzeige -- am Bild
+		// gesehen, nachdem die erste Fassung nur .tbtn befragte.
+		var teile = ui.querySelectorAll('.tbtn, #stick');
+		for (var i = 0; i < teile.length; i++){
+			var b = teile[i];
+			if (getComputedStyle(b).display === 'none') continue;
+			var r = b.getBoundingClientRect();
+			if (!r.width) continue;
+			if (r.left + r.width / 2 < breit / 2) continue;  // linke Haelfte zaehlt nicht
+			if (r.left < linkeste) linkeste = r.left;
+		}
+		var cssRand = Math.max(0, breit - linkeste);
+		// CSS-Pixel -> HUD-Einheiten: die 2D-Ebene ist conheight hoch.
+		var rand = Math.round(cssRand * (conheight / hoch)) + 6;   // 6 Einheiten Luft
+		tsCmd('ts_hudright ' + rand + '\n');
+		return { cssRand: cssRand, rand: rand, linkeste: Math.round(linkeste) };
+	}
+
 	var HUD_PRESETS = [
 		{ key: 'hud0', conheight: 480 },   // Standard (wie Desktop)
 		{ key: 'hud1', conheight: 380 },   // Gross
@@ -2636,12 +2680,16 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		// Dieser Block laeuft nur auf Touch-Geraeten (die IIFE steigt sonst
 		// vorher aus), die Cvar bleibt auf dem Desktop also 0.
 		tsCmd('ts_touchui 1\nvid_conheight ' + h.conheight + '\n');
+		meldeRandbreite(h.conheight);
 		var st = document.getElementById('gs-hud-state');
 		if (st){ st.textContent = T(h.key); st.classList.toggle('on', hudIdx > 0); }
 	}
 	// Re-Apply bei jedem Spielstart: die Engine liest nzportable.cfg beim Laden
 	// erneut, unsere Uebersteuerung muss danach wieder greifen.
 	window.__ts_applyHud = function(){ applyHud(); };
+	// Auch einzeln aufrufbar: Linkshaender-Modus und Knopfgroesse aendern die
+	// Knopflage, ohne den HUD-Preset anzufassen.
+	window.__ts_hudRand = function(){ return meldeRandbreite(HUD_PRESETS[hudIdx].conheight); };
 
 	// --- Zahnrad + Schnell-Einstellungen-Sheet (ersetzt die HUD-Buttons
 	// SPRINT/DUCKEN/GR.2/AUTO/VOLLBILD -> weniger Controls, gleiche Funktion) ---

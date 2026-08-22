@@ -80,6 +80,23 @@ float() GetTouchShift =
 	return cvar("ts_hudx");
 }
 
+// Wie viel Platz die Web-Shell am RECHTEN Rand belegt: Feuerknopf, LADEN,
+// ZIELEN, SPRUNG, AKTION und die Knopfspalte daneben. Munition, Granaten und
+// die Kapitelkarte zeichnen genau dort, und ohne diesen Abstand lagen sie
+// UNTER den Knoepfen -- am Bild nachgemessen (844x390, Munition "8/32" bei
+// CSS-x 644..737, der Feuerknopf beginnt bei 678).
+//
+// Denselben Weg gehen GetTouchLift und GetTouchShift fuer den Punkteblock;
+// hier fehlte er schlicht. Die Engine kann die Knopflage nicht erraten, also
+// misst die Shell ihr eigenes Layout und setzt ts_hudright.
+float() GetTouchRightInset =
+{
+	if (!cvar("ts_touchui"))
+		return 0;
+
+	return cvar("ts_hudright");
+}
+
 //return hud images, makes drawpic slightly cleaner..
 string(string img) getImage = {
 	return strcat(huddir, img);
@@ -242,13 +259,13 @@ void() HUD_Ammo =
 		float curmag2 = getstatf(STAT_CURRENTMAG2);
 		
 		ammostring = strcat(ftos(curmag2), " ", ftos(curmag), "/", ftos(ammo));
-		float x2 = (g_width - GetUltraWideOffset()) - 62 - getTextWidth(ammostring, 12);
+		float x2 = (g_width - GetUltraWideOffset()) - 62 - GetTouchRightInset() - getTextWidth(ammostring, 12);
 		HUD_DrawStringWithBackdrop([x2, g_height - 29], ammostring, [12, 12], [1,1,1], alpha, 0);
 	} else {
 		ammostring_1 = ftos(curmag);
 		ammostring_2 = strcat("/", ftos(ammo));
 		string weapon_ammo_string = strcat(ftos(curmag), "/", ftos(ammo));
-		float x = (g_width - GetUltraWideOffset())  - 62 - getTextWidth(weapon_ammo_string, 12);
+		float x = (g_width - GetUltraWideOffset())  - 62 - GetTouchRightInset() - getTextWidth(weapon_ammo_string, 12);
 		HUD_DrawStringWithBackdrop([x, g_height - 29], ammostring_1, [12, 12], color, alpha, 0);
 		HUD_DrawStringWithBackdrop([x + getTextWidth(ammostring_1, 12), g_height - 29], ammostring_2, [12, 12], color_2, alpha, 0);
 	}
@@ -511,12 +528,12 @@ void() HUD_Grenades =
 	else
 		betties_text_color = [1, 1, 1];
 
-	drawpic([g_width - 3 - 56 - GetUltraWideOffset(), g_height - 50], "gfx/hud/frag.tga", [32, 32], [1, 1, 1], alpha);
-	HUD_DrawStringWithBackdrop([g_width - 3 - 38 - GetUltraWideOffset(), g_height - 29], ftos(grenades), [12, 12], grenade_text_color, alpha, 0);
+	drawpic([g_width - 3 - 56 - GetTouchRightInset() - GetUltraWideOffset(), g_height - 50], "gfx/hud/frag.tga", [32, 32], [1, 1, 1], alpha);
+	HUD_DrawStringWithBackdrop([g_width - 3 - 38 - GetTouchRightInset() - GetUltraWideOffset(), g_height - 29], ftos(grenades), [12, 12], grenade_text_color, alpha, 0);
 
 	if (betties != -1) {
-		drawpic([g_width - 3 - 28 - GetUltraWideOffset(), g_height - 50], "gfx/hud/betty.tga", [32, 32], [1, 1, 1], alpha);
-		HUD_DrawStringWithBackdrop([g_width - 3 - 10 - GetUltraWideOffset(), g_height - 29], ftos(betties), [12, 12], betties_text_color, alpha, 0);
+		drawpic([g_width - 3 - 28 - GetTouchRightInset() - GetUltraWideOffset(), g_height - 50], "gfx/hud/betty.tga", [32, 32], [1, 1, 1], alpha);
+		HUD_DrawStringWithBackdrop([g_width - 3 - 10 - GetTouchRightInset() - GetUltraWideOffset(), g_height - 29], ftos(betties), [12, 12], betties_text_color, alpha, 0);
 	}
 }
 
@@ -594,10 +611,10 @@ void() HUD_Rounds =
 			}
 		}
 
-		Draw_String([g_width - 3 - GetUltraWideOffset() - getTextWidth(chaptertitle, 12), g_height/2 + 48], chaptertitle, [12, 12], [1, 1, 1], localpha, 0);
-		Draw_String([g_width - 3 - GetUltraWideOffset() - getTextWidth(location, 12), g_height/2 + 60], location, [12, 12], [1, 1, 1], localpha, 0);
-		Draw_String([g_width - 3 - GetUltraWideOffset() - getTextWidth(date, 12), g_height/2 + 72], date, [12, 12], [1, 1, 1], localpha, 0);
-		Draw_String([g_width - 3 - GetUltraWideOffset() - getTextWidth(person, 12), g_height/2 + 84], person, [12, 12], [1, 1, 1], localpha, 0);
+		Draw_String([g_width - 3 - GetTouchRightInset() - GetUltraWideOffset() - getTextWidth(chaptertitle, 12), g_height/2 + 48], chaptertitle, [12, 12], [1, 1, 1], localpha, 0);
+		Draw_String([g_width - 3 - GetTouchRightInset() - GetUltraWideOffset() - getTextWidth(location, 12), g_height/2 + 60], location, [12, 12], [1, 1, 1], localpha, 0);
+		Draw_String([g_width - 3 - GetTouchRightInset() - GetUltraWideOffset() - getTextWidth(date, 12), g_height/2 + 72], date, [12, 12], [1, 1, 1], localpha, 0);
+		Draw_String([g_width - 3 - GetTouchRightInset() - GetUltraWideOffset() - getTextWidth(person, 12), g_height/2 + 84], person, [12, 12], [1, 1, 1], localpha, 0);
 	}
 
 	if (rounds_change == 1)//this is the rounds icon at the middle of the screen
@@ -1450,7 +1467,7 @@ void() HUD_WeaponString =
 		weapon_name_alpha = (weapon_name_time - time)/2;	
 	}
 
-	float x = g_width - 62 - getTextWidth(weapon_name, 12);
+	float x = g_width - 62 - GetTouchRightInset() - getTextWidth(weapon_name, 12);
 
 	HUD_DrawStringWithBackdrop([x - GetUltraWideOffset(), g_height - 49], weapon_name, [12, 12], weapon_name_color, weapon_name_alpha, 0);
 }

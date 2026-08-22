@@ -178,6 +178,13 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	// Linkshaender-Modus, wo die Aktionsknoepfe nach links wandern.
 	autocvar(ts_hudx, 0);
 	autocvar(ts_hudlift, 0);   // 0 = Standardwert aus hud.qc
+	// Breite der Knopfspalte am RECHTEN Rand, in virtuellen Pixeln. Die Shell
+	// misst ihr eigenes Layout und setzt den Wert; ohne ihn zeichnen Munition,
+	// Granaten und Kapitelkarte unter Feuerknopf und Nachladen.
+	// Ohne diese Zeile bliebe die Cvar UNREGISTRIERT -- cvar() gaebe dann 0
+	// zurueck und `ts_hudright 210` waere fuer die Konsole ein unbekannter
+	// Befehl. Genau so ist der erste Versuch lautlos wirkungslos geblieben.
+	autocvar(ts_hudright, 0);
 	autocvar(in_aimassist, 1);   // Default an (mobile-first); im Optionsmenue abschaltbar, seta-Wahl bleibt
 	autocvar(cl_hitmarkers, 1);
 	autocvar(cl_textopacity, 0.20);
