@@ -119,6 +119,7 @@ void() Menu_GameSettings =
         default: gamemode_description = "???"; break;
     }
     Menu_Button(1, "ge_mode", T("GAME MODE"), gamemode_description) ? Menu_GameSettings_ApplyGameMode() : 0;
+    Menu_HelpButton("hlp_mode", 1, T("GAME MODE"), gamemode_description);
     Menu_DrawOptionValue(1, gamemode_string);
 
     // Difficulty
@@ -132,15 +133,18 @@ void() Menu_GameSettings =
         default: difficulty_description = "???"; break;
     }
     Menu_Button(2, "ge_diff", T("DIFFICULTY"), difficulty_description) ? Menu_GameSettings_ApplyDifficulty() : 0;
+    Menu_HelpButton("hlp_diff", 2, T("DIFFICULTY"), difficulty_description);
     Menu_DrawOptionValue(2, difficulty_string);
 
     // Start Round
     Menu_Button(3, "ge_rond", T("START ROUND"), T("Round to begin the Game on.")) ? 0 : 0;
+    Menu_HelpButton("hlp_rond", 3, T("START ROUND"), T("Round to begin the Game on."));
     Menu_CvarSlider(3, "ge_rond", [0, 50, 10], "sv_startround", true, false, true);
 
     // Magic
     string magic_string = "";
     Menu_Button(4, "ge_magc", T("MAGIC"), T("Whether to allow Perks, Power-Ups, and the Mystery Box.")) ? Menu_GameSettings_ApplyMagic() : 0;
+    Menu_HelpButton("hlp_magc", 4, T("MAGIC"), T("Whether to allow Perks, Power-Ups, and the Mystery Box."));
     if (cvar("sv_magic")) {
         magic_string = T("ENABLED");
     } else {
@@ -151,6 +155,7 @@ void() Menu_GameSettings =
     // Headshots Only
     string headshot_string = "";
     Menu_Button(5, "ge_head", T("HEADSHOTS ONLY"), T("Headshots are the only means of Death. Explosives don't work, either.")) ? Menu_GameSettings_ApplyHeadshots() : 0;
+    Menu_HelpButton("hlp_head", 5, T("HEADSHOTS ONLY"), T("Headshots are the only means of Death. Explosives don't work, either."));
     if (cvar("sv_headshotonly")) {
         headshot_string = T("ENABLED");
     } else {
@@ -160,11 +165,13 @@ void() Menu_GameSettings =
 
     // Horde Size
     Menu_Button(6, "ge_hord", T("HORDE SIZE"), T("Maximum Zombies that can Active at once.")) ? 0 : 0;
+    Menu_HelpButton("hlp_hord", 6, T("HORDE SIZE"), T("Maximum Zombies that can Active at once."));
     Menu_CvarSlider(6, "ge_hord", [2, 64, 31], "sv_maxai", true, false, false);
 
     // Fast Rounds
     string fast_string = "";
     Menu_Button(7, "ge_frnd", T("FAST ROUNDS"), T("Minimize Time between Rounds.")) ? Menu_GameSettings_ApplyFastRounds() : 0;
+    Menu_HelpButton("hlp_frnd", 7, T("FAST ROUNDS"), T("Minimize Time between Rounds."));
     if (cvar("sv_fastrounds")) {
         fast_string = T("ENABLED");
     } else {
@@ -173,6 +180,9 @@ void() Menu_GameSettings =
     Menu_DrawOptionValue(7, fast_string);
 
     Menu_Button(-1, "ge_back", T("BACK"), T("Return to Pre-Game Menu.")) ? current_menu = MENU_LOBBY : 0;
+
+    // Erklaerung ZULETZT: sie liegt ueber allem und faengt den Tipp zum Schliessen.
+    Menu_DrawHelpPanel();
 
 	Menu_Page_End();
 

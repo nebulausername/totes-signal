@@ -1063,6 +1063,119 @@ float(string id, vector pos, float groesse, string zeichen) Menu_StepButton =
 };
 
 //
+// ---------------------------------------------------------------------------
+// Erklaerungen zu Einstellungen
+//
+// Die Texte gibt es laengst: jeder Menu_Button traegt eine description, die der
+// Desktop beim Hover unten einblendet. Auf Touch entsteht nie ein Hover -- der
+// Spieler sah also nie, was MAGIE oder NUR KOPFSCHUESSE eigentlich bedeuten.
+// Ein Fragezeichen in der Zeile macht genau diesen Text sichtbar. Keine neuen
+// Uebersetzungen, keine zweite Quelle.
+// ---------------------------------------------------------------------------
+string menu_hilfe_titel;
+string menu_hilfe_text;
+
+//
+// Menu_HelpButton(id, order, titel, beschreibung)
+// Kleines Fragezeichen direkt hinter der Beschriftung. Wird NACH der Zeile
+// registriert und liegt damit obenauf: ein Tipp darauf loest die Zeile selbst
+// nicht mit aus (sui nimmt das oberste Element).
+//
+void(string id, float order, string titel, string beschreibung) Menu_HelpButton =
+{
+	if (!MENU_TOUCH || beschreibung == "") return;
+
+	order = Menu_PageOrder(order);
+	if (!order) return;
+
+	vector box = Menu_RowBox(order);
+	float  d   = MENU_ROW_H - 8 * MENU_UI_SCALE;
+	float  x   = MENU_LABEL_PAD + getTextWidth(titel, MENU_LABEL_SIZE_x) + 14 * MENU_UI_SCALE;
+	vector pos = box + [x, (MENU_ROW_H - d) * 0.5];
+	vector gr  = [d, d];
+
+	float hell = sui_is_hovered(id) || sui_is_pressed_at(pos, gr);
+	sui_fill(pos, gr, [0, 0, 0], hell ? 0.9 : 0.45, 0);
+	sui_fill(pos, [d, max(2, 2 * MENU_UI_SCALE)],
+	         hell ? [1, 0.32, 0.10] : [0.42, 0.12, 0.06], 1, 0);
+	sui_text(pos + [(d - getTextWidth("?", MENU_LABEL_SIZE_x)) * 0.5,
+	                (d - MENU_LABEL_SIZE_y) * 0.5],
+	         MENU_LABEL_SIZE, "?",
+	         hell ? [1, 0.20, 0.06] : [0.85, 0.80, 0.72], 1, 0);
+
+	sui_action_element(pos, gr, id, sui_noop);
+	if (sui_is_clicked(id)) {
+		Menu_PlaySound(MENU_SND_ENTER);
+		menu_hilfe_titel = titel;
+		menu_hilfe_text  = beschreibung;
+	}
+};
+
+//
+// Menu_DrawHelpPanel()
+// Zeigt die offene Erklaerung. Bricht den Text selbst um -- tokenize/argv
+// zerlegen ihn in Woerter, gesetzt wird, bis die Breite reisst. Ein Tipp
+// irgendwo schliesst wieder; die Flaeche wird zuletzt registriert und liegt
+// deshalb ueber allem anderen.
+//
+void() Menu_DrawHelpPanel =
+{
+	if (menu_hilfe_titel == "") return;
+
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
+	float breite = sui_current_frame_size()[0];
+	float hoehe  = sui_current_frame_size()[1];
+	float oben   = hoehe * 0.20;
+	float block  = hoehe * 0.56;
+	float linie  = max(3, 3 * MENU_UI_SCALE);
+	float rand   = 26 * MENU_UI_SCALE;
+
+	sui_fill([0, 0], [breite, hoehe], [0.01, 0, 0], 0.62, 0);
+	sui_fill([0, oben], [breite, block], [0, 0, 0], 0.97, 0);
+	sui_fill([0, oben], [breite, linie], [1, 0.20, 0.05], 0.95, 0);
+	sui_fill([0, oben + block - linie], [breite, linie], [1, 0.20, 0.05], 0.95, 0);
+
+	float y = oben + rand;
+	sui_text([rand, y], MENU_LABEL_SIZE, menu_hilfe_titel, [1, 0.30, 0.10], 1, 0);
+	y += MENU_LABEL_SIZE_y + 12 * MENU_UI_SCALE;
+
+	float maxb = breite - 2 * rand;
+	float n = tokenize(menu_hilfe_text);
+	string zeile = "";
+	for (float i = 0; i < n; i++) {
+		// tokenize trennt Satzzeichen als eigene Token ab -- ohne diese Pruefung
+		// stuende "Perks ," im Text.
+		string wort = argv(i);
+		string erst = substring(wort, 0, 1);
+		float  klebt = (erst == "," || erst == "." || erst == ";" || erst == ":"
+		             || erst == "!" || erst == "?" || erst == ")");
+		string probe = (zeile == "") ? wort
+		             : (klebt ? strcat(zeile, wort) : strcat(zeile, " ", wort));
+		if (getTextWidth(probe, MENU_VALUE_SIZE_x) > maxb && zeile != "") {
+			sui_text([rand, y], MENU_VALUE_SIZE, zeile, [0.94, 0.90, 0.82], 1, 0);
+			y += MENU_VALUE_SIZE_y + 6 * MENU_UI_SCALE;
+			zeile = wort;
+		} else {
+			zeile = probe;
+		}
+	}
+	if (zeile != "")
+		sui_text([rand, y], MENU_VALUE_SIZE, zeile, [0.94, 0.90, 0.82], 1, 0);
+
+	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_START]);
+	sui_text([0, oben + block - MENU_DESC_SIZE_y - 12 * MENU_UI_SCALE], MENU_DESC_SIZE,
+	         T("TAP TO CLOSE"), [0.62, 0.56, 0.50], 1, 0);
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
+
+	sui_action_element([0, 0], [breite, hoehe], "hilfe_zu", sui_noop);
+	if (sui_is_clicked("hilfe_zu")) {
+		Menu_PlaySound(MENU_SND_ENTER);
+		menu_hilfe_titel = "";
+		menu_hilfe_text  = "";
+	}
+};
+
+//
 // Menu_SettingsFooter(apply_id, back_id, anwenden)
 // Fusszeile eines Einstellungsbildschirms. Auf dem Desktop wie bisher
 // UEBERNEHMEN + ZURUECK. Auf Touch entfaellt UEBERNEHMEN: ein Knopf, den man
@@ -1801,6 +1914,7 @@ void(vector size) root_menu =
 		sui_reset_hover();
 		menu_map_vorschau = "";   // Vorschau gilt nur innerhalb einer Kartenliste
 		menu_page = 0;
+		menu_hilfe_titel = "";
 		menu_wechsel_zeit = Menu_Uhr();
 	}
 };

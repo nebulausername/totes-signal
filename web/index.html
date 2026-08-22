@@ -503,6 +503,7 @@ function tsMarker(msg)
 	var mp = msg.match(/TSUI:pause:([01])/);
 	if (mp){
 		if (window.__ts_renderMode) __ts_renderMode(mp[1] === '1' ? 'menu' : 'game');
+		if (window.TS_PAUSE) TS_PAUSE.setzen(mp[1] === '1');
 		// Das Touch-HUD gehoert waehrend der Pause weg: Joystick und FEUER lagen
 		// sonst ueber den Menuezeilen (der Stick genau ueber "NEIN, ICH MACHE
 		// WEITER"). Vor TSUI:pause wusste die Shell von diesem Zustand nichts.
@@ -549,7 +550,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22s';
+var TS_BUILD = '2026-08-22t';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1882,6 +1883,62 @@ var TS_WEITER = {
 		return true;
 	}
 };
+
+// ---- Pausemenue per Finger bedienbar machen ----
+// Im PAUSEMENUE (CSQC) erreicht ein Fingertipp die Menuelogik nicht: die Engine
+// behandelt Beruehrungen dort weiter als Blickeingabe des Spiels, nicht als
+// Zeiger. Nachgemessen -- ein Mausklick auf WEITERMACHEN loest aus, derselbe
+// Punkt als Tipp nicht. Damit war das Pausemenue auf dem Handy vollstaendig
+// unbedienbar: kein Weiterspielen, kein Neustart, kein Beenden.
+//
+// Im Hauptmenue tritt das nicht auf (dort ist menu_active gesetzt und die
+// Engine routet Beruehrungen an das Menue). Die Bruecke laeuft deshalb NUR
+// waehrend der Pause.
+//
+// Die Engine haengt ihre Zeiger-Listener am Canvas mit capture; ein Listener auf
+// window in derselben Phase laeuft davor und kann das Ereignis abfangen. Der
+// Maus-Pfad rechnet ausserdem korrekt von CSS auf Backbuffer um.
+var TS_PAUSE = {
+	aktiv: false,
+
+	setzen: function(an){
+		this.aktiv = !!an;
+	},
+
+	_maus: function(typ, x, y, gedrueckt){
+		var cv = document.getElementById('canvas'); if (!cv) return;
+		cv.dispatchEvent(new MouseEvent(typ, {
+			bubbles:true, cancelable:true, view:window,
+			button:0, buttons: gedrueckt ? 1 : 0, clientX:x, clientY:y
+		}));
+	},
+
+	start: function(){
+		var self = this;
+		function ab(e){
+			if (!self.aktiv) return;
+			var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
+			e.stopPropagation();
+			if (e.cancelable) e.preventDefault();
+
+			if (e.type === 'touchstart' || e.type === 'touchmove'){
+				self._maus('mousemove', t.clientX, t.clientY, e.type === 'touchmove');
+				return;
+			}
+			// Loslassen: sui braucht zwischen Positionsmeldung und Klick einen
+			// Frame, sonst trifft der Klick die Hover-Liste des VORIGEN Bildes.
+			var x = t.clientX, y = t.clientY;
+			self._maus('mousemove', x, y, false);
+			setTimeout(function(){ self._maus('mousedown', x, y, true);
+				setTimeout(function(){ self._maus('mouseup', x, y, false); }, 60);
+			}, 90);
+		}
+		['touchstart','touchmove','touchend','touchcancel'].forEach(function(t){
+			window.addEventListener(t, ab, {capture:true, passive:false});
+		});
+	}
+};
+if (IS_TOUCH) TS_PAUSE.start();
 
 function mobileStart()
 {	var g = document.getElementById('mstart');

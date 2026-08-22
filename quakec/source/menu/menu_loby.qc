@@ -3,6 +3,7 @@ float UserMapSupportsCustomGameLookup(string bsp_name);
 string menu_loby_buttons[3] = {"lo_start", "lo_games", "lo_back"};
 
 float menu_loby_countdown;
+float menu_loby_dauer;      // Laenge des laufenden Countdowns (Solo kurz, Koop 6 s)
 float menu_loby_last;
 
 string(string prev_id) Menu_Lobby_GetNextButton =
@@ -60,7 +61,15 @@ string(string next_id) Menu_Lobby_GetPreviousButton =
 void() Menu_Lobby_StartCountdown =
 {
     Menu_PlaySound(MENU_SND_ENTER);
-    menu_loby_countdown = time + 6;
+
+    // Im SOLO wartet niemand. Die sechs Sekunden waren reine Totzeit vor einem
+    // Ladevorgang, der ohnehin folgt -- der Spieler starrt einen Zaehler an,
+    // der nichts synchronisiert. Zwei Sekunden bleiben als Abbruchfenster.
+    // Im Koop bleibt es bei sechs: dort gleicht der Zaehler die Mitspieler ab.
+    // sv_public ist der verlaessliche Schalter -- Menu_StartSolo setzt 0,
+    // Menu_StartCoop setzt 2 (m_menu.qc).
+    menu_loby_dauer = (cvar("sv_public") == 0) ? 2 : 6;
+    menu_loby_countdown = time + menu_loby_dauer;
     menu_loby_last = 0;
 }
 
@@ -197,7 +206,10 @@ void() Menu_Lobby =
     float lobby_delta = menu_loby_countdown - time;
     if (lobby_delta > 0) {
         sui_text([150, 5], MENU_TEXT_SMALL, sprintf(T("Game Starting In.. %d"), lobby_delta), [1, 1, 1], 1, 0);
-	    sui_fill([150, 20], [75 * (lobby_delta/6), 6], [0.2, 0.2 * (lobby_delta/6), 0.2 * (lobby_delta/6)], 1, 0);
+        // Balken gegen die TATSAECHLICHE Dauer, nicht gegen feste 6 --
+        // sonst spraenge er im Solo bei einem Drittel los.
+        float anteil = (menu_loby_dauer > 0) ? (lobby_delta / menu_loby_dauer) : 0;
+        sui_fill([150, 20], [75 * anteil, 6], [0.2, 0.2 * anteil, 0.2 * anteil], 1, 0);
 
         if (menu_loby_last != floor(lobby_delta)) {
             Menu_PlaySound(MENU_SND_BEEP);
