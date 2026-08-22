@@ -5,6 +5,7 @@ import { healthy } from './lib/db.js';
 import authRoutes from './routes/auth.js';
 import runRoutes from './routes/runs.js';
 import achRoutes from './routes/achievements.js';
+import spielRoutes from './routes/spiel.js';
 
 export function build() {
   const app = Fastify({
@@ -58,6 +59,7 @@ export function build() {
   app.register(authRoutes);
   app.register(runRoutes);
   app.register(achRoutes);
+  app.register(spielRoutes);
 
   const started = Date.now();
 

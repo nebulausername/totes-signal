@@ -451,8 +451,8 @@
 	<div id="joinui"><div class="box">
 		<p class="ts-mark" data-i18n="joinTitle"></p>
 		<p class="hint" data-i18n="joinHint"></p>
-		<input id="join-adr" type="text" inputmode="url" autocapitalize="off" autocomplete="off"
-		       spellcheck="false" placeholder="wss://beispiel.de/spiel">
+		<input id="join-adr" type="text" inputmode="text" autocapitalize="characters"
+		       autocomplete="off" spellcheck="false" maxlength="40" placeholder="ABC-234">
 		<p class="hint" id="join-fehler" style="color:#e0603a; min-height:1.2em"></p>
 		<div class="death-actions">
 			<span class="play" id="join-los" data-i18n="joinGo"></span>
@@ -577,7 +577,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22w';
+var TS_BUILD = '2026-08-22y';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -765,8 +765,11 @@ var I18N = {
 		sub:'▚ KEIN SIGNAL ▚',
 		tap:'Koop-Zombie-Shooter im Browser. Kein Empfang. Nur Untote.',
 		play:'▶ TIPPEN ZUM SPIELEN',
+		joinNoNet: 'Nachschlagen fehlgeschlagen — keine Verbindung.',
+		joinNoCode: 'Diesen Code kennt niemand (oder er ist abgelaufen).',
+		joinLook: 'Code wird nachgeschlagen …',
 		joinTitle: 'SERVER BEITRETEN',
-		joinHint: 'Adresse des Spielservers eingeben.',
+		joinHint: 'Code des Hosts eingeben — oder eine vollstaendige Serveradresse.',
 		joinGo: 'VERBINDEN',
 		joinBad: 'Das sieht nicht nach einer Serveradresse aus.',
 		close: 'ABBRECHEN',
@@ -823,8 +826,11 @@ var I18N = {
 		sub:'▚ NO SIGNAL ▚',
 		tap:'Co-op zombie shooter in your browser. No signal. Only the undead.',
 		play:'▶ TAP TO PLAY',
+		joinNoNet: 'Lookup failed — no connection.',
+		joinNoCode: 'Nobody knows that code (or it expired).',
+		joinLook: 'Looking up code …',
 		joinTitle: 'JOIN SERVER',
-		joinHint: 'Enter the game server address.',
+		joinHint: 'Enter the host code — or a full server address.',
 		joinGo: 'CONNECT',
 		joinBad: 'That does not look like a server address.',
 		close: 'CANCEL',
@@ -1880,16 +1886,41 @@ var TS_JOIN = {
 		var el = document.getElementById('joinui'); if (el) el.style.display = 'none';
 	},
 
-	verbinden: function(){
-		var f = document.getElementById('join-adr');
-		var a = (f.value || '').trim();
-		if (!this.gueltig(a)){
-			document.getElementById('join-fehler').textContent = T('joinBad');
-			return;
+	// Ein Code sieht aus wie ABC-234: Buchstaben ohne 0/O, 1/I/L und 5/S, weil
+	// genau die beim Vorlesen und Abtippen verwechselt werden.
+	istCode: function(e){ return /^[A-Za-z2-9\- ]{4,14}$/.test(String(e || '')) && !/[:\/.]/.test(e); },
+
+	verbinden: async function(){
+		var f  = document.getElementById('join-adr');
+		var fe = document.getElementById('join-fehler');
+		var e  = (f.value || '').trim();
+		if (!e) return;
+
+		var adresse = e;
+
+		// Kurzer Code -> beim Backend nachschlagen. Eine vollstaendige Adresse
+		// bleibt weiterhin erlaubt: wer einen Server direkt kennt, tippt ihn.
+		if (this.istCode(e)) {
+			fe.textContent = T('joinLook');
+			try {
+				var code = e.toUpperCase().replace(/[^A-Z2-9]/g, '');
+				var r = await fetch('/api/spiel/' + encodeURIComponent(code), { credentials: 'omit' });
+				if (!r.ok) { fe.textContent = T('joinNoCode'); return; }
+				var d = await r.json();
+				adresse = d.adresse;
+			} catch (err) {
+				fe.textContent = T('joinNoNet'); return;
+			}
 		}
-		try { localStorage.setItem(this.SCHLUESSEL, a); } catch(e){}
+
+		// Auch die vom Server gelieferte Adresse wird geprueft: sie wandert in
+		// eine Konsolenzeile, und tsCmd fuehrt JEDE aus.
+		if (!this.gueltig(adresse)) { fe.textContent = T('joinBad'); return; }
+
+		try { localStorage.setItem(this.SCHLUESSEL, e); } catch(e2){}
+		fe.textContent = '';        // "wird nachgeschlagen" nicht stehen lassen
 		this.schliessen();
-		if (window.tsCmd) tsCmd('connect ' + a + '\n');
+		if (window.tsCmd) tsCmd('connect ' + adresse + '\n');
 	},
 
 	start: function(){
