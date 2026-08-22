@@ -168,6 +168,10 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	// Solange sie es nicht tut, zeichnet die Engine ihre eigene Fassung --
 	// das ist die Rueckfallebene, wenn der Marker mal ausbleibt.
 	autocvar(ts_shell_death, 0);
+	// Seitlicher HUD-Versatz in virtuellen Pixeln. Die Shell setzt ihn im
+	// Linkshaender-Modus, wo die Aktionsknoepfe nach links wandern.
+	autocvar(ts_hudx, 0);
+	autocvar(ts_hudlift, 0);   // 0 = Standardwert aus hud.qc
 	autocvar(in_aimassist, 1);   // Default an (mobile-first); im Optionsmenue abschaltbar, seta-Wahl bleibt
 	autocvar(cl_hitmarkers, 1);
 	autocvar(cl_textopacity, 0.20);

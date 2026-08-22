@@ -29,25 +29,31 @@
 
 	/* ---- Touch-Controls-Overlay (nur Touch-Geraete, nur im Spiel) ----
 	   Alles skaliert mit vmin -> gleich bedienbar auf Handy wie Tablet. */
+	/* --tscale und --talpha kommen aus den Einstellungen (Standard 1) und
+	   liegen auf :root, damit sie hier greifen. Die Groessen werden damit
+	   multipliziert statt neu gesetzt -- so bleiben die clamp()-Grenzen und
+	   damit die Mindest-Tapziele erhalten. */
+	:root { --tscale: 1; --talpha: 1; }
 	#touchui { position:fixed; inset:0; pointer-events:none; display:none; z-index:10;
 	           -webkit-user-select:none; user-select:none; font-family:monospace;
-	           --tb: clamp(50px, 12vmin, 88px);            /* Grundbreite / Rund-Durchmesser */
-	           --th: clamp(40px, 8.6vmin, 62px);           /* Pillen-Hoehe (Tap-Ziel >=40px) */
-	           --stick: clamp(126px, 31vmin, 216px); }
+	           --tb: calc(clamp(50px, 12vmin, 88px) * var(--tscale));   /* Grundbreite / Rund-Durchmesser */
+	           --th: calc(clamp(40px, 8.6vmin, 62px) * var(--tscale));  /* Pillen-Hoehe (Tap-Ziel >=40px) */
+	           --stick: calc(clamp(126px, 31vmin, 216px) * var(--tscale)); }
 	#touchui .tbtn {
 		position:absolute; pointer-events:auto; touch-action:none;
 		box-sizing:border-box; min-width:var(--tb); height:var(--th); padding:0 clamp(7px,1.5vmin,13px);
 		display:flex; align-items:center; justify-content:center; text-align:center; white-space:nowrap;
-		background:rgba(16,14,13,0.46); color:rgba(236,229,215,0.94);
-		border:1px solid rgba(200,60,30,0.45); border-radius:11px;
+		background:rgba(16,14,13,calc(0.46 * var(--talpha)));
+		color:rgba(236,229,215,calc(0.94 * var(--talpha)));
+		border:1px solid rgba(200,60,30,calc(0.45 * var(--talpha))); border-radius:11px;
 		font-size:clamp(10px,1.95vmin,14px); font-weight:bold; letter-spacing:0.6px; line-height:1;
 		text-shadow:0 1px 2px rgba(0,0,0,0.6); box-shadow:inset 0 0 12px rgba(0,0,0,0.42);
 		transition:background 0.05s, box-shadow 0.05s;
 	}
 	#touchui .tbtn.big {                                    /* FEUER: primaer, gross, rot */
 		height:calc(var(--th)*1.55); min-width:calc(var(--tb)*1.55); border-radius:15px;
-		font-size:clamp(13px,2.6vmin,19px); background:rgba(150,18,4,0.5);
-		border-color:rgba(232,42,16,0.8); color:#fff; }
+		font-size:clamp(13px,2.6vmin,19px); background:rgba(150,18,4,calc(0.5 * var(--talpha)));
+		border-color:rgba(232,42,16,calc(0.8 * var(--talpha))); color:rgba(255,255,255,var(--talpha)); }
 	#touchui .tbtn.round {                                  /* Icon-Buttons (Zahnrad) */
 		min-width:0; width:var(--tb); height:var(--tb); border-radius:50%; padding:0;
 		font-size:clamp(15px,2.8vmin,22px); }
@@ -138,6 +144,24 @@
 	.acc-a div { min-width:0; }
 	.acc-a b   { display:block; font-size:min(2.1vh,11px); color:#e6e1d2; letter-spacing:0.5px; }
 	.acc-a span{ font-size:min(1.8vh,10px); color:#a8a094; }
+	/* Einstellungen: erbt die Grundgestaltung der anderen Overlays. */
+	#settingsui { z-index:49; overflow-y:auto; align-items:flex-start; }
+	#settingsui .box { max-width:min(560px,94vw); width:100%; padding:14px 0 24px; }
+	.set-row { display:flex; align-items:center; gap:10px; padding:10px 12px; text-align:left;
+		border-bottom:1px solid rgba(255,255,255,0.07); }
+	.set-row label { flex:1 1 auto; font-size:min(2.2vh,12px); letter-spacing:1px; color:#e6e1d2; }
+	.set-row .wert { min-width:70px; text-align:right; font-size:min(2.1vh,11px); color:#c9a06a; }
+	.set-row input[type=range] { flex:0 0 46%; accent-color:#b31200; }
+	.set-schalter { flex:0 0 64px; text-align:center; padding:5px 0; border-radius:5px; cursor:pointer;
+		border:1px solid rgba(255,255,255,0.18); font-size:min(2vh,11px); letter-spacing:1px; }
+	.set-schalter.an { border-color:#b31200; color:#ff5a3c; background:rgba(179,18,0,0.14); }
+
+	/* Linkshaender: das gesamte Touch-HUD spiegeln und jedes Kind
+	   zurueckspiegeln, damit Positionen tauschen aber Text lesbar bleibt.
+	   Einzeln umzupositionieren waere bei zehn inline-gesetzten Knoepfen
+	   deutlich fehleranfaelliger. */
+	#touchui.lefty { transform:scaleX(-1); }
+	#touchui.lefty > * { transform:scaleX(-1); }
 	/* CRT scanlines */
 	#mstart::before, #rotate::before, #loadscreen::before, #deathui::before {
 		content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
@@ -309,6 +333,7 @@
 			<div class="gs-row" id="gs-duck"><span data-i18n="gsDuck"></span></div>
 			<div class="gs-row" id="gs-nade"><span data-i18n="gsNade"></span></div>
 			<div class="gs-row" id="gs-fs"><span data-i18n="gsFs"></span></div>
+			<div class="gs-row" id="gs-set"><span data-i18n="gsSet"></span></div>
 			<div class="gs-row" id="gs-konto"><span data-i18n="gsKonto"></span></div>
 			<div class="gs-row" id="gs-help"><span data-i18n="gsHelp"></span></div>
 			<div class="gs-row gs-close" id="gs-close"><span data-i18n="gsClose"></span></div>
@@ -332,6 +357,7 @@
 		<p class="ts-sub" data-i18n="sub"></p>
 		<p class="hint" data-i18n="tap"></p>
 		<span class="play" data-i18n="play"></span>
+		<p class="hint" id="gate-groesse" style="color:#c9a06a"></p>
 		<p class="hint" style="margin-top:14px"><span id="gate-konto" style="cursor:pointer;text-decoration:underline" data-i18n="accTitle"></span></p>
 	</div></div>
 	<div id="rotate"><div class="box">
@@ -380,6 +406,13 @@
 			<span class="play alt" id="deathlobby" data-i18n="lobby"></span>
 		</div>
 	</div></div>
+	<div id="settingsui"><div class="box">
+		<p class="ts-mark" data-i18n="setTitle"></p>
+		<div id="set-inhalt"></div>
+		<div class="death-actions">
+			<span class="play alt" id="set-zu" data-i18n="accClose"></span>
+		</div>
+	</div></div>
 	<div id="accountui"><div class="box">
 		<p class="ts-mark" data-i18n="accTitle"></p>
 		<div id="acc-inhalt"></div>
@@ -420,6 +453,7 @@ function tsMarker(msg)
 		if (window.__ts_applyHud)    __ts_applyHud();
 		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
 		if (window.TS_RUN && TS_ORIGIN_OK) TS_RUN.erfolgeWiederherstellen();
+		if (window.TS_SET) TS_SET.allesAnwenden();
 	}
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
@@ -452,7 +486,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22j';
+var TS_BUILD = '2026-08-22m';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -640,6 +674,7 @@ var I18N = {
 		sub:'▚ KEIN SIGNAL ▚',
 		tap:'Koop-Zombie-Shooter im Browser. Kein Empfang. Nur Untote.',
 		play:'▶ TIPPEN ZUM SPIELEN',
+		gateGroesse:'Erster Start: rund 90 MB werden geladen. Danach laeuft das Spiel offline.',
 		rotate:'Bitte Gerät ins Querformat drehen.',
 		install:'⇩ Als App installieren',
 		ldRest:'noch', ldRecv:'Signal wird empfangen', ldPrep:'Daten werden entschlüsselt',
@@ -662,7 +697,10 @@ var I18N = {
 		rankFehler:'Nicht erreichbar.', rankPlatz:'Platz',
 		rankPruefung:'Lauf wird geprueft.', rankAbgelehnt:'Lauf nicht gewertet.',
 		rankFremd:'Konto und Bestenliste: auf totersignal.de spielen.',
-		gsKonto:'KONTO & ERFOLGE', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
+		gsKonto:'KONTO & ERFOLGE', gsSet:'STEUERUNG & BILD',
+		setTitle:'EINSTELLUNGEN', set_sens:'EMPFINDLICHKEIT', set_invy:'Y-ACHSE UMKEHREN',
+		set_aim:'ZIELHILFE', set_btnsize:'KNOPFGROESSE', set_btnalpha:'KNOPF-DECKKRAFT',
+		set_lefty:'LINKSHAENDER', set_qualitaet:'SPARSAM (FLUESSIGER)', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
 		accLevel:'Stufe', accBisLevel:'XP bis zur naechsten Stufe',
 		accStats:'Zahlen', accRuns:'Laeufe', accBestRound:'Beste Runde',
@@ -688,6 +726,7 @@ var I18N = {
 		sub:'▚ NO SIGNAL ▚',
 		tap:'Co-op zombie shooter in your browser. No signal. Only the undead.',
 		play:'▶ TAP TO PLAY',
+		gateGroesse:'First launch downloads about 90 MB. After that it runs offline.',
 		rotate:'Please rotate your device to landscape.',
 		install:'⇩ Install app',
 		ldRest:'left', ldRecv:'Receiving signal', ldPrep:'Decrypting data',
@@ -710,7 +749,10 @@ var I18N = {
 		rankFehler:'Unavailable.', rankPlatz:'Rank',
 		rankPruefung:'Run under review.', rankAbgelehnt:'Run not counted.',
 		rankFremd:'Account and leaderboard: play on totersignal.de.',
-		gsKonto:'ACCOUNT & ACHIEVEMENTS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
+		gsKonto:'ACCOUNT & ACHIEVEMENTS', gsSet:'CONTROLS & VIDEO',
+		setTitle:'SETTINGS', set_sens:'SENSITIVITY', set_invy:'INVERT Y AXIS',
+		set_aim:'AIM ASSIST', set_btnsize:'BUTTON SIZE', set_btnalpha:'BUTTON OPACITY',
+		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
 		accAus:'No account yet. Enable leaderboard and progress.',
 		accLevel:'Level', accBisLevel:'XP to next level',
 		accStats:'Numbers', accRuns:'Runs', accBestRound:'Best round',
@@ -1461,6 +1503,130 @@ var TS_KONTO = {
 	});
 })();
 
+// --- Einstellungen ---------------------------------------------------------
+// Datengetrieben: eine neue Option ist eine Zeile in dieser Liste, kein neues
+// Markup. Jede Einstellung kennt ihren Standard, ihre Persistenz und ihre
+// Anwendung -- so kann keine davon vergessen werden.
+//
+// Cvar-LESEN aus JS ist unmoeglich; localStorage ist deshalb die Wahrheit, und
+// alles wird bei jedem TSUI:game erneut angewandt (die Engine liest beim
+// Kartenladen ihre eigene Konfiguration neu).
+var TS_SET = {
+	defs: [
+		{ id:'sens', typ:'regler', min:1, max:6, schritt:0.5, std:3,
+		  anwenden:function(v){ tsCmd('sensitivity ' + v + '\n'); },
+		  zeigen:function(v){ return Number(v).toFixed(1) + 'x'; } },
+		{ id:'invy', typ:'schalter', std:0,
+		  // m_pitch negativ = Y umgekehrt. Der Betrag bleibt der Standardwert
+		  // dieses Builds (0.022, per Konsole geprueft).
+		  anwenden:function(v){ tsCmd('m_pitch ' + (Number(v) ? '-0.022' : '0.022') + '\n'); } },
+		{ id:'aim', typ:'schalter', std:1,
+		  anwenden:function(v){ tsCmd('in_aimassist ' + (Number(v) ? 1 : 0) + '\n'); } },
+		{ id:'btnsize', typ:'regler', min:0.8, max:1.4, schritt:0.05, std:1,
+		  anwenden:function(v){ document.documentElement.style.setProperty('--tscale', v); },
+		  zeigen:function(v){ return Math.round(v * 100) + '%'; } },
+		{ id:'btnalpha', typ:'regler', min:0.35, max:1, schritt:0.05, std:1,
+		  anwenden:function(v){ document.documentElement.style.setProperty('--talpha', v); },
+		  zeigen:function(v){ return Math.round(v * 100) + '%'; } },
+		{ id:'lefty', typ:'schalter', std:0,
+		  anwenden:function(v){
+			var ui = document.getElementById('touchui');
+			if (ui) ui.classList.toggle('lefty', !!Number(v));
+			// Im gespiegelten Layout stehen links die Aktionsknoepfe -- also
+			// weiterhin ueber dem Punktestand, nur andere Elemente. Das HUD
+			// wandert deshalb zusaetzlich seitlich aus dem Weg. Die Engine
+			// kann das nicht wissen, die Shell kennt ihr Layout.
+			// Seitlich auszuweichen half nicht: im gespiegelten Layout ist die
+			// linke Haelfte durchgehend belegt, der Block landete nur hinter
+			// der naechsten Knopfspalte. Stattdessen weiter nach oben, in die
+			// freie Zone unter MENUE.
+			if (window.tsCmd) tsCmd('ts_hudx 0\nts_hudlift ' + (Number(v) ? 205 : 0) + '\n');
+		  } },
+		{ id:'qualitaet', typ:'schalter', std:0,
+		  // Sparsam-Modus. Die Cvars sind an DIESEM Build per Konsole geprueft.
+		  // fps_preset wird bewusst NICHT benutzt: ohne Argument oeffnet es ein
+		  // blockierendes Engine-Menue ueber dem Spiel.
+		  anwenden:function(v){
+			if (Number(v))
+				tsCmd('nzp_particles 0\nnzp_decals 0\nr_dynamic 0\nr_fastsky 1\ncl_maxfps 60\n');
+			else
+				tsCmd('nzp_particles 1\nnzp_decals 1\nr_dynamic 1\nr_fastsky 0\ncl_maxfps 250\n');
+		  } }
+	],
+
+	wert:function(d){
+		var v;
+		try { v = localStorage.getItem('ts_set_' + d.id); } catch(e){}
+		return v === null || v === undefined ? d.std : Number(v);
+	},
+	setzen:function(d, v){
+		try { localStorage.setItem('ts_set_' + d.id, String(v)); } catch(e){}
+		try { d.anwenden(v); } catch(e){}
+	},
+	// Bei jedem Spielstart erneut anwenden -- sonst gelten wieder die
+	// Vorgaben aus nzportable.cfg.
+	allesAnwenden:function(){
+		for (var i = 0; i < this.defs.length; i++){
+			var d = this.defs[i];
+			try { d.anwenden(this.wert(d)); } catch(e){}
+		}
+	},
+
+	zeigen:function(){
+		var el = document.getElementById('settingsui'); if (!el) return;
+		el.style.display = 'flex';
+		var ziel = document.getElementById('set-inhalt');
+		var self = this;
+		ziel.innerHTML = this.defs.map(function(d){
+			var v = self.wert(d);
+			if (d.typ === 'regler')
+				return '<div class="set-row"><label>' + T('set_' + d.id) + '</label>' +
+					'<input type="range" id="sr-' + d.id + '" min="' + d.min + '" max="' + d.max +
+					'" step="' + d.schritt + '" value="' + v + '">' +
+					'<span class="wert" id="sv-' + d.id + '">' + (d.zeigen ? d.zeigen(v) : v) + '</span></div>';
+			return '<div class="set-row"><label>' + T('set_' + d.id) + '</label>' +
+				'<span class="set-schalter' + (v ? ' an' : '') + '" id="sb-' + d.id + '">' +
+				T(v ? 'on' : 'off') + '</span></div>';
+		}).join('');
+
+		this.defs.forEach(function(d){
+			if (d.typ === 'regler'){
+				var r = document.getElementById('sr-' + d.id);
+				if (r) r.addEventListener('input', function(){
+					var v = Number(r.value);
+					var a = document.getElementById('sv-' + d.id);
+					if (a) a.textContent = d.zeigen ? d.zeigen(v) : v;
+					self.setzen(d, v);
+				});
+			} else {
+				var b = document.getElementById('sb-' + d.id);
+				if (b) b.addEventListener('click', function(){
+					var v = self.wert(d) ? 0 : 1;
+					self.setzen(d, v);
+					b.classList.toggle('an', !!v);
+					b.textContent = T(v ? 'on' : 'off');
+				});
+			}
+		});
+	},
+
+	schliessen:function(){
+		var el = document.getElementById('settingsui');
+		if (el) el.style.display = 'none';
+	}
+};
+(function(){
+	var zu = document.getElementById('set-zu');
+	if (zu) zu.addEventListener('click', function(){ TS_SET.schliessen(); });
+	// Groesse und Deckkraft wirken auch ausserhalb des Spiels -> sofort setzen.
+	try {
+		TS_SET.defs.forEach(function(d){
+			if (d.id === 'btnsize' || d.id === 'btnalpha' || d.id === 'lefty')
+				d.anwenden(TS_SET.wert(d));
+		});
+	} catch(e){}
+})();
+
 // ---- Update-Erkennung: version.json (immer frisch, am SW vorbei) gegen
 // TS_BUILD dieser Seite. Aeltere Shell? Vor dem Spielstart: einmal automatisch
 // frisch laden; im Spiel: Update-Pille zeigen (nichts verlieren). Heilt
@@ -1527,9 +1693,24 @@ function updateOrient()
 window.addEventListener('resize', updateOrient);
 window.addEventListener('orientationchange', updateOrient);
 
+// Beim ERSTEN Besuch die Downloadgroesse nennen. Wer ueber Mobilfunk tippt,
+// bekam bisher ohne Vorwarnung drei Minuten Download und rund 90 MB
+// Datenvolumen aufgebrummt. Beim zweiten Besuch liegt alles im Cache -- dann
+// waere derselbe Hinweis eine Luege, also verschwindet er.
+function gateHinweis(){
+	var e = document.getElementById('gate-groesse');
+	if (!e || !window.caches) return;
+	caches.open('totes-data-v12').then(function(c){
+		return c.match('nzp/game.pk3');
+	}).then(function(hit){
+		if (!hit) e.textContent = T('gateGroesse');   // noch nichts im Cache
+	}).catch(function(){ e.textContent = T('gateGroesse'); });
+}
+
 function mobileStart()
 {	var g = document.getElementById('mstart');
 	g.style.display = 'flex';
+	gateHinweis();
 	// Gate-Loop lazy nachladen (nicht bei reduzierter Bewegung; poster bleibt)
 	var v = document.getElementById('gatevid');
 	if (v && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){
@@ -1880,6 +2061,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		row('gs-duck', function(){ sendKey('keydown', 18, 'AltLeft'); sendKey('keyup', 18, 'AltLeft'); });  // impulse 30
 		row('gs-nade', function(){ tsCmd('impulse 25\n'); });   // 2. Granate waehlen
 		row('gs-fs',   fsToggle);
+		row('gs-set',   function(){ sheetShow(false); if (window.TS_SET) TS_SET.zeigen(); });
 		row('gs-konto', function(){ sheetShow(false); if (window.TS_KONTO) TS_KONTO.zeigen(); });
 		row('gs-help', function(){ sheetShow(false); showHints(true); });
 		row('gs-close', function(){ sheetShow(false); });

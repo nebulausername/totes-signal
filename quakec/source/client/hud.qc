@@ -56,10 +56,28 @@ float() GetUltraWideOffset =
 
 float() GetTouchLift =
 {
-	if (cvar("ts_touchui"))
-		return HUD_TOUCH_LIFT;
+	if (!cvar("ts_touchui"))
+		return 0;
 
-	return 0;
+	// Die Shell darf den Wert vorgeben: im Linkshaender-Modus ist die linke
+	// Bildschirmhaelfte durchgehend mit Knoepfen belegt, dort hilft ein
+	// seitliches Ausweichen nicht -- der Block muss hoeher, in die Luecke
+	// unter MENUE. Ohne Vorgabe bleibt es beim Standard.
+	float eigen = cvar("ts_hudlift");
+	if (eigen > 0)
+		return eigen;
+
+	return HUD_TOUCH_LIFT;
+}
+
+// Seitlicher Versatz desselben Blocks. Gebraucht wird er im
+// Linkshaender-Modus: dort wandert der Stick nach rechts, dafuer stehen die
+// Aktionsknoepfe links -- also weiterhin genau ueber dem Punktestand, nur
+// eben andere Elemente. Die Shell kennt ihr Layout und setzt den Wert; die
+// Engine kann ihn nicht erraten.
+float() GetTouchShift =
+{
+	return cvar("ts_hudx");
 }
 
 //return hud images, makes drawpic slightly cleaner..
@@ -438,11 +456,11 @@ void() HUD_Points =
 		x = (99 - pointwidth)/2 + GetUltraWideOffset();
 
 		if (player_number == getstatf(STAT_PLAYERNUM)) {
-			drawpic([3 + GetUltraWideOffset(), g_height - 97 - GetTouchLift() - (i * 25)], "gfx/hud/moneyback.tga", [96, 24], [1,1,1], 1);
-			HUD_DrawStringWithBackdrop([x, g_height - 92 - GetTouchLift() - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
+			drawpic([3 + GetUltraWideOffset() + GetTouchShift(), g_height - 97 - GetTouchLift() - (i * 25)], "gfx/hud/moneyback.tga", [96, 24], [1,1,1], 1);
+			HUD_DrawStringWithBackdrop([x + GetTouchShift(), g_height - 92 - GetTouchLift() - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
 		} else {
-			drawpic([-7 + GetUltraWideOffset(), g_height - 97 - GetTouchLift() - (i * 25)], "gfx/hud/moneyback_condensed.tga", [96, 24], [1,1,1], 1);
-			HUD_DrawStringWithBackdrop([x - 9, g_height - 92 - GetTouchLift() - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
+			drawpic([-7 + GetUltraWideOffset() + GetTouchShift(), g_height - 97 - GetTouchLift() - (i * 25)], "gfx/hud/moneyback_condensed.tga", [96, 24], [1,1,1], 1);
+			HUD_DrawStringWithBackdrop([x - 9 + GetTouchShift(), g_height - 92 - GetTouchLift() - (i * 25)], ftos(client.points), [12, 12], TEXTCOLOR, 1, 0);
 		}
 
 		PointUpdate(x + 70, player_number);
@@ -464,7 +482,7 @@ void() HUD_CharacterName =
 	if (nameprint_time - 1 < time) {
 		alpha = (nameprint_time - time);
 	}
-	HUD_DrawStringWithBackdrop([x, g_height - 92 - GetTouchLift() - ((getstatf(STAT_PLAYERNUM) - 1) * 25)], character_name, [12, 12], [1, 1, 1], alpha, 0);
+	HUD_DrawStringWithBackdrop([x + GetTouchShift(), g_height - 92 - GetTouchLift() - ((getstatf(STAT_PLAYERNUM) - 1) * 25)], character_name, [12, 12], [1, 1, 1], alpha, 0);
 }
 
 /*******************
