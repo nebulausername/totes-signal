@@ -625,7 +625,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22ae';
+var TS_BUILD = '2026-08-22af';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1644,6 +1644,12 @@ var TS_BOARD = {
 		var kh = kopf.getBoundingClientRect().height;
 		var zh = zeilen[0].getBoundingClientRect().height;
 		if (zh <= 0) return;
+		// Wird waehrend eines verborgenen Tabs gezeichnet (zeigeErgebnis kommt
+		// mit dem Serverergebnis, moeglicherweise bevor jemand auf BESTENLISTE
+		// tippt), ist clientHeight 0. Dann lieber gar nicht deckeln als auf zwei
+		// Zeilen einrasten -- tab('rank') zeichnet ohnehin neu, sobald der
+		// Schirm sichtbar ist.
+		if (seite.clientHeight <= 0){ box.style.maxHeight = ''; return; }
 		// Was die Seite hergibt, minus alles, was ueber der Liste steht
 		// (Platzangabe, frische Erfolge) und minus der Tabellenkopf.
 		var frei = seite.clientHeight - box.offsetTop - kh;
