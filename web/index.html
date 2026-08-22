@@ -544,6 +544,7 @@ function tsMarker(msg)
 		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
 		if (window.TS_RUN && TS_ORIGIN_OK) TS_RUN.erfolgeWiederherstellen();
 		if (window.TS_SET) TS_SET.allesAnwenden();
+		if (window.TS_LANG) TS_LANG.anwenden();
 		if (window.__ts_renderMode) __ts_renderMode('game');
 	}
 	if (msg.indexOf('TSUI:menu') !== -1){
@@ -557,6 +558,10 @@ function tsMarker(msg)
 		// Desktop-Metrik.
 		if (window.tsCmd)
 			tsCmd('vid_conheight 480\n' + (IS_TOUCH ? 'ts_touchui 1\n' : ''));
+		// Die Sprache gehoert hierher und nicht nur zu TSUI:game -- das Menue
+		// ist die Flaeche, auf der sie am meisten zaehlt, und vor dem ersten
+		// TSUI:menu nimmt die Engine keine Konsolenbefehle an.
+		if (window.TS_LANG) TS_LANG.anwenden();
 		if (window.__ts_renderMode) __ts_renderMode('menu');
 		if (window.TS_WEITER) TS_WEITER.einloesen();
 	}
@@ -575,6 +580,12 @@ function tsMarker(msg)
 	// (Empfindlichkeit, Y-Achse, Zielhilfe, Knopfgroesse, Linkshaender,
 	// Sparsam-Modus) und waren vom Hauptmenue aus bisher nicht erreichbar --
 	// man musste erst ein Spiel starten und das Zahnrad oeffnen.
+	// Der Sprachumschalter im Menue (menu_opts.qc Menu_Options_ToggleLanguage)
+	// meldet seine neue Wahl zurueck. Ohne diesen Zweig sprachen Spiel und
+	// Overlays nach dem Umschalten zwei verschiedene Sprachen.
+	var ml = msg.match(/TSUI:lang:([01])/);
+	if (ml && window.TS_LANG)
+		TS_LANG.uebernehmen(ml[1] === '1' ? 'de' : 'en');
 	if (msg.indexOf('TSUI:open:settings') !== -1 && window.TS_SET)
 		TS_SET.zeigen();
 	if (msg.indexOf('TSUI:open:join') !== -1 && window.TS_JOIN)
@@ -614,7 +625,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22ac';
+var TS_BUILD = '2026-08-22ae';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -796,7 +807,18 @@ function gotdrop(ev)
 // ---- mobile: touch detection, i18n, start gate, orientation ----
 var IS_TOUCH = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
 // Deutsch-first: Englisch nur fuer explizit englische Browser.
-var LANG = ((navigator.language||'de').slice(0,2) === 'en') ? 'en' : 'de';
+// Die Sprache gehoert der SHELL, nicht dem Browser: navigator.language ist nur
+// noch die Vorgabe beim allerersten Besuch. Vorher stand hier eine feste
+// Ableitung, und das Menue hatte daneben seinen eigenen Umschalter
+// (menu_opts.qc) -- wer dort umschaltete, bekam ein englisches Spiel mit
+// deutschen Overlays. cl_language aus JS zu LESEN ist unmoeglich, also ist
+// localStorage die Wahrheit und wird bei jedem TSUI:menu/TSUI:game in die
+// Engine geschrieben. Siehe TS_LANG weiter unten.
+var LANG = (function(){
+	var g; try { g = localStorage.getItem('ts_lang'); } catch(e){}
+	if (g === 'de' || g === 'en') return g;
+	return ((navigator.language||'de').slice(0,2) === 'en') ? 'en' : 'de';
+})();
 var I18N = {
 	de: {
 		sub:'▚ KEIN SIGNAL ▚',
@@ -924,10 +946,52 @@ var I18N = {
 	}
 };
 function T(k){ return (I18N[LANG] || I18N.en)[k]; }
-(function(){ var t = I18N[LANG];
+// Aus einer IIFE herausgezogen: seit die Sprache zur Laufzeit wechseln kann,
+// muss dieser Durchlauf wiederholbar sein. Alles, was nicht data-i18n traegt,
+// wird ohnehin bei jedem Zeichnen ueber T() gebildet.
+function applyI18N(){
+	var t = I18N[LANG] || I18N.en;
 	var els = document.querySelectorAll('[data-i18n]');
 	for (var i=0;i<els.length;i++){ var k = els[i].getAttribute('data-i18n'); if (typeof t[k] === 'string') els[i].textContent = t[k]; }
-})();
+	document.documentElement.setAttribute('lang', LANG);
+}
+applyI18N();
+
+// --- Sprache -------------------------------------------------------------
+// Eine Wahrheit, zwei Anzeigeflaechen. Der Umschalter bleibt im Menue (dort
+// erwartet man ihn); die Shell speichert die Wahl, schreibt sie in die Engine
+// und faerbt ihre eigenen Texte um.
+var TS_LANG = {
+	SCHLUESSEL: 'ts_lang',
+	// In die Engine schreiben. ts_lang_set gleich mit: die Sentinel-Cvar aus
+	// Localization_Init wuerde sonst beim naechsten Kaltstart wieder Deutsch
+	// erzwingen (Footgun 2).
+	anwenden: function(){
+		if (window.tsCmd)
+			tsCmd('seta cl_language ' + (LANG === 'de' ? 1 : 0) + '\nseta ts_lang_set 1\n');
+	},
+	// Wahl aus der Shell heraus: speichern, anzeigen, weiterreichen.
+	setzen: function(code){
+		if (code !== 'de' && code !== 'en') return;
+		LANG = code;
+		try { localStorage.setItem(this.SCHLUESSEL, code); } catch(e){}
+		applyI18N();
+		this.anwenden();
+	},
+	// Gegenrichtung: das Menue hat umgeschaltet und es per TSUI:lang gemeldet.
+	// Hier wird NICHT zurueckgeschrieben -- die Engine kennt den Wert bereits,
+	// und ein Rueckschreiben waere eine Rueckkopplung.
+	uebernehmen: function(code){
+		if (code !== 'de' && code !== 'en' || code === LANG) return;
+		LANG = code;
+		try { localStorage.setItem(this.SCHLUESSEL, code); } catch(e){}
+		applyI18N();
+		// Was schon gezeichnet ist, muss neu gezeichnet werden -- der
+		// Todes-Bildschirm und die Einstellungen bauen ihren Text ueber T()
+		// erst beim Oeffnen zusammen.
+		if (window.TS_DEATH && TS_DEATH.stats) TS_DEATH.render(TS_DEATH.stats.rounds);
+	}
+};
 
 // ---- themed loading screen (TOTES SIGNAL) ----
 var TS_LOAD = {

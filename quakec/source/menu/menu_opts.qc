@@ -58,6 +58,26 @@ string(string next_id) Menu_Options_GetPreviousButton =
     return ret;
 };
 
+//
+// Menu_Options_ToggleLanguage()
+// Sprache umschalten UND die Web-Shell davon in Kenntnis setzen.
+//
+// Bis 2026-08-22 stand die Umschaltzeile zweimal in dieser Datei (Touch- und
+// Desktop-Liste) und meldete sich nirgends. Die Shell bestimmte ihre eigene
+// Sprache fest aus navigator.language und konnte cl_language nicht lesen (aus
+// JS ist das unmoeglich) -- wer hier umschaltete, bekam ein englisches Spiel
+// mit deutschen Overlays oder umgekehrt. Der Marker schliesst die Luecke.
+//
+// Localization_IsGerman() liest die Cvar, die localcmd erst danach setzt; der
+// neue Wert ist also die Umkehrung und wird EINMAL berechnet.
+//
+void() Menu_Options_ToggleLanguage =
+{
+    float neu = Localization_IsGerman() ? LANGUAGE_ENGLISH : LANGUAGE_GERMAN;
+    localcmd(sprintf("seta cl_language %d\nseta ts_lang_set 1\n", neu));
+    print(sprintf("\nTSUI:lang:%d\n", neu));
+};
+
 void() Menu_Options =
 {
 	Menu_Page_Begin(MENU_TOUCH ? 5 : 6.25, 1);
@@ -79,9 +99,7 @@ void() Menu_Options =
         Menu_Button(2, "om_video", T("VIDEO"), "") ? current_menu = MENU_VIDEO : 0;
         Menu_Button(3, "om_audio", T("AUDIO"), "") ? current_menu = MENU_AUDIO : 0;
         Menu_Button(4, "om_acces", T("ACCESSIBILITY"), "") ? current_menu = MENU_ACCESSIBILITY : 0;
-        if (Menu_Button(5, "om_lang", language_label, "")) {
-            localcmd(sprintf("seta cl_language %d\n", Localization_IsGerman() ? LANGUAGE_ENGLISH : LANGUAGE_GERMAN));
-        }
+        Menu_Button(5, "om_lang", language_label, "") ? Menu_Options_ToggleLanguage() : 0;
     } else {
         Menu_Button(1, "om_video", T("VIDEO"), T("Visual Fidelity options.")) ? current_menu = MENU_VIDEO : 0;
         Menu_Button(2, "om_audio", T("AUDIO"), T("Volume sliders.")) ? current_menu = MENU_AUDIO : 0;
@@ -90,9 +108,7 @@ void() Menu_Options =
         Menu_DrawDivider(5);
         Menu_Button(5.25, "om_console", T("OPEN CONSOLE"), T("Access the Developer Console.")) ? localcmd("toggleconsole\n") : 0;
 
-        if (Menu_Button(6.25, "om_lang", language_label, T("Switch the game language."))) {
-            localcmd(sprintf("seta cl_language %d\n", Localization_IsGerman() ? LANGUAGE_ENGLISH : LANGUAGE_GERMAN));
-        }
+        Menu_Button(6.25, "om_lang", language_label, T("Switch the game language.")) ? Menu_Options_ToggleLanguage() : 0;
     }
 
 #ifdef MENU
