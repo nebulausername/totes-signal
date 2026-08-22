@@ -30,6 +30,9 @@ string menu_primary_id;
 // sonst in die Fussleiste. Nur auf Touch aktiv; auf dem Desktop bleibt alles
 // auf einer Seite. Die Sichtbarkeit steckt in Menu_PageOrder, die Aufrufe in
 // den Screens (Menu_Button(3, ...)) bleiben unveraendert.
+// Zeitpunkt des letzten Bildschirmwechsels -- Grundlage der Einblendung.
+float menu_wechsel_zeit;
+
 float menu_page;
 float menu_page_total;
 float menu_row_first;
@@ -159,6 +162,37 @@ float(float order) Menu_PageOrder =
 };
 
 //
+// Menu_Uhr()
+// Zeitquelle fuer die Einblendung. Im PAUSEMENUE steht `time` still -- das Spiel
+// ist pausiert (cmd pause), und eine Animation gegen eine stehende Uhr erreicht
+// ihr Ende nie: die Zeilen blieben dauerhaft am linken Rand abgeschnitten
+// stehen. cltime laeuft unabhaengig weiter, gibt es aber nur in CSQC.
+//
+float() Menu_Uhr =
+{
+#ifdef MENU
+	return time;
+#else
+	return cltime;
+#endif
+};
+
+//
+// Menu_RowEinblendung(order)
+// Waagerechter Versatz waehrend der Einblendung. Jede Zeile laeuft etwas spaeter
+// ein als die darueber -- der Blick folgt der Liste, statt sie fertig
+// vorzufinden. Nur auf Touch; auf dem Desktop springt das Menue wie bisher.
+//
+float(float order) Menu_RowEinblendung =
+{
+	if (!MENU_TOUCH || menu_wechsel_zeit <= 0) return 0;
+	float stufe = (order > 0) ? floor(order) : 6;      // Fusszeilen zuletzt
+	float t = (Menu_Uhr() - menu_wechsel_zeit - (stufe - 1) * 0.028) / 0.16;
+	t = bound(0, t, 1);
+	return (1 - t) * (1 - t) * -46 * MENU_UI_SCALE;    // weich auslaufend
+};
+
+//
 // Menu_PageButton(id, x, breite, beschriftung)
 // Quadratischer Knopf in der Fusszeile, fuer das Blaettern. Eigene Funktion,
 // weil Menu_Button an das Zeilenraster gebunden ist.
@@ -167,7 +201,7 @@ float(string id, float x, float breite, string beschriftung) Menu_PageButton =
 {
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_END]);
 
-	vector box  = [x, MENU_ROW_BOTTOM];
+	vector box  = [x + Menu_RowEinblendung(-1), MENU_ROW_BOTTOM];
 	vector groesse = [breite, MENU_ROW_H];
 
 	float gedrueckt = sui_is_pressed_at(box, groesse);
@@ -203,10 +237,12 @@ void() Menu_Page_End =
 	if (Menu_PageButton("pg_next", rechts - bw, bw, ">")) {
 		Menu_PlaySound(MENU_SND_ENTER);
 		menu_page = min(menu_page + 1, menu_page_total - 1);
+		menu_wechsel_zeit = Menu_Uhr();
 	}
 	if (Menu_PageButton("pg_prev", rechts - bw - zaehl - bw, bw, "<")) {
 		Menu_PlaySound(MENU_SND_ENTER);
 		menu_page = max(menu_page - 1, 0);
+		menu_wechsel_zeit = Menu_Uhr();
 	}
 
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_END]);
@@ -226,14 +262,21 @@ void() Menu_Page_End =
 //
 vector(float order) Menu_RowBox =
 {
+	// Einblendung: die Zeilen laufen von links ein, jede etwas spaeter als die
+	// darueber. Nur auf Touch -- auf dem Desktop springt das Menue wie bisher.
+	// Der Versatz trifft Flaeche UND Klickflaeche (beide kommen aus dieser
+	// Funktion), waehrend der 160 ms wandert die Trefferflaeche also mit. Das
+	// ist gewollt: was man sieht, ist was man trifft.
+	float ein = Menu_RowEinblendung(order);
+
 	if (order > 0) {
 		// Auf Touch ganze Zeilen. Die gebrochenen Ordnungszahlen des Originals
 		// (3.25, 5.5, 6.25) waren Abstandshalter fuer das enge 25er-Raster --
 		// bei 60er-Zeilen erzeugen sie nur ungleiche Luecken.
 		float o = MENU_TOUCH ? floor(order) : order;
-		return [0, MENU_ROW_TOP + (o - 1) * MENU_ROW_PITCH];
+		return [ein, MENU_ROW_TOP + (o - 1) * MENU_ROW_PITCH];
 	}
-	return [0, MENU_ROW_BOTTOM + (order + 1) * MENU_ROW_PITCH];
+	return [ein, MENU_ROW_BOTTOM + (order + 1) * MENU_ROW_PITCH];
 };
 
 //
@@ -743,8 +786,25 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 	string title = user_maps[index].map_name_pretty;
 	if (!title)
 		title = user_maps[index].map_name;
-	sui_text(Menu_RowTextPos(bbox_pos, order, strtoupper(title), MENU_LABEL_SIZE),
-	         MENU_LABEL_SIZE, strtoupper(title), text_color, 1, 0);
+	// Auf Touch bekommt jede Zeile ihr Kartenbild. Eine Liste aus reinen
+	// Grossbuchstaben sagt einem Spieler nichts ueber die Karte -- und der Platz
+	// links neben der Beschriftung liegt ohnehin brach.
+	float vorschau_b = 0;
+	if (MENU_TOUCH && user_maps[index].map_use_thumbnail) {
+		float th = MENU_ROW_H - 12 * MENU_UI_SCALE;
+		float tb = th * 16 / 9;
+		float tx = 14 * MENU_UI_SCALE;          // hinter dem Signalbalken
+		float ty = (MENU_ROW_H - th) * 0.5;
+		sui_fill(bbox_pos + [tx - 1, ty - 1], [tb + 2, th + 2], [0.38, 0.11, 0.05], 1, 0);
+		sui_pic(bbox_pos + [tx, ty], [tb, th],
+		        strcat("menu/custom/", user_maps[index].map_name, ".png"),
+		        (lit || zeigen) ? [1, 1, 1] : [0.82, 0.78, 0.74], 1, 0);
+		vorschau_b = tx + tb + 14 * MENU_UI_SCALE;
+	}
+
+	vector titelpos = Menu_RowTextPos(bbox_pos, order, strtoupper(title), MENU_LABEL_SIZE);
+	if (vorschau_b > 0) titelpos_x = bbox_pos_x + vorschau_b;
+	sui_text(titelpos, MENU_LABEL_SIZE, strtoupper(title), text_color, 1, 0);
 
 	if (zeigen) {
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
@@ -831,6 +891,15 @@ void(float order, string title) Menu_GreyButton =
 
 	vector text_color = [0.5, 0.3, 0.3]; // make it kinda red, for flavor.
 	vector box = Menu_RowBox(order);
+
+	// Auf Touch dieselbe Flaeche wie eine normale Zeile, nur gedaempft -- sonst
+	// steht der gesperrte Eintrag als schwebender Text zwischen Flaechen und
+	// sieht aus wie ein Zeichenfehler statt wie "gerade nicht verfuegbar".
+	if (MENU_TOUCH) {
+		Menu_RowFill(box, [MENU_ROW_W, MENU_ROW_H], [0, 0, 0], 0.28);
+		sui_fill(box, [max(3, 4 * MENU_UI_SCALE), MENU_ROW_H], [0.20, 0.07, 0.05], 1, 0);
+		text_color = [0.46, 0.31, 0.28];
+	}
 
 	sui_text(Menu_RowTextPos(box, order, title, MENU_LABEL_SIZE),
 	         MENU_LABEL_SIZE, title, text_color, 1, 0);
@@ -1645,5 +1714,6 @@ void(vector size) root_menu =
 		sui_reset_hover();
 		menu_map_vorschau = "";   // Vorschau gilt nur innerhalb einer Kartenliste
 		menu_page = 0;
+		menu_wechsel_zeit = Menu_Uhr();
 	}
 };

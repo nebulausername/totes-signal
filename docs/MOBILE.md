@@ -78,6 +78,20 @@ KONSOLE aus: ohne Tastatur haben sie nichts zu bieten.
 Overlay-Sammelselektor stand (`position` fehlte, `z-index` wirkt auf statische
 Elemente nicht). Siehe Footgun 14 in `CLAUDE.md`.
 
+## Bewegung und Bild
+
+- **Einblendung beim Bildschirmwechsel** (`Menu_RowEinblendung`): die Zeilen
+  laufen von links ein, jede 28 ms spaeter als die darueber. Nur auf Touch.
+  Zeitquelle ist `Menu_Uhr()` -- im Pausemenue steht `time` STILL (das Spiel ist
+  pausiert), eine Animation dagegen erreicht ihr Ende nie und die Zeilen blieben
+  dauerhaft am linken Rand abgeschnitten stehen. In CSQC laeuft `cltime`
+  unabhaengig weiter.
+- **Kartenzeilen tragen ihr Vorschaubild.** Eine Liste aus Grossbuchstaben sagt
+  nichts ueber eine Karte, und der Platz links neben der Beschriftung lag brach.
+- **Gesperrte Zeilen** (`Menu_GreyButton`) bekommen auf Touch dieselbe Flaeche
+  wie normale, nur gedaempft -- sonst steht der Eintrag als schwebender Text
+  zwischen Flaechen und sieht nach Zeichenfehler aus.
+
 ## Was das Menue auf Touch bewusst NICHT zeigt
 
 Der Bildschirm BILD laesst auf Touch weg, was die Shell bereits besitzt oder was
