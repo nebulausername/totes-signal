@@ -63,14 +63,22 @@ async function rangTab(page, fall, groesse) {
       wiederholen: !!document.getElementById('rankNeu'),
     };
     if (box) {
+      const seite = document.getElementById('dpage-rank');
+      const sb = seite.getBoundingClientRect();
       const lb = box.getBoundingClientRect();
       const zeilen = [...box.querySelectorAll('tbody tr')];
       erg.scrollTop = Math.round(box.scrollTop);
-      // Angeschnitten = ragt unten ueber die Listenkante hinaus, ohne ganz
-      // draussen zu sein. Ein Pixel Toleranz fuer Subpixel-Rundung.
+      // Die Liste darf nicht ueber die Tab-Seite hinauslaufen. Genau das war
+      // einmal der Fall, OHNE dass die Liste selbst eine Zeile anschnitt: die
+      // Hoehenrechnung uebersah die Kopfzeilen darueber, und abgeschnitten hat
+      // dann die Seitenkante. Ein Test, der nur die Liste befragt, ist blind
+      // dafuer -- deshalb wird hier gegen BEIDE Kanten geprueft.
+      erg.seiteRollt = seite.scrollHeight > seite.clientHeight + 1;
+      erg.ueberhang = Math.round(lb.bottom - sb.bottom);
+      const kante = Math.min(lb.bottom, sb.bottom);
       erg.angeschnitten = zeilen.filter((tr) => {
         const b = tr.getBoundingClientRect();
-        return b.top < lb.bottom - 1 && b.bottom > lb.bottom + 1;
+        return b.top < kante - 1 && b.bottom > kante + 1;
       }).map((tr) => tr.cells[0].textContent);
       erg.ersterPlatzSichtbar = (() => {
         const tr = zeilen[0];
@@ -102,6 +110,7 @@ test('Knopfreihe bleibt im Bild -- auch mit frischen Erfolgen', async ({ page })
     expect(m.knopfUnten, `${anzahl} Erfolge: NOCHMAL/ZUR LOBBY unter dem Bildschirmrand`)
       .toBeLessThanOrEqual(m.viewport + 1);
     expect(m.knopfOben, `${anzahl} Erfolge: Knopfreihe oberhalb des Bildes`).toBeGreaterThanOrEqual(-1);
+    expect(m.ueberhang, `${anzahl} Erfolge: Liste ragt unten aus der Tab-Seite`).toBeLessThanOrEqual(1);
   }
 });
 
@@ -117,6 +126,8 @@ test('Keine halbierte Zeile an der Listenkante', async ({ page }) => {
       letztes: { status: 'verified', rank: { map: 3 }, xp_gained: 240, achievements_neu: [] },
     }, groesse);
     expect(m.angeschnitten, groesse.width + 'x' + groesse.height + ': Hoehe muss in ganze Zeilen einrasten').toEqual([]);
+    expect(m.ueberhang, groesse.width + 'x' + groesse.height + ': Liste ragt unten aus der Tab-Seite').toBeLessThanOrEqual(1);
+    expect(m.seiteRollt, groesse.width + 'x' + groesse.height + ': die Tab-Seite selbst darf nicht rollen muessen').toBe(false);
   }
 });
 

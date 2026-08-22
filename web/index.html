@@ -625,7 +625,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22af';
+var TS_BUILD = '2026-08-22ag';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1652,7 +1652,16 @@ var TS_BOARD = {
 		if (seite.clientHeight <= 0){ box.style.maxHeight = ''; return; }
 		// Was die Seite hergibt, minus alles, was ueber der Liste steht
 		// (Platzangabe, frische Erfolge) und minus der Tabellenkopf.
-		var frei = seite.clientHeight - box.offsetTop - kh;
+		//
+		// Der Versatz MUSS aus den Rechtecken kommen, nicht aus offsetTop:
+		// .rank-wrap ist position:relative und damit selbst der offsetParent,
+		// box.offsetTop ist also immer 0. Mit dieser Null im Nenner wurde die
+		// Liste um die Kopfzeilen zu hoch -- gemessen 21 px ohne und 42 px mit
+		// frischen Erfolgen -- und ragte unten aus der Tab-Seite heraus. Die
+		// Liste selbst schnitt dabei keine Zeile an, die SEITENKANTE schon;
+		// ein Test, der nur die Liste befragt, sieht das nicht.
+		var versatz = (box.getBoundingClientRect().top - seite.getBoundingClientRect().top) + seite.scrollTop;
+		var frei = seite.clientHeight - versatz - kh;
 		var n = Math.floor(frei / zh);
 		if (n < 2) n = 2;                                  // unter zwei Zeilen ist es keine Liste mehr
 		if (n >= zeilen.length){ box.style.maxHeight = ''; return; }   // passt ohnehin ganz
