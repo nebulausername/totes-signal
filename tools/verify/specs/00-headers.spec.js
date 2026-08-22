@@ -1,5 +1,5 @@
 import { test, expect, request } from '@playwright/test';
-import { HOSTS, REQUIRED, CACHE_MATRIX } from '../lib/headers.js';
+import { HOSTS, REQUIRED, CACHE_MATRIX, CSP_TEILE } from '../lib/headers.js';
 
 // Header-Pruefungen brauchen keinen Browser -> laufen einmal, nicht je Projekt.
 test.describe.configure({ mode: 'serial' });
@@ -31,6 +31,19 @@ test.beforeEach(({}, testInfo) => {
         await ctx.dispose();
       });
     }
+
+    test('CSP enthaelt jeden Baustein, den das Spiel braucht', async () => {
+      test.skip(!CSP_TEILE[key], 'nur fuer die kanonischen Hosts festgezurrt');
+      const ctx = await request.newContext();
+      const res = await ctx.head(base + '/');
+      const csp = res.headers()['content-security-policy'] || '';
+      for (const teil of CSP_TEILE[key])
+        expect(csp, `"${teil}" fehlt in der CSP -- am laufenden Spiel als noetig nachgewiesen`).toContain(teil);
+      // Und was NICHT drinstehen darf: unsafe-eval fuer Skripte waere eine
+      // Einladung. wasm-unsafe-eval reicht der Engine nachweislich.
+      expect(csp, "'unsafe-eval' ist nicht noetig -- wasm-unsafe-eval genuegt").not.toContain("'unsafe-eval'");
+      await ctx.dispose();
+    });
 
     test('progs.pk3 revalidiert per ETag (304, nicht 1,8 MB)', async () => {
       const ctx = await request.newContext();

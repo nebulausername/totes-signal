@@ -40,9 +40,14 @@ curl -sSI https://totersignal.de/ | head -3
 
 ```bash
 ts=$(cat /var/backups/totersignal/LATEST)
-cp "/var/backups/totersignal/nginx-$ts/totersignal.de" /etc/nginx/sites-available/
+cp "/var/backups/totersignal/nginx-$ts/sites-available/totersignal.de" /etc/nginx/sites-available/
+cp "/var/backups/totersignal/nginx-$ts/snippets/"*.conf /etc/nginx/snippets/
 nginx -t && nginx -s reload
 ```
+
+Die Header liegen in `snippets/` und **nicht** im vhost — wer nur die vhosts
+zurückspielt, hat die Sicherheits-Header verloren, ohne dass etwas kaputtgeht.
+Es fällt erst im Harness auf (`00-headers.spec.js`).
 
 **`nginx -t` ist Pflicht, nicht Kür.** Eine kaputte Konfiguration nimmt neun
 weitere vhosts mit — darunter die Hauptseite und die Statusseite.
@@ -102,9 +107,14 @@ ausgeschüttet. **Das Präfix ist Teil des Vertrags.**
 ts=$(date +%Y%m%d-%H%M%S); d=/var/backups/totersignal
 tar -czf "$d/webroot-totersignal-$ts.tgz" -C /var/www --exclude='totersignal.de/nzp/game.pk3' totersignal.de
 tar -czf "$d/webroot-demo-zombie-$ts.tgz" -C /var/www/demo --exclude='zombie/nzp/game.pk3' zombie
-mkdir -p "$d/nginx-$ts" && cp /etc/nginx/sites-available/* "$d/nginx-$ts/"
+mkdir -p "$d/nginx-$ts" && cp -r /etc/nginx/sites-available /etc/nginx/snippets "$d/nginx-$ts/"
 echo "$ts" > "$d/LATEST"
 ```
+
+⚠️ **`snippets/` gehört mit dazu.** Die erste Fassung dieses Rezepts sicherte
+nur `sites-available` — und die Sicherheits-Header (inklusive der CSP) stehen
+in `snippets/ts-headers-canonical.conf`. Ein Rollback hätte die vhosts
+zurückgeholt und die Header still verloren.
 
 Prüfen, dass das Präfix stimmt und `game.pk3` draußen ist:
 

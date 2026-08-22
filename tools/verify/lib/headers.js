@@ -11,9 +11,21 @@ export const HOSTS = {
 // Header, die auf JEDER Antwort stehen muessen. Der demo-Vhost hat eigene
 // Werte (er wird im Portfolio eingebettet und traegt deshalb frame-ancestors).
 export const REQUIRED = {
-  canonical: ['x-content-type-options', 'referrer-policy', 'strict-transport-security', 'permissions-policy'],
-  mirror:    ['x-content-type-options', 'referrer-policy', 'strict-transport-security', 'permissions-policy'],
+  canonical: ['x-content-type-options', 'referrer-policy', 'strict-transport-security', 'permissions-policy', 'content-security-policy'],
+  mirror:    ['x-content-type-options', 'referrer-policy', 'strict-transport-security', 'permissions-policy', 'content-security-policy'],
   demo:      ['x-content-type-options', 'referrer-policy', 'strict-transport-security', 'content-security-policy'],
+};
+
+// Bausteine, die in der CSP der kanonischen Hosts stehen MUESSEN. Jeder davon
+// ist am laufenden Spiel als noetig nachgewiesen (Chromium und WebKit, Menue
+// bis Kartenladen) -- faellt einer weg, bootet die Engine nicht mehr oder der
+// Beitrittsweg schlaegt lautlos fehl. Der demo-Vhost bleibt aussen vor: dort
+// liegen acht weitere Demos hinter derselben Datei, die niemand geprueft hat.
+export const CSP_TEILE = {
+  canonical: ["default-src 'self'", "object-src 'none'", 'frame-ancestors',
+              "'wasm-unsafe-eval'", 'blob:', 'wss:'],
+  mirror:    ["default-src 'self'", "object-src 'none'", 'frame-ancestors',
+              "'wasm-unsafe-eval'", 'blob:', 'wss:'],
 };
 
 // pfad -> erwartete Cache-Control.
