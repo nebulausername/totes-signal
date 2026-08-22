@@ -48,7 +48,7 @@ string(string next_id) Menu_Audio_GetPreviousButton =
 
 void() Menu_Audio =
 {
-	Menu_Page_Begin(3, 2);
+	Menu_Page_Begin(3, MENU_TOUCH ? 1 : 2);   // auf Touch entfaellt UEBERNEHMEN
     Menu_DrawBackground();
     Menu_DrawTitle(T("AUDIO OPTIONS"));
     Menu_DrawMapPanel();
@@ -63,8 +63,10 @@ void() Menu_Audio =
     Menu_CvarSlider(3, "am_bgm", [0, 1, 10], "nzp_bgmvolume", false, true, false);
 
     Menu_DrawDivider(11.5);
-    Menu_Button(-2, "am_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Audio_ApplySettings() : 0;
-    Menu_Button(-1, "am_back", T("BACK"), T("Return to Configuration.")) ? current_menu = MENU_OPTIONS : 0;
+    // Fusszeile gemeinsam: auf Touch ohne UEBERNEHMEN, dafuer sichern beim
+    // Verlassen (siehe Menu_SettingsFooter).
+    if (Menu_SettingsFooter("am_apply", "am_back", Menu_Audio_ApplySettings))
+        current_menu = MENU_OPTIONS;
 
 	Menu_Page_End();
 

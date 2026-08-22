@@ -331,6 +331,23 @@ float(string id) sui_hold_index =
 // pos/size sind Parameter, also Locals: der __inout-Rueckschreibvorgang von
 // sui_transform_box trifft nur die Kopie.
 //
+//
+// sui_element_exists(id)
+// Wurde diese id im zuletzt gezeichneten Frame ueberhaupt als Element
+// registriert? Noetig, seit Bildschirme Zeilen weglassen (Touch) oder auf
+// Seiten verteilen: der Pfeil-/Gamepad-Ring liest seine Reihenfolge aus einer
+// festen Liste im Screen und wuerde sonst unsichtbare Eintraege anwaehlen --
+// ENTER loest sie dann aus. Ohne Ton, ohne Meldung, falscher Menuepunkt.
+//
+float(string id) sui_element_exists =
+{
+	if (id == "") return FALSE;
+	float n = min(MAX_ACTION_ELEMENTS, _action_elements_index);
+	for (int i = n - 1; i >= 0; i--)
+		if (_action_elements[i].id == id) return TRUE;
+	return FALSE;
+};
+
 float(vector pos, vector size) sui_is_pressed_at =
 {
 	if (!_holding_click) return FALSE;
@@ -433,7 +450,8 @@ void() _sui_menukey_rightarrow =
 	_holding_rightarrow = TRUE;
 }
 
-void() _sui_menukey_downarrow =
+// Ein Schritt im Ring, ohne Ruecksicht darauf, ob das Ziel gezeichnet wird.
+static void() _sui_ring_step_next =
 {
 	string current_hovered_option = _hover_actions[0];
 
@@ -507,11 +525,29 @@ void() _sui_menukey_downarrow =
 		default:
 			break;
 	}
+};
+
+void() _sui_menukey_downarrow =
+{
+	_sui_ring_step_next();
+
+	// Uebersprungene oder ausgeblendete Zeilen existieren nicht -- weiterdrehen,
+	// bis eine gezeichnete kommt. Die Elementliste stammt aus dem zuletzt
+	// gezeichneten Frame; das ist richtig so, denn zwischen zwei Frames hat sich
+	// der Bildschirm nicht geaendert. Der Zaehler faengt den Fall ab, dass gar
+	// nichts existiert (etwa direkt nach sui_reset_hover).
+	for (int wache = 0; wache < 32; wache++) {
+		if (sui_element_exists(_hover_actions[0])) break;
+		string vorher = _hover_actions[0];
+		_sui_ring_step_next();
+		if (_hover_actions[0] == vorher) break;
+	}
 
 	_hover_action_count = 1;
 };
 
-void() _sui_menukey_uparrow =
+// Ein Schritt im Ring, ohne Ruecksicht darauf, ob das Ziel gezeichnet wird.
+static void() _sui_ring_step_previous =
 {
 	string current_hovered_option = _hover_actions[0];
 
@@ -586,6 +622,24 @@ void() _sui_menukey_uparrow =
 			break;
 	}
 	
+};
+
+void() _sui_menukey_uparrow =
+{
+	_sui_ring_step_previous();
+
+	// Uebersprungene oder ausgeblendete Zeilen existieren nicht -- weiterdrehen,
+	// bis eine gezeichnete kommt. Die Elementliste stammt aus dem zuletzt
+	// gezeichneten Frame; das ist richtig so, denn zwischen zwei Frames hat sich
+	// der Bildschirm nicht geaendert. Der Zaehler faengt den Fall ab, dass gar
+	// nichts existiert (etwa direkt nach sui_reset_hover).
+	for (int wache = 0; wache < 32; wache++) {
+		if (sui_element_exists(_hover_actions[0])) break;
+		string vorher = _hover_actions[0];
+		_sui_ring_step_previous();
+		if (_hover_actions[0] == vorher) break;
+	}
+
 	_hover_action_count = 1;
 };
 

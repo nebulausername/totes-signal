@@ -240,8 +240,10 @@ string(string english) T =
 	case "Toggle Particle Effects for Performance.": return "Partikeleffekte fuer mehr Leistung umschalten.";
 	case "TEXTURE FILTERING": return "TEXTURFILTERUNG";
 	case "Choose 3D Environment Filtering Mode.": return "Filtermodus der 3D-Umgebung waehlen.";
-	case "NEAREST": return "NEAREST";
-	case "LINEAR": return "LINEAR";
+	// Texturfilterung beschreibend statt technisch: der Spieler sieht pixelige
+	// oder weiche Texturen, nicht "nearest" oder "linear".
+	case "NEAREST": return "PIXELIG";
+	case "LINEAR": return "WEICH";
 
 	// === accessibility menu ===
 	case "HITMARKERS": return "TREFFERMARKER";

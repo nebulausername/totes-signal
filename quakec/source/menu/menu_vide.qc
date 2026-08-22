@@ -205,7 +205,18 @@ string(string next_id) Menu_Video_GetPreviousButton =
 
 void() Menu_Video =
 {
-	Menu_Page_Begin(10, 2);
+    // Auf Touch zeigt dieser Bildschirm nur, was die Web-Shell NICHT bereits
+    // besitzt. Weggelassen werden:
+    //   AUFLOESUNG / VOLLBILD -- im Browser bestimmt der Canvas die Groesse,
+    //     und Vollbild liegt im Zahnrad-Sheet der Shell.
+    //   VSYNC -- der Browser taktet ueber requestAnimationFrame.
+    //   GAMMA -- die Shell setzt gamma und v_contrastboost (Helligkeit) und
+    //     ueberschreibt den Wert bei jedem Spielstart.
+    //   MAX FPS / PARTIKEL -- der Sparsam-Modus der Shell setzt cl_maxfps und
+    //     nzp_particles in BEIDE Richtungen; ein zweiter Regler daneben zeigt
+    //     Werte an, die gleich wieder ueberschrieben werden.
+    // Uebrig bleiben vier Zeilen, die genau hier hingehoeren.
+	Menu_Page_Begin(MENU_TOUCH ? 4 : 10, MENU_TOUCH ? 1 : 2);
     if (!menu_video_init)
         Menu_Video_Init();
     
@@ -214,27 +225,34 @@ void() Menu_Video =
 
     Menu_DrawMapPanel();
 
-    // Resolution
-    Menu_Button(1, "vm_resol", T("RESOLUTION"), T("Window size adjustment.")) ? Menu_Video_UpdateVideoMode() : 0;
-    if (current_selected_vidmode > menu_video_modes) current_selected_vidmode = 0;
-    string resolution_string = sprintf("%dx%d (%d:%d)", video_modes[current_selected_vidmode].size[0], 
-    video_modes[current_selected_vidmode].size[1], video_modes[current_selected_vidmode].ratio[0], 
-    video_modes[current_selected_vidmode].ratio[1]);
-    Menu_DrawOptionValue(1, resolution_string);
+    float z = 0;
 
-    // Fullscreen
-    Menu_Button(2, "vm_fulls", T("FULLSCREEN"), T("Change Fullscreen Mode.")) ? Menu_Video_UpdateFullscreen() : 0;
-    string fullscreen_string = "";
-    switch(current_fullscreen) {
-        case 0: fullscreen_string = T("DISABLED"); break;
-        case 1: fullscreen_string = T("ENABLED"); break;
-        case 2: fullscreen_string = T("BORDERLESS"); break;
-        default: break;
+    if (!MENU_TOUCH) {
+        // Resolution
+        z = z + 1;
+        Menu_Button(z, "vm_resol", T("RESOLUTION"), T("Window size adjustment.")) ? Menu_Video_UpdateVideoMode() : 0;
+        if (current_selected_vidmode > menu_video_modes) current_selected_vidmode = 0;
+        string resolution_string = sprintf("%dx%d (%d:%d)", video_modes[current_selected_vidmode].size[0], 
+        video_modes[current_selected_vidmode].size[1], video_modes[current_selected_vidmode].ratio[0], 
+        video_modes[current_selected_vidmode].ratio[1]);
+        Menu_DrawOptionValue(z, resolution_string);
+
+        // Fullscreen
+        z = z + 1;
+        Menu_Button(z, "vm_fulls", T("FULLSCREEN"), T("Change Fullscreen Mode.")) ? Menu_Video_UpdateFullscreen() : 0;
+        string fullscreen_string = "";
+        switch(current_fullscreen) {
+            case 0: fullscreen_string = T("DISABLED"); break;
+            case 1: fullscreen_string = T("ENABLED"); break;
+            case 2: fullscreen_string = T("BORDERLESS"); break;
+            default: break;
+        }
+        Menu_DrawOptionValue(z, fullscreen_string);
     }
-    Menu_DrawOptionValue(2, fullscreen_string);
 
     // Show FPS
-    Menu_Button(3, "vm_shfps", T("SHOW FPS"), T("Toggles display of FPS Values.")) ? Menu_Video_UpdateShowFPS() : 0;
+    z = z + 1;
+    Menu_Button(z, "vm_shfps", T("SHOW FPS"), T("Toggles display of FPS Values.")) ? Menu_Video_UpdateShowFPS() : 0;
     string showfps_string = "";
     switch(current_showfps) {
         case 0: showfps_string = T("DISABLED"); break;
@@ -242,55 +260,80 @@ void() Menu_Video =
         case 2: showfps_string = T("VERBOSE"); break;
         default: break;
     }
-    Menu_DrawOptionValue(3, showfps_string);
+    Menu_DrawOptionValue(z, showfps_string);
 
-    // Max FPS
-    if (cvar("vid_vsync") == 0) {
-        Menu_Button(4, "vm_maxps", T("MAX FPS"), T("Configure Maximum FPS Value.")) ? 0 : 0;
-        Menu_CvarSlider(4, "vm_maxps", [10, 500, 490], "cl_maxfps", true, false, false);
-    } else {
-        Menu_GreyButton(4, T("[VSYNC ON] MAX FPS"));
+    if (!MENU_TOUCH) {
+        // Max FPS
+        z = z + 1;
+        if (cvar("vid_vsync") == 0) {
+            Menu_Button(z, "vm_maxps", T("MAX FPS"), T("Configure Maximum FPS Value.")) ? 0 : 0;
+            Menu_CvarSlider(z, "vm_maxps", [10, 500, 490], "cl_maxfps", true, false, false);
+        } else {
+            Menu_GreyButton(z, T("[VSYNC ON] MAX FPS"));
+        }
+
+        // VSync
+        z = z + 1;
+        Menu_Button(z, "vm_vsync", T("VSYNC"), T("Sync Framerate with Display.")) ? Menu_Video_UpdateVsync() : 0;
+        string vsync_string = "";
+        if (current_vsync) vsync_string = T("ENABLED");
+        else vsync_string = T("DISABLED");
+        Menu_DrawOptionValue(z, vsync_string);
     }
 
-    // VSync
-    Menu_Button(5, "vm_vsync", T("VSYNC"), T("Sync Framerate with Display.")) ? Menu_Video_UpdateVsync() : 0;
-    string vsync_string = "";
-    if (current_vsync) vsync_string = T("ENABLED");
-    else vsync_string = T("DISABLED");
-    Menu_DrawOptionValue(5, vsync_string);
-
     // Field of View
-    Menu_Button(6, "vm_fov", T("FIELD OF VIEW"), T("Change Camera Field of View.")) ? 0 : 0;
-    Menu_CvarSlider(6, "vm_fov", [10, 150, 140], "fov", true, false, false);
+    z = z + 1;
+    Menu_Button(z, "vm_fov", T("FIELD OF VIEW"), T("Change Camera Field of View.")) ? 0 : 0;
+    Menu_CvarSlider(z, "vm_fov", [10, 150, 140], "fov", true, false, false);
 
-    // Gamma
-    Menu_Button(7, "vm_gamma", T("GAMMA"), T("Adjust game Black Level.")) ? 0 : 0;
-    Menu_CvarSlider(7, "vm_gamma", [0.3, 2, 17], "gamma", false, true, false);
+    if (!MENU_TOUCH) {
+        // Gamma
+        z = z + 1;
+        Menu_Button(z, "vm_gamma", T("GAMMA"), T("Adjust game Black Level.")) ? 0 : 0;
+        Menu_CvarSlider(z, "vm_gamma", [0.3, 2, 17], "gamma", false, true, false);
+    }
 
     // Ultrawide Mode
-    Menu_Button(8, "vm_uwide", T("ULTRAWIDE MODE"), T("Condenses HUD closer to center of Display.")) ? Menu_Video_UpdateUltrawide() : 0;
+    z = z + 1;
+    Menu_Button(z, "vm_uwide", T("ULTRAWIDE MODE"), T("Condenses HUD closer to center of Display.")) ? Menu_Video_UpdateUltrawide() : 0;
     string wide_string = "";
     if (current_ultrawide) wide_string = T("ENABLED");
     else wide_string = T("DISABLED");
-    Menu_DrawOptionValue(8, wide_string);
+    Menu_DrawOptionValue(z, wide_string);
 
-    // Particles
-    Menu_Button(9, "vm_parts", T("PARTICLES"), T("Toggle Particle Effects for Performance.")) ? Menu_Video_UpdateParticles() : 0;
-    string part_string = "";
-    if (current_particles) part_string = T("ENABLED");
-    else part_string = T("DISABLED");
-    Menu_DrawOptionValue(9, part_string);
+    if (!MENU_TOUCH) {
+        // Particles
+        z = z + 1;
+        Menu_Button(z, "vm_parts", T("PARTICLES"), T("Toggle Particle Effects for Performance.")) ? Menu_Video_UpdateParticles() : 0;
+        string part_string = "";
+        if (current_particles) part_string = T("ENABLED");
+        else part_string = T("DISABLED");
+        Menu_DrawOptionValue(z, part_string);
+    }
 
     // Texture Filtering
-    Menu_Button(10, "vm_filtr", T("TEXTURE FILTERING"), T("Choose 3D Environment Filtering Mode.")) ? Menu_Video_UpdateFiltering() : 0;
+    z = z + 1;
+    Menu_Button(z, "vm_filtr", T("TEXTURE FILTERING"), T("Choose 3D Environment Filtering Mode.")) ? Menu_Video_UpdateFiltering() : 0;
     string filt_string = "";
     if (current_filter) filt_string = T("NEAREST");
     else filt_string = T("LINEAR");
-    Menu_DrawOptionValue(10, filt_string);
+    Menu_DrawOptionValue(z, filt_string);
 
     Menu_DrawDivider(11.5);
-    Menu_Button(-2, "vm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Video_ApplySettings() : 0;
-    Menu_Button(-1, "vm_back", T("BACK"), T("Return to Configuration Menu.")) ? current_menu = MENU_OPTIONS : 0;
+    if (!MENU_TOUCH) {
+        Menu_Button(-2, "vm_apply", T("APPLY"), T("Save & Apply Settings.")) ? Menu_Video_ApplySettings() : 0;
+        Menu_Button(-1, "vm_back", T("BACK"), T("Return to Configuration Menu.")) ? current_menu = MENU_OPTIONS : 0;
+    } else {
+        // Kein UEBERNEHMEN auf Touch: Aufloesung und Vollbild sind hier gar
+        // nicht einstellbar, es bliebe nur das Speichern -- und ein vergessener
+        // UEBERNEHMEN-Knopf ist auf dem Handy eine Falle. Beim Verlassen sichern.
+        // Bewusst OHNE vid_restart: das steckt in Menu_Video_ApplySettings und
+        // startet im Browser das Videosystem neu, wofuer es hier keinen Grund gibt.
+        if (Menu_Button(-1, "vm_back", T("BACK"), "")) {
+            localcmd("saveconfig user_settings.cfg\n");
+            current_menu = MENU_OPTIONS;
+        }
+    }
 
 	Menu_Page_End();
 

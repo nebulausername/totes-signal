@@ -78,6 +78,29 @@ KONSOLE aus: ohne Tastatur haben sie nichts zu bieten.
 Overlay-Sammelselektor stand (`position` fehlte, `z-index` wirkt auf statische
 Elemente nicht). Siehe Footgun 14 in `CLAUDE.md`.
 
+## Was das Menue auf Touch bewusst NICHT zeigt
+
+Der Bildschirm BILD laesst auf Touch weg, was die Shell bereits besitzt oder was
+im Browser wirkungslos ist: AUFLOESUNG und VOLLBILD (der Canvas bestimmt die
+Groesse, Vollbild liegt im Zahnrad-Sheet), VSYNC (der Browser taktet ueber
+requestAnimationFrame), GAMMA (die Shell setzt `gamma`/`v_contrastboost` und
+ueberschreibt den Wert bei jedem Spielstart) sowie MAX FPS und PARTIKEL (der
+Sparsam-Modus setzt `cl_maxfps` und `nzp_particles` in beide Richtungen).
+Uebrig bleiben vier Zeilen, die dort wirklich hingehoeren.
+
+**UEBERNEHMEN entfaellt auf Touch** (`Menu_SettingsFooter`): ein Knopf, den man
+druecken MUSS, damit die Aenderung bleibt, ist auf dem Handy eine Falle -- und er
+kostet eine der fuenf Zeilen. Gesichert wird beim Verlassen, mit derselben
+Funktion. Im Bild-Bildschirm bewusst ohne `vid_restart`: das steckt in
+`Menu_Video_ApplySettings` und startet im Browser das Videosystem neu, wofuer es
+dort keinen Grund gibt.
+
+**Regler werden auf Touch zu Steppern** (`[-] Wert [+]`, `Menu_StepButton`).
+Eine deutsche Beschriftung wie GESAMTLAUTSTAERKE braucht fast die ganze
+Zeilenbreite und lief dem Schieber ins Bild; ausserdem ist ein 15 px hoher Griff
+mit dem Daumen nicht zu fassen. Schrittweite mindestens ein Zwanzigstel des
+Bereichs -- SICHTFELD haette sonst 140 Tipps gebraucht.
+
 ## Trefferlage im Menue (1:1-Rendern)
 
 Menue und Pausemenue positionieren den Cursor **absolut**. Der Touch-Pfad der

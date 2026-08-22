@@ -942,6 +942,53 @@ float(float order, string id, string title, string description) Menu_Button =
 	return sui_is_clicked(id);
 };
 
+//
+// Menu_StepButton(id, pos, groesse, zeichen)
+// Quadratische Flaeche fuer [-] und [+] im Stepper. Eigene Funktion, weil sie
+// nicht am Zeilenraster haengt, sondern IN einer Zeile sitzt.
+//
+float(string id, vector pos, float groesse, string zeichen) Menu_StepButton =
+{
+	vector g = [groesse, groesse];
+	float gedrueckt = sui_is_pressed_at(pos, g);
+	float hell = sui_is_hovered(id) || gedrueckt;
+
+	sui_fill(pos, g, [0, 0, 0], hell ? 0.95 : 0.55, 0);
+	sui_fill(pos, [groesse, max(2, 2 * MENU_UI_SCALE)],
+	         hell ? [1, 0.32, 0.10] : [0.38, 0.11, 0.05], 1, 0);
+
+	sui_text(pos + [(groesse - getTextWidth(zeichen, MENU_LABEL_SIZE_x)) * 0.5,
+	                (groesse - MENU_LABEL_SIZE_y) * 0.5],
+	         MENU_LABEL_SIZE, zeichen,
+	         hell ? [1, 0.20, 0.06] : [0.94, 0.90, 0.82], 1, 0);
+
+	sui_action_element(pos, g, id, sui_noop);
+	return sui_is_clicked(id);
+};
+
+//
+// Menu_SettingsFooter(apply_id, back_id, anwenden)
+// Fusszeile eines Einstellungsbildschirms. Auf dem Desktop wie bisher
+// UEBERNEHMEN + ZURUECK. Auf Touch entfaellt UEBERNEHMEN: ein Knopf, den man
+// druecken MUSS, damit die Aenderung bleibt, ist auf dem Handy eine Falle --
+// und er kostet eine der fuenf Zeilen. Stattdessen wird beim Verlassen
+// gesichert, mit genau derselben Funktion wie zuvor der Knopf.
+// Gibt TRUE zurueck, wenn der Bildschirm verlassen werden soll.
+//
+float(string apply_id, string back_id, void() anwenden) Menu_SettingsFooter =
+{
+	if (!MENU_TOUCH) {
+		Menu_Button(-2, apply_id, T("APPLY"), T("Save & Apply Settings.")) ? anwenden() : 0;
+		return Menu_Button(-1, back_id, T("BACK"), T("Return to Configuration Menu."));
+	}
+
+	if (Menu_Button(-1, back_id, T("BACK"), "")) {
+		anwenden();
+		return TRUE;
+	}
+	return FALSE;
+};
+
 float(string id, vector pos, vector size, string text) my_button =
 {
 	sui_push_frame(pos, size);
@@ -1152,29 +1199,42 @@ void(float order, string button_id, vector minmaxsteps, string cvar_s, float is_
 	float current = cvar(cvar_s);
 	float old = current;
 
-	// Auf Touch gehoert der Regler in die Zeile selbst (es gibt keine
-	// Wertespalte) und braucht eine greifbare Hoehe -- 15 virtuelle px sind mit
-	// dem Daumen nicht bedienbar.
-	vector reglerpos = [0, 0];
-	vector reglergroesse = [0, 0];
 	vector zahlpos = [0, 0];
-	if (MENU_VALUE_X > 0) {
+
+	if (MENU_TOUCH) {
+		// Kein Schieber auf Touch, sondern [-] Wert [+]. Zwei Gruende: eine
+		// deutsche Beschriftung wie GESAMTLAUTSTAERKE braucht fast die ganze
+		// Zeilenbreite und lief dem Schieber ins Bild; und ein 15 px hoher
+		// Griff ist mit dem Daumen ohnehin nicht zu fassen. Der Stepper ist
+		// kompakt, kollisionsfrei und jede Flaeche ist ~44 CSS-px gross.
+		vector box = Menu_RowBox(order);
+		float  bw  = MENU_ROW_H - 6 * MENU_UI_SCALE;
+		float  wb  = 78 * MENU_UI_SCALE;                      // Platz fuer den Wert
+		float  y   = box_y + (MENU_ROW_H - bw) * 0.5;
+		float  xp  = MENU_ROW_W - MENU_LABEL_PAD - bw;        // [+] ganz rechts
+		float  xm  = xp - wb - bw;                            // [-] links daneben
+
+		// Schrittweite: die Vorlage rastert fuer Maus und Pfeiltasten sehr fein
+		// (SICHTFELD haette 140 Stufen). Mit dem Daumen sind das zu viele Tipps,
+		// also mindestens ein Zwanzigstel des Bereichs pro Tipp.
+		float spanne  = minmaxsteps[1] - minmaxsteps[0];
+		float schritt = max(spanne / minmaxsteps[2], spanne / 20);
+
+		if (Menu_StepButton(strcat(cvar_s, "minus"), [xm, y], bw, "-")) current -= schritt;
+		if (Menu_StepButton(strcat(cvar_s, "plus"),  [xp, y], bw, "+")) current += schritt;
+
+		current = bound(minmaxsteps[0], current, minmaxsteps[1]);
+		zahlpos = [xm + bw, box_y + (MENU_ROW_H - MENU_VALUE_SIZE_y) * 0.5];
+	}
+	else {
 		vector position = [MENU_VALUE_X, 50 + (order * 25)];
 		vector size = [150, 30];
-		reglerpos     = [position_x, (position_y - 17) + size_y * 0.5];
-		reglergroesse = [size_x, size_y * 0.5];
-		zahlpos       = position + [175, 0, 0];
-	} else {
-		vector box = Menu_RowBox(order);
-		float  breite = MENU_ROW_W * 0.42;
-		float  hoehe  = MENU_ROW_H * 0.42;
-		reglerpos     = [MENU_ROW_W * 0.40, box_y + (MENU_ROW_H - hoehe) * 0.5];
-		reglergroesse = [breite, hoehe];
-		zahlpos       = [reglerpos_x + breite + MENU_LABEL_PAD,
-		                 box_y + (MENU_ROW_H - MENU_VALUE_SIZE_y) * 0.5];
-	}
+		vector reglerpos     = [position_x, (position_y - 17) + size_y * 0.5];
+		vector reglergroesse = [size_x, size_y * 0.5];
+		zahlpos              = position + [175, 0, 0];
 
-	my_slider(strcat(cvar_s, "sldr"), reglerpos, reglergroesse, minmaxsteps, current);
+		my_slider(strcat(cvar_s, "sldr"), reglerpos, reglergroesse, minmaxsteps, current);
+	}
 
 	// For keyboard/gamepad navigation -- we need to check if the button associated
 	// with this slider is active and then do input checks to test if we should
@@ -1207,10 +1267,24 @@ void(float order, string button_id, vector minmaxsteps, string cvar_s, float is_
 		if (number_to_draw == 0 && zero_is_one == true)
 			number_to_draw = 1;
 
-		if (is_int)
-			sui_text(zahlpos, MENU_VALUE_SIZE, ftos(rint(number_to_draw)), [1, 1, 1], 1, 0);
-		else
-			sui_text(zahlpos, MENU_VALUE_SIZE, sprintf("%.2f", number_to_draw), [1, 1, 1], 1, 0);
+		string wert = is_int ? ftos(rint(number_to_draw)) : sprintf("%.2f", number_to_draw);
+		if (MENU_TOUCH)   // mittig zwischen [-] und [+]
+			zahlpos_x += (78 * MENU_UI_SCALE - getTextWidth(wert, MENU_VALUE_SIZE_x)) * 0.5;
+		sui_text(zahlpos, MENU_VALUE_SIZE, wert, [1, 1, 1], 1, 0);
+	}
+	else if (MENU_TOUCH) {
+		// Auch ohne Zahlenanzeige braucht der Spieler eine Rueckmeldung: ein
+		// kurzer Balken zeigt, wo im Bereich der Wert steht (Lautstaerken).
+		// QuakeC kennt nur Funktions-Scope -- eigene Namen statt Wiederverwendung.
+		vector bbox = Menu_RowBox(order);
+		float  kb   = MENU_ROW_H - 6 * MENU_UI_SCALE;
+		float  kw   = 78 * MENU_UI_SCALE;
+		float  kx   = MENU_ROW_W - MENU_LABEL_PAD - kb - kw - kb;
+		float  anteil = (minmaxsteps[1] > minmaxsteps[0])
+		              ? (current - minmaxsteps[0]) / (minmaxsteps[1] - minmaxsteps[0]) : 0;
+		float  ky   = bbox_y + MENU_ROW_H * 0.5 - 2;
+		sui_fill([kx + kb + 6, ky], [kw - 12, 4], [0.30, 0.10, 0.06], 1, 0);
+		sui_fill([kx + kb + 6, ky], [(kw - 12) * anteil, 4], [1, 0.26, 0.08], 1, 0);
 	}
 };
 
