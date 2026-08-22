@@ -210,8 +210,14 @@
 		border:2px solid #c21500; border-radius:12px; color:#f2ede0;
 		font-size:min(6vw,24px); font-weight:bold; letter-spacing:1px;
 		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(194,21,0,0.4);
+		vertical-align:middle;
 	}
 	#mstart .play:active, #deathui .play:active { background:rgba(194,21,0,0.55); }
+	/* Zweitknopf im Gate: gleiche Groesse, ruhiger -- er ist ein Angebot,
+	   nicht der Hauptweg. */
+	#mstart .play.alt { margin-top:14px; border-color:#6b3a2a; color:#e6e1d2;
+		background:rgba(40,24,18,0.55); box-shadow:none; font-size:min(4.4vw,18px);
+		padding:12px 24px; }
 	#deathui .death-actions { display:flex; gap:16px; justify-content:center; flex-wrap:wrap; }
 	#deathui .play { margin-top:12px; font-size:min(4vw,17px); padding:11px 20px; }
 	#deathui .play.alt { border-color:rgba(210,200,180,0.55); background:rgba(40,36,32,0.4);
@@ -378,6 +384,7 @@
 		<p class="ts-sub" data-i18n="sub"></p>
 		<p class="hint" data-i18n="tap"></p>
 		<span class="play" data-i18n="play"></span>
+		<span class="play alt" id="gate-weiter" style="display:none"></span>
 		<p class="hint" id="gate-groesse" style="color:#c9a06a"></p>
 		<p class="hint" style="margin-top:14px"><span id="gate-konto" style="cursor:pointer;text-decoration:underline" data-i18n="accTitle"></span></p>
 	</div></div>
@@ -489,6 +496,7 @@ function tsMarker(msg)
 		if (window.tsCmd)
 			tsCmd('vid_conheight 480\n' + (IS_TOUCH ? 'ts_touchui 1\n' : ''));
 		if (window.__ts_renderMode) __ts_renderMode('menu');
+		if (window.TS_WEITER) TS_WEITER.einloesen();
 	}
 	// Pausemenue (CSQC): gleiche absolute Cursorlogik wie das Hauptmenue, aber im
 	// HUD-Raum -- vid_conheight bleibt deshalb unangetastet, nur 1:1-Rendern.
@@ -520,7 +528,8 @@ function tsMarker(msg)
 		if (mb) TS_DEATH.addRow(mb[1]);
 	}
 	if (window.TS_RUN){                                       // Bestenliste
-		var mr = msg.match(/TSUI:rstart:([^\n]*)/); if (mr) TS_RUN.onStart(mr[1]);
+		var mn = msg.match(/TSUI:rname:([^\n]*)/);  if (mn) TS_WEITER.name = mn[1].trim();
+		var mr = msg.match(/TSUI:rstart:([^\n]*)/); if (mr) { TS_RUN.onStart(mr[1]); TS_WEITER.merken(mr[1]); }
 		var mh = msg.match(/TSUI:hb:([^\n]*)/);     if (mh) TS_RUN.onBeat(mh[1]);
 		var mm = msg.match(/TSUI:dmeta:([^\n]*)/);  if (mm) TS_RUN.onMeta(mm[1]);
 		var mc = msg.match(/TSUI:ach:([^\n]*)/);    if (mc) TS_RUN.onAch(mc[1]);
@@ -540,7 +549,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22r';
+var TS_BUILD = '2026-08-22s';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -728,6 +737,7 @@ var I18N = {
 		sub:'▚ KEIN SIGNAL ▚',
 		tap:'Koop-Zombie-Shooter im Browser. Kein Empfang. Nur Untote.',
 		play:'▶ TIPPEN ZUM SPIELEN',
+		resume: 'WEITERSPIELEN',
 		gateGroesse:'Erster Start: rund 90 MB werden geladen. Danach laeuft das Spiel offline.',
 		rotate:'Bitte Gerät ins Querformat drehen.',
 		install:'⇩ Als App installieren',
@@ -780,6 +790,7 @@ var I18N = {
 		sub:'▚ NO SIGNAL ▚',
 		tap:'Co-op zombie shooter in your browser. No signal. Only the undead.',
 		play:'▶ TAP TO PLAY',
+		resume: 'CONTINUE',
 		gateGroesse:'First launch downloads about 90 MB. After that it runs offline.',
 		rotate:'Please rotate your device to landscape.',
 		install:'⇩ Install app',
@@ -1800,6 +1811,78 @@ function gateHinweis(){
 	}).catch(function(){ e.textContent = T('gateGroesse'); });
 }
 
+// ---- Weiterspielen: der letzte Lauf als Ein-Tipp-Angebot im Start-Gate ----
+// Ein Wiederkehrer brauchte bisher fuenf Interaktionen und zwei Wartezeiten bis
+// zur naechsten Runde: Gate, Laden, SOLO, Karte, Lobby, SPIEL STARTEN, 6-s-
+// Countdown. Aus TSUI:rstart kennt die Shell Karte, Schwierigkeit, Modus,
+// Startrunde und Flags -- das genuegt, um denselben Lauf direkt aufzusetzen.
+var TS_WEITER = {
+	SCHLUESSEL: 'ts_letzter_lauf',
+	name: '',        // aus TSUI:rname, kommt VOR rstart
+	offen: false,    // Spieler hat WEITERSPIELEN getippt, Engine laedt noch
+
+	// Ein BSP-Name wandert gleich in eine Konsolenzeile, und tsCmd fuehrt JEDE
+	// aus. Nur zulassen, was ueberhaupt ein Dateiname sein kann.
+	gueltig: function(k){ return /^[a-z0-9_]{1,32}$/.test(String(k || '')); },
+
+	merken: function(roh){
+		var p = String(roh).split('|');
+		if (!this.gueltig(p[0])) return;
+		try {
+			localStorage.setItem(this.SCHLUESSEL, JSON.stringify({
+				karte: p[0], diff: +p[1] || 0, modus: +p[2] || 0,
+				runde: +p[3] || 0, flags: +p[4] || 0,
+				name: this.name, zeit: Date.now()
+			}));
+		} catch(e){}
+	},
+
+	lesen: function(){
+		try {
+			var d = JSON.parse(localStorage.getItem(this.SCHLUESSEL) || 'null');
+			return (d && this.gueltig(d.karte)) ? d : null;
+		} catch(e){ return null; }
+	},
+
+	// Genau das Praefix, das Menu_StartSolo, Menu_Maps_LoadMap und Menu_Lobby
+	// setzen. Ohne sv_public/sv_listen_qw erbt ein direktes `map` den zuletzt
+	// gesetzten Zustand -- nach einem Ausflug in den Koop-Zweig waere das ein
+	// oeffentlich beim Master-Server angemeldeter Listen-Server.
+	// Flag-Bits aus ts_flag_bits() (server/main.qc): 1 Kopfschuss, 2 Magie AUS,
+	// 4 schnelle Runden.
+	befehl: function(d){
+		return ['sv_public 0', 'sv_listen_qw 0',
+			'sv_gamemode '     + (d.modus | 0),
+			'sv_difficulty '   + (d.diff  | 0),
+			'sv_startround '   + (d.runde | 0),
+			'sv_magic '        + ((d.flags & 2) ? 0 : 1),
+			'sv_headshotonly ' + ((d.flags & 1) ? 1 : 0),
+			'sv_fastrounds '   + ((d.flags & 4) ? 1 : 0),
+			'sv_maxai 24',
+			'map ' + d.karte].join('\n') + '\n';
+	},
+
+	// Vor dem ersten TSUI:menu nimmt die Engine keine Konsolenbefehle an --
+	// deshalb wird der Wunsch gemerkt und erst dort eingeloest.
+	einloesen: function(){
+		if (!this.offen) return;
+		this.offen = false;
+		var d = this.lesen(); if (!d) return;
+		var self = this;
+		setTimeout(function(){ if (window.tsCmd) tsCmd(self.befehl(d)); }, 600);
+	},
+
+	// Knopf im Gate bestuecken; gibt zurueck, ob es etwas anzubieten gab.
+	anbieten: function(){
+		var el = document.getElementById('gate-weiter');
+		var d  = this.lesen();
+		if (!el || !d) return false;
+		el.textContent = T('resume') + (d.name ? '  \u00b7  ' + d.name : '');
+		el.style.display = 'inline-block';
+		return true;
+	}
+};
+
 function mobileStart()
 {	var g = document.getElementById('mstart');
 	g.style.display = 'flex';
@@ -1810,6 +1893,16 @@ function mobileStart()
 		v.src = 'img/gate-loop.mp4';
 		if (v.play) v.play().catch(function(){});
 	}
+	TS_WEITER.anbieten();
+	var w = document.getElementById('gate-weiter');
+	if (w) w.addEventListener('click', function(e){
+		// Das GANZE Gate ist klickbar -- ohne das hier wuerde derselbe Tipp
+		// zusaetzlich den normalen Start ausloesen.
+		e.stopPropagation();
+		TS_WEITER.offen = true;
+		g.click();
+	});
+
 	g.addEventListener('click', function once(){
 		g.removeEventListener('click', once);
 		g.style.display = 'none';

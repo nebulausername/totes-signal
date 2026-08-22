@@ -51,6 +51,46 @@ test('Einstellungsschirm liegt im Bild -- nicht unter dem Canvas', async ({ page
   expect(lage.hoehe, 'fuellt den Bildschirm').toBeGreaterThan(lage.viewport * 0.8);
 });
 
+test('Start-Gate bietet den letzten Lauf an -- und nur gueltige Kartennamen', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  const touch = await page.evaluate(() => !!window.IS_TOUCH);
+  test.skip(!touch, 'Das Start-Gate gibt es nur auf Touch-Geraeten');
+
+  async function mitLauf(karte, name) {
+    await page.evaluate(([k, n]) => localStorage.setItem('ts_letzter_lauf', JSON.stringify({
+      karte: k, diff: 1, modus: 0, runde: 0, flags: 5, name: n, zeit: Date.now(),
+    })), [karte, name]);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(800);
+    return page.evaluate(() => {
+      const w = document.getElementById('gate-weiter');
+      return { sichtbar: !!w && getComputedStyle(w).display !== 'none', text: w ? w.textContent : '' };
+    });
+  }
+
+  const gut = await mitLauf('ndu', 'Nacht der Untoten');
+  expect(gut.sichtbar, 'gemerkter Lauf wird angeboten').toBe(true);
+  expect(gut.text, 'mit dem Kartennamen').toContain('Nacht der Untoten');
+
+  // Der Kartenname landet in einer Konsolenzeile, und tsCmd fuehrt JEDE aus.
+  // Ein praeparierter Eintrag darf deshalb NICHT angeboten werden.
+  const boese = await mitLauf('ndu\nquit', 'Angriff');
+  expect(boese.sichtbar, 'praeparierter Kartenname wird abgelehnt').toBe(false);
+
+  // Und der zusammengebaute Befehl muss die Flags richtig herum setzen:
+  // Bit 1 Kopfschuss, Bit 2 Magie AUS, Bit 4 schnelle Runden (flags 5 = 1|4).
+  await page.evaluate(() => localStorage.setItem('ts_letzter_lauf', JSON.stringify({
+    karte: 'ndu', diff: 1, modus: 0, runde: 0, flags: 5, name: 'x', zeit: Date.now(),
+  })));
+  const befehl = await page.evaluate(() => window.TS_WEITER.befehl(window.TS_WEITER.lesen()));
+  expect(befehl).toContain('sv_headshotonly 1');
+  expect(befehl).toContain('sv_magic 1');
+  expect(befehl).toContain('sv_fastrounds 1');
+  expect(befehl, 'ohne sv_public erbt ein direktes map den letzten Zustand').toContain('sv_public 0');
+  expect(befehl.trim().split('\n').pop()).toBe('map ndu');
+});
+
 test('Zustandswechsel Menue -> Spiel -> Pause -> Spiel schaltet die Aufloesung mit',
   async ({ page }) => {
     const markers = await booten(page);

@@ -1038,6 +1038,13 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 	float ts_seq = stof(serverkey("ts_runseq"));
 	if (ts_seq > 0 && ts_seq != ts_last_runseq) {
 		ts_last_runseq = ts_seq;
+		// Anzeigename VOR rstart, damit die Shell ihn schon hat, wenn der Lauf
+		// ankommt. Eigener Marker statt eines neuen Feldes in rstart: das
+		// Feld-Layout eines bestehenden Markers zu aendern waere ein Bruch
+		// (siehe Marker-Vertrag in CLAUDE.md). Der Pipe wird entfernt, er ist
+		// das Trennzeichen der uebrigen Marker.
+		print(sprintf("\nTSUI:rname:%s\n",
+			strreplace("|", "", serverkey("mapname_pretty"))));
 		print(sprintf("\nTSUI:rstart:%s|%s|%d\n",
 			serverkey("ts_map"), serverkey("ts_cfg"), ts_seq));
 	}
