@@ -160,7 +160,13 @@ export default async function routes(app) {
 
       const access = await signAccess(s.user_id, next.id);
       reply.setCookie(COOKIE, next.raw, COOKIE_OPTS);
-      return { access_token: access, expires_in: ACCESS_TTL, refresh_token: next.raw };
+      // Kennung mitgeben: die Shell markiert damit die eigene Zeile in der
+      // Bestenliste. Ohne sie muesste sie dafuer einen zweiten Aufruf machen.
+      const prof = (await client.query(
+        `SELECT p.display_name, p.display_name_ascii, p.level FROM ts.profiles p WHERE p.user_id = $1`,
+        [s.user_id])).rows[0];
+      return { access_token: access, expires_in: ACCESS_TTL, refresh_token: next.raw,
+               user: { id: s.user_id, ...(prof || {}) } };
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});
       throw e;

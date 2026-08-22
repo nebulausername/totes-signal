@@ -450,3 +450,34 @@ test('Erfolge bringen XP, und der Zaehler bleibt konsistent', async () => {
     .toBeGreaterThanOrEqual(fin.xp_gained + erfolgsXp);
   await ctx.dispose();
 });
+
+test('Bestenliste liefert die eigene Zeile mit, auch weit ausserhalb der Liste', async () => {
+  const ctx = await request.newContext();
+  const a = await anon(ctx);
+  const auth = { ...ORIGIN, Authorization: `Bearer ${a.access_token}` };
+
+  // Ein schwacher Lauf -- er landet garantiert nicht in den ersten Plaetzen,
+  // sobald andere Spieler weiter kommen.
+  const lauf = await starteLauf(ctx, a.access_token);
+  const kopf = { ...auth, 'X-Run-Token': lauf.run_token };
+  await ctx.post(`${BASE}/api/runs/${lauf.run_id}/heartbeat`, {
+    headers: kopf, data: { beats: [{ seq: 1, round: 2, score: 700, kills: 12, headshots: 3, secs: 12 }] } });
+  const fin = await (await ctx.post(`${BASE}/api/runs/${lauf.run_id}/finish`, {
+    headers: kopf, data: { rounds: 2, score: 700, kills: 12, headshots: 3, downs: 1, revives: 0, secs: 12 } })).json();
+  expect(fin.status, `Lauf abgewiesen: ${fin.reason}`).toBe('verified');
+
+  // Ohne Anmeldung: kein me-Block, und die Antwort darf gecacht werden.
+  const ohne = await ctx.get(`${BASE}/api/leaderboard?map=ndu&limit=1`);
+  expect((await ohne.json()).me).toBeNull();
+  expect(ohne.headers()['cache-control']).toMatch(/public/);
+
+  // Mit Anmeldung: eigene Zeile samt Platz, egal wie weit hinten.
+  const mit = await ctx.get(`${BASE}/api/leaderboard?map=ndu&limit=1`, { headers: auth });
+  const d = await mit.json();
+  expect(d.me, 'kein me-Block trotz Anmeldung').toBeTruthy();
+  expect(d.me.user_id).toBe(a.user.id);
+  expect(d.me.rank, 'kein Platz fuer die eigene Zeile').toBeGreaterThanOrEqual(1);
+  // Persoenliche Antwort darf nicht in einem gemeinsamen Zwischenspeicher landen.
+  expect(mit.headers()['cache-control']).toMatch(/private|no-store/);
+  await ctx.dispose();
+});

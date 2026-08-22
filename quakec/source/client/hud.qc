@@ -2392,6 +2392,20 @@ void() HUD_PlayerDebugInfo =
 //
 void() HUD_DrawElementsForEndGame =
 {
+	// Die Web-Shell zeigt einen eigenen, viel reichhaltigeren
+	// SIGNAL-VERLOREN-Bildschirm (Statistik, Scoreboard, Bestenliste, frisch
+	// verdiente Erfolge). Zeichnet die Engine ihre Fassung daneben, stehen
+	// zwei Todesbildschirme uebereinander -- der engine-eigene geistert
+	// hinter dem halbdurchsichtigen Overlay durch.
+	//
+	// Geschaltet ueber ts_shell_death, das die Shell setzt, sobald sie den
+	// Todes-Bildschirm uebernimmt. Die Voreinstellung ist 0, also zeichnet die
+	// Engine im Zweifel weiter: laeuft eine aeltere Shell, die die Cvar nicht
+	// kennt, bleibt ihre Fassung als Rueckfallebene erhalten. Genau dafuer ist
+	// sie da -- und deshalb wird sie NICHT einfach geloescht.
+	if (cvar("ts_shell_death"))
+		return;
+
 	// Draws our "GAME OVER" text.
 	HUD_Endgame();
 

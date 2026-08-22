@@ -215,7 +215,7 @@ export default async function routes(app) {
   // --- Bestenliste --------------------------------------------------------
   // Eine Zeile je Spieler (sein bester Lauf) -- sonst fuellt ein einzelner
   // Vielspieler die ganze Liste.
-  app.get('/api/leaderboard', async (req) => {
+  app.get('/api/leaderboard', async (req, reply) => {
     const metric = req.query.metric === 'score' ? 'score' : 'rounds';
     const window = ['today', 'week', 'all'].includes(req.query.window) ? req.query.window : 'all';
     const map    = req.query.map && req.query.map !== '*' ? String(req.query.map).slice(0, 64) : null;
@@ -257,8 +257,52 @@ export default async function routes(app) {
       ORDER BY rank LIMIT $${params.length}`;
 
     const r = await q(sql, params);
+
+    // Die EIGENE Zeile immer mitliefern, auch wenn sie ausserhalb der
+    // angeforderten Menge liegt. Sonst zeigt die Liste einem Spieler auf
+    // Platz 47 nur fremde Namen, und die eine Zahl, die ihn interessiert,
+    // muesste er sich aus einer Textzeile zusammenreimen.
+    let mich = null;
+    const auth = req.headers.authorization || '';
+    if (auth.startsWith('Bearer ')) {
+      try {
+        const { userId } = await requireUser(req);
+        // Dieselben Filter wie oben, nur ohne das LIMIT: es steht als letzter
+        // Parameter in `params` und gehoert hier nicht dazu.
+        const filter = params.slice(0, -1);
+        const eigen = await q(`
+          WITH best AS (
+            SELECT DISTINCT ON (r.user_id)
+                   r.user_id, r.score, r.rounds, r.kills, r.headshots, r.in_game_secs,
+                   r.map_key, r.map_pretty, r.difficulty, r.submitted_at
+            FROM ts.runs r WHERE ${wo.join(' AND ')}
+            ORDER BY r.user_id, ${bestesJeSpieler}
+          ), gereiht AS (
+            SELECT rank() OVER (ORDER BY ${ordnung}) AS rank, b.* FROM best b
+          )
+          SELECT g.*, p.display_name, p.level, p.title_id
+          FROM gereiht g JOIN ts.profiles p ON p.user_id = g.user_id
+          WHERE g.user_id = $${filter.length + 1}`,
+          [...filter, userId]);
+        mich = eigen.rows[0] || null;
+      } catch { /* nicht angemeldet oder Token abgelaufen -> einfach ohne */ }
+    }
+
+    const auf = (e) => ({
+      rank: Number(e.rank), user_id: e.user_id, display_name: e.display_name,
+      level: e.level, title_id: e.title_id,
+      rounds: e.rounds, score: Number(e.score), kills: e.kills, headshots: e.headshots,
+      in_game_secs: e.in_game_secs, map_key: e.map_key, map_pretty: e.map_pretty,
+      difficulty: e.difficulty, submitted_at: e.submitted_at,
+    });
+
+    // Mit eigener Zeile ist die Antwort persoenlich -- dann darf sie nicht in
+    // einem gemeinsamen Zwischenspeicher landen.
+    reply.header('Cache-Control', mich ? 'private, no-store' : 'public, max-age=30');
+
     return {
       segment: { metric, window, map: map || '*', difficulty: diff === null ? -1 : diff },
+      me: mich ? auf(mich) : null,
       entries: r.rows.map((e) => ({
         rank: Number(e.rank), user_id: e.user_id, display_name: e.display_name,
         level: e.level, title_id: e.title_id,

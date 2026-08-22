@@ -164,6 +164,10 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	// kann das nicht selbst wissen -- platform_is_web gilt auch fuer den
 	// Desktop-Browser. Steuert u.a. die HUD-Verschiebung ueber dem Joystick.
 	autocvar(ts_touchui, 0);
+	// Setzt die Web-Shell auf 1, sobald sie den Todes-Bildschirm uebernimmt.
+	// Solange sie es nicht tut, zeichnet die Engine ihre eigene Fassung --
+	// das ist die Rueckfallebene, wenn der Marker mal ausbleibt.
+	autocvar(ts_shell_death, 0);
 	autocvar(in_aimassist, 1);   // Default an (mobile-first); im Optionsmenue abschaltbar, seta-Wahl bleibt
 	autocvar(cl_hitmarkers, 1);
 	autocvar(cl_textopacity, 0.20);

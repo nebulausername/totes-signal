@@ -196,6 +196,27 @@
 	.dchip span { color:#8f887a; font-size:min(2vh,10px); letter-spacing:1.2px; }
 	.dfoot { margin-top:8px; color:#9a9384; font-size:min(2.4vh,12px); letter-spacing:1px; }
 	#dpage-board { overflow-x:auto; max-width:100%; }
+	#dpage-rank  { max-width:100%; }
+	#dpage-rank table { margin:0 auto; border-collapse:collapse; font-family:monospace; }
+	#dpage-rank th { color:#c9a06a; font-size:min(2.2vh,11px); letter-spacing:1px;
+		padding:4px 10px; text-align:center; font-weight:normal; }
+	#dpage-rank td { padding:4px 10px; border-bottom:1px solid rgba(255,255,255,0.06); text-align:center; }
+	/* Die eigene Zeile hervorheben -- ohne sie sucht man sich in einer langen
+	   Liste selbst. */
+	#dpage-rank tr.ich td { color:#e8b04b; background:rgba(232,176,75,0.08); }
+	/* Steht die eigene Zeile nicht direkt hinter der letzten der Liste,
+	   sondern weiter unten, muss das sichtbar sein -- sonst liest sich Platz 47
+	   wie Platz 11. */
+	#dpage-rank tr.luecke td { border-top:2px dotted rgba(255,255,255,0.22); }
+	/* Auf einem Handy im Querformat sind keine 400 px Hoehe uebrig. Ohne
+	   Deckelung schiebt eine lange Liste NOCHMAL und ZUR LOBBY unter den
+	   Bildschirmrand -- und damit genau die beiden Knoepfe, wegen derer der
+	   Bildschirm ueberhaupt da ist. Lieber scrollen als verdraengen. */
+	/* NUR die Liste scrollt. Lag der Rollbereich auf #dpage-rank, verschwand
+	   die Kopfzeile mit Platz und XP nach oben aus dem Bild, sobald die eigene
+	   Zeile eingeblendet wurde. */
+	#rank-liste { max-height:min(34vh, 200px); overflow-y:auto; }
+	#rank-liste thead th { position:sticky; top:0; background:#0b0908; }
 	#dpage-board table { margin:0 auto; border-collapse:collapse; font-family:monospace;
 		font-size:min(2.8vh,13px); color:#ece5d7; }
 	#dpage-board th { color:#c9a06a; font-size:min(2.2vh,11px); letter-spacing:1px;
@@ -390,6 +411,11 @@ function tsMarker(msg)
 	if (window.TS_CTRL && stateChange)                       // Touch-HUD (nur Touch-Geraete)
 		TS_CTRL.setInGame(msg.indexOf('TSUI:game') !== -1);
 	if (msg.indexOf('TSUI:game') !== -1){                     // Presets idempotent re-anwenden
+		// Der Engine sagen, dass die Shell den Todes-Bildschirm uebernimmt --
+		// sonst zeichnet sie ihre eigene Fassung darunter und es stehen zwei
+		// SIGNAL-VERLOREN uebereinander. Gilt auch auf dem Desktop, deshalb
+		// hier und nicht im touch-gebundenen Block.
+		if (window.tsCmd) tsCmd('ts_shell_death 1\n');
 		if (window.__ts_applyBright) __ts_applyBright();
 		if (window.__ts_applyHud)    __ts_applyHud();
 		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
@@ -426,7 +452,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22a';
+var TS_BUILD = '2026-08-22h';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -631,7 +657,7 @@ var I18N = {
 		deadTitle:'SIGNAL VERLOREN', deadRound:'RUNDE %d ERREICHT',
 		again:'▶ NOCHMAL', lobby:'⌂ ZUR LOBBY',
 		statTab:'STATISTIK', boardTab:'SCOREBOARD',
-		rankTab:'BESTENLISTE', rankAus:'Bestenliste und Fortschritt sind aus.',
+		rankTab:'BESTENLISTE', colRound:'RUNDE', rankAus:'Bestenliste und Fortschritt sind aus.',
 		rankAnBtn:'AKTIVIEREN', rankLaedt:'Laedt ...', rankLeer:'Noch keine Eintraege.',
 		rankFehler:'Nicht erreichbar.', rankPlatz:'Platz',
 		rankPruefung:'Lauf wird geprueft.', rankAbgelehnt:'Lauf nicht gewertet.',
@@ -679,7 +705,7 @@ var I18N = {
 		deadTitle:'SIGNAL LOST', deadRound:'REACHED ROUND %d',
 		again:'▶ PLAY AGAIN', lobby:'⌂ TO LOBBY',
 		statTab:'STATS', boardTab:'SCOREBOARD',
-		rankTab:'LEADERBOARD', rankAus:'Leaderboard and progress are off.',
+		rankTab:'LEADERBOARD', colRound:'ROUND', rankAus:'Leaderboard and progress are off.',
 		rankAnBtn:'ENABLE', rankLaedt:'Loading ...', rankLeer:'No entries yet.',
 		rankFehler:'Unavailable.', rankPlatz:'Rank',
 		rankPruefung:'Run under review.', rankAbgelehnt:'Run not counted.',
@@ -847,11 +873,15 @@ var TS_DEATH = {
 			da.onerror = function(){ da.hidden = true; }; }
 		this.render(r);
 		if (this.timer) clearTimeout(this.timer);
-		this.timer = setTimeout(function(){ el.style.display = 'flex'; }, 3500);
+		this.timer = setTimeout(function(){
+			el.style.display = 'flex';
+			if (window.TS_CTRL) TS_CTRL.applyVisibility();   // Touch-HUD weg
+		}, 3500);
 	},
 	hide: function(){
 		if (this.timer){ clearTimeout(this.timer); this.timer = 0; }
 		var el = document.getElementById('deathui'); if (el) el.style.display = 'none';
+		if (window.TS_CTRL) TS_CTRL.applyVisibility();       // Touch-HUD zurueck
 	}
 };
 (function(){
@@ -912,6 +942,7 @@ var TS_API = {
 		this._tok = j.access_token;
 		this._exp = Date.now() + (j.expires_in - 60) * 1000;
 		if (j.refresh_token) { try { localStorage.setItem('ts_rt_anon', j.refresh_token); } catch(e){} }
+		if (j.user) this.meineId = j.user.id;
 		return j;
 	},
 
@@ -939,6 +970,7 @@ var TS_API = {
 		return j;
 	},
 
+	meineId: null,
 	hatKonto(){ try { return !!localStorage.getItem('ts_rt_anon'); } catch(e){ return false; } },
 
 	// Der Deckname muss in die Engine, sonst steht im Spiel-Scoreboard weiter
@@ -983,6 +1015,7 @@ var TS_API = {
 		this._exp = Date.now() + (j.expires_in - 60) * 1000;
 		try { localStorage.setItem('ts_rt_anon', j.refresh_token); } catch(e){}
 		if (j.user && j.user.display_name_ascii) this.nameSetzen(j.user.display_name_ascii);
+		if (j.user) this.meineId = j.user.id;
 		return j;
 	}
 };
@@ -1205,8 +1238,11 @@ var TS_BOARD = {
 		ziel.innerHTML = '<div class="dfoot">' + T('rankLaedt') + '</div>';
 		try {
 			var karte = (TS_RUN.cfg && TS_RUN.cfg.map_key) || '*';
-			var d = await (await fetch('/api/leaderboard?metric=rounds&window=' +
-				this.fenster + '&map=' + encodeURIComponent(karte) + '&limit=15')).json();
+			// MIT Anmeldung anfragen: nur dann liefert der Server den
+			// me-Block, also die eigene Zeile samt Platz -- auch wenn sie
+			// weit ausserhalb der ersten zehn liegt.
+			var d = await TS_API.call('/leaderboard?metric=rounds&window=' +
+				this.fenster + '&map=' + encodeURIComponent(karte) + '&limit=10');
 			this.zeichnen(d);
 		} catch(e){
 			ziel.innerHTML = '<div class="dfoot">' + T('rankFehler') + '</div>';
@@ -1240,14 +1276,41 @@ var TS_BOARD = {
 			ziel.innerHTML = kopf + '<div class="dfoot">' + T('rankLeer') + '</div>';
 			return;
 		}
-		var zeilen = d.entries.map(function(x){
-			return '<tr><td>' + x.rank + '</td><td>' + TS_DEATH.strip(x.display_name) +
-				'</td><td>' + x.rounds + '</td><td>' + x.score + '</td></tr>';
+		// Der Server nennt die eigene Zeile ausdruecklich -- darauf verlassen
+		// wir uns, statt sie ueber die Kennung zu erraten.
+		var ich = (d.me && d.me.user_id) || TS_API.meineId;
+		var liste = d.entries.slice();
+		// Liegt die eigene Zeile ausserhalb der ersten zehn, unten anhaengen.
+		// Ohne das sieht ein Spieler auf Platz 47 nur fremde Namen.
+		var drin = ich && liste.some(function(x){ return x.user_id === ich; });
+		var abgesetzt = false;
+		if (d.me && !drin){ liste.push(d.me); abgesetzt = true; }
+
+		var zeilen = liste.map(function(x, i){
+			var eigen = ich && x.user_id === ich;
+			// Trennlinie, damit klar ist: hier klafft eine Luecke in der Liste.
+			var luecke = (abgesetzt && i === liste.length - 1) ? ' luecke' : '';
+			return '<tr class="' + (eigen ? 'ich' : '') + luecke + '"><td>' + x.rank + '</td><td>' +
+				TS_DEATH.strip(x.display_name) + '</td><td>' + x.rounds + '</td><td>' + x.score + '</td></tr>';
 		}).join('');
 		ziel.innerHTML = kopf +
-			'<table><thead><tr><th>#</th><th>' + T('colName') + '</th><th>' +
-			T('waves1') + '</th><th>' + T('stPoints') + '</th></tr></thead><tbody>' +
-			zeilen + '</tbody></table>';
+			'<div id="rank-liste"><table><thead><tr><th>#</th><th>' + T('colName') + '</th><th>' +
+			T('colRound') + '</th><th>' + T('stPoints') + '</th></tr></thead><tbody>' +
+			zeilen + '</tbody></table></div>';
+
+		// Die eigene Zeile ins Sichtfeld holen. Bei Platz 5 in einer auf drei
+		// Zeilen gedeckelten Liste stuende sonst zwar "Platz 5" ueber der
+		// Tabelle, die goldene Zeile selbst aber ausserhalb -- der Spieler
+		// muesste suchen, was er eigentlich sehen wollte.
+		// scrollTop von Hand statt scrollIntoView: letzteres scrollt AUCH alle
+		// Vorfahren mit und schob dabei "SIGNAL VERLOREN" samt Platzangabe aus
+		// dem Bild. Hier soll sich ausschliesslich die Liste bewegen.
+		var liste = document.getElementById('rank-liste');
+		var eigene = liste && liste.querySelector('tr.ich');
+		if (liste && eigene){
+			var mitte = eigene.offsetTop - (liste.clientHeight / 2) + (eigene.offsetHeight / 2);
+			liste.scrollTop = Math.max(0, mitte);
+		}
 	},
 
 	zeigeErgebnis: function(j){ this.letztes = j; this.laden(); }
@@ -2046,7 +2109,15 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	}
 	function applyVisibility(){
 		var portrait = window.matchMedia('(orientation: portrait)').matches;
-		var show = inGame && !portrait;
+		// Waehrend SIGNAL VERLOREN gehoert der Bildschirm dem Todes-Panel.
+		// Die Knoepfe daneben stehen zu lassen sah nicht nur unaufgeraeumt aus
+		// -- man konnte sie auch antippen und blind ins Nichts feuern.
+		var tot = false;
+		try {
+			var d = document.getElementById('deathui');
+			tot = !!d && d.style.display === 'flex';
+		} catch(e){}
+		var show = inGame && !portrait && !tot;
 		if (show){
 			if (hideTimer){ clearTimeout(hideTimer); hideTimer = 0; }
 			ui.style.visibility = 'visible';
