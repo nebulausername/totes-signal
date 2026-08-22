@@ -452,7 +452,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22h';
+var TS_BUILD = '2026-08-22j';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -642,7 +642,7 @@ var I18N = {
 		play:'▶ TIPPEN ZUM SPIELEN',
 		rotate:'Bitte Gerät ins Querformat drehen.',
 		install:'⇩ Als App installieren',
-		ldRecv:'Signal wird empfangen', ldPrep:'Daten werden entschlüsselt',
+		ldRest:'noch', ldRecv:'Signal wird empfangen', ldPrep:'Daten werden entschlüsselt',
 		ldDone:'Signal empfangen.', ldEngErr:'Engine-Daten konnten nicht geladen werden.',
 		initErr:'Start fehlgeschlagen. Bitte Browser neu starten (64-Bit-Browser empfohlen).',
 		gsTitle:'▚ SCHNELL-EINSTELLUNGEN ▚', gsAuto:'AUTO-FEUER', gsDuck:'HALTUNG WECHSELN',
@@ -690,7 +690,7 @@ var I18N = {
 		play:'▶ TAP TO PLAY',
 		rotate:'Please rotate your device to landscape.',
 		install:'⇩ Install app',
-		ldRecv:'Receiving signal', ldPrep:'Decrypting data',
+		ldRest:'left', ldRecv:'Receiving signal', ldPrep:'Decrypting data',
 		ldDone:'Signal received.', ldEngErr:'Failed to load engine data.',
 		initErr:'Startup failed. Please restart your browser (a 64-bit browser is recommended).',
 		gsTitle:'▚ QUICK SETTINGS ▚', gsAuto:'AUTO-FIRE', gsDuck:'CHANGE STANCE',
@@ -743,6 +743,8 @@ function T(k){ return (I18N[LANG] || I18N.en)[k]; }
 var TS_LOAD = {
 	on:false, p:0, target:0, done:false, finished:false, label:'', loaded:0, total:0,
 	tipI:0, raf:0, tipTimer:0,
+	// Fuer Rate und Restzeit
+	t0:0, letztB:0, letztT:0, rate:0, rest:-1, echt:false,
 	el:function(id){ return document.getElementById(id); },
 	show:function(){
 		if (this.on) return; this.on = true;
@@ -751,9 +753,22 @@ var TS_LOAD = {
 		this.label = T('ldRecv');
 		this.rotateTip(); this.tipTimer = setInterval(this.rotateTip.bind(this), 4500);
 		var self = this;
+		this.t0 = Date.now();
 		(function tick(){
 			if (self.done) self.p = 100;
-			else { self.p += (95 - self.p) * 0.012; if (self.p > 95) self.p = 95; }
+			else if (self.echt){
+				// ECHTER Fortschritt, sobald die Engine Byte-Zahlen meldet.
+				// Vorher stand hier ausschliesslich die Kriechkurve unten --
+				// sie lief in Sekunden auf 95 % und stand dann minutenlang
+				// still. Bei 90 MB ueber Mobilfunk ist so ein Balken schlimmer
+				// als gar keiner: er behauptet, es sei gleich soweit.
+				// Auf 97 gedeckelt, die letzten Prozent gehoeren dem Start der
+				// Engine (Entpacken, main()), das die Byte-Zahl nicht abdeckt.
+				var ziel = Math.min(97, self.target);
+				self.p += (ziel - self.p) * 0.25;          // leicht geglaettet
+				if (self.p > ziel) self.p = ziel;
+			}
+			else { self.p += (60 - self.p) * 0.02; if (self.p > 60) self.p = 60; }
 			self.render();
 			if (!self.finished) self.raf = requestAnimationFrame(tick);
 		})();
@@ -771,20 +786,56 @@ var TS_LOAD = {
 		var tips = T('tips') || []; if (!tips.length) return;
 		var e = this.el('loadtip'); if (e) e.textContent = tips[this.tipI % tips.length]; this.tipI++;
 	},
+	// Restzeit lesbar machen: "noch 2:15" sagt mehr als "37 %".
+	zeit:function(sek){
+		if (!(sek > 0) || sek > 3600) return '';
+		var m = Math.floor(sek / 60), s = Math.round(sek % 60);
+		return m + ':' + (s < 10 ? '0' : '') + s;
+	},
 	render:function(){
 		var bar = this.el('loadbar'); if (bar) bar.style.width = Math.min(100, Math.round(this.p)) + '%';
 		var pct = this.el('loadpct'); if (!pct) return;
 		var line = (this.label || T('ldRecv'));
-		if (this.total > 5e5) line += ' · ' + (this.loaded/1048576).toFixed(0) + '/' + (this.total/1048576).toFixed(0) + ' MB';
+		if (this.total > 5e5){
+			line += ' · ' + (this.loaded/1048576).toFixed(0) + '/' + (this.total/1048576).toFixed(0) + ' MB';
+			if (this.rate > 0) line += ' · ' + (this.rate/1048576).toFixed(1) + ' MB/s';
+			var r = this.zeit(this.rest);
+			if (r) line += ' · ' + T('ldRest') + ' ' + r;
+		}
 		pct.textContent = line + '  ·  ' + Math.min(100, Math.round(this.p)) + '%';
 	},
 	fromEngine:function(text, m){
 		if (!this.on) return;
-		if (/All downloads complete/i.test(text)){ this.done = true; this.p = 100; this.label = T('ldDone'); this.render(); return; }
+		// ACHTUNG, langjaehriger Fehler: Emscripten meldet "All downloads
+		// complete" bereits nach der Vorbereitungsphase (Preparing... 0/1) --
+		// also SEKUNDEN bevor die 90 MB ueberhaupt anfangen. Frueher setzte
+		// das hier done=true und p=100; der Balken stand danach die gesamte
+		// echte Ladezeit auf 100 %, waehrend im Text noch "2/89 MB" lief.
+		//
+		// Fertig ist ausschliesslich, wenn die Engine-Hauptschleife laeuft
+		// (Module.sched gesetzt) -- das prueft der Intervall in show().
+		if (/All downloads complete/i.test(text)) return;
 		if (m){ var a = parseFloat(m[2]), b = parseFloat(m[4]);
-			if (b > 0){ this.target = (a/b)*100; if (b > 5e5){ this.loaded = a; this.total = b; } } }
+			if (b > 0){
+				this.target = (a/b)*100;
+				if (b > 5e5){
+					this.loaded = a; this.total = b;
+					this.echt = true;                     // ab jetzt echte Zahlen
+					// Rate ueber ein gleitendes Mittel: die Momentanrate
+					// springt bei jedem Fortschrittsbericht und liesse die
+					// Restzeit unruhig wirken.
+					var jetzt = Date.now();
+					if (this.letztT && jetzt > this.letztT){
+						var momentan = (a - this.letztB) * 1000 / (jetzt - this.letztT);
+						if (momentan >= 0) this.rate = this.rate ? this.rate * 0.7 + momentan * 0.3 : momentan;
+						if (this.rate > 0) this.rest = (b - a) / this.rate;
+					}
+					this.letztB = a; this.letztT = jetzt;
+				}
+			}
+		}
 		if (/Preparing/i.test(text)) this.label = T('ldPrep');
-		else if (/Downloading|Signal|data/i.test(text)) this.label = T('ldRecv');
+		else if (/Downloading|Signal|data|pk3|wasm/i.test(text)) this.label = T('ldRecv');
 	},
 	finish:function(){
 		if (this.finished) return; this.finished = true; this.done = true; this.p = 100; this.render();
