@@ -81,6 +81,7 @@ void() Menu_Credits =
     Menu_DrawBackground();
     Menu_DrawTitle(T("CREDITS"));
     Menu_DrawMapPanel();
+    Menu_TextHintergrund();   // auf Touch die Unterlage fuer den Text
 
     for(int i = 0; i < credits.length; i++) {
         Menu_DrawCreditHeader(i, T(credits[i].header));

@@ -78,6 +78,23 @@ KONSOLE aus: ohne Tastatur haben sie nichts zu bieten.
 Overlay-Sammelselektor stand (`position` fehlte, `z-index` wirkt auf statische
 Elemente nicht). Siehe Footgun 14 in `CLAUDE.md`.
 
+## Das rechte Panel steht nur, wo Inhalt ist
+
+`Menu_DrawMapPanel()` wird von fast jedem Bildschirm gerufen und stuetzt auf dem
+Desktop die Wertespalte. Auf Touch gibt es die nicht mehr -- der Streifen blieb
+also meist LEER und schnitt nur das Hintergrundbild ab. Im direkten Vergleich sah
+BARRIEREFREIHEIT (das ihn nie zeichnete) deutlich lebendiger aus.
+
+Auf Touch zeichnet `Menu_DrawMapPanel()` deshalb nichts mehr. Wo wirklich Inhalt
+im Panel steht -- Kartenvorschau, Lobby, Steckbriefe -- holt sich die jeweilige
+Stelle die Unterlage selbst ueber `Menu_PanelHintergrund()`. Reine Textschirme
+(Credits) nehmen `Menu_TextHintergrund()` ueber die volle Breite.
+
+**Texteingaben sind auf Touch nur noch Anzeige.** Ohne Bildschirmtastatur waere
+ein Eingabefeld ein Knopf, der nichts tut -- und im Koop-Bildschirm lag es ueber
+der ganzen Zeile, verdeckte deren Beschriftung und der Text begann bei x=0, wo
+ihn der Bildrand abschnitt. Den Decknamen setzt der Spieler in der Konto-Ansicht.
+
 ## Bewegung und Bild
 
 - **Einblendung beim Bildschirmwechsel** (`Menu_RowEinblendung`): die Zeilen

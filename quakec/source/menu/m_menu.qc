@@ -162,6 +162,19 @@ float(float order) Menu_PageOrder =
 };
 
 //
+// Menu_PanelHintergrund()
+// Der dunkle Streifen rechts mit der gelben Kante. Auf dem Desktop stuetzt er
+// die Wertespalte und wird von fast jedem Bildschirm gezeichnet.
+//
+void() Menu_PanelHintergrund =
+{
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
+	float hoehe = sui_current_frame_size()[1] - MENU_BAR_TOP - MENU_BAR_BOTTOM - 3;
+	sui_fill([MENU_PANEL_X, MENU_BAR_TOP], [sui_current_frame_size()[0], hoehe], [0, 0, 0], 0.9, 0);
+	sui_fill([MENU_PANEL_X, MENU_BAR_TOP], [max(3, 3 * MENU_UI_SCALE), hoehe], [1, 1, 0], 0.9, 0);
+};
+
+//
 // Menu_Uhr()
 // Zeitquelle fuer die Einblendung. Im PAUSEMENUE steht `time` still -- das Spiel
 // ist pausiert (cmd pause), und eine Animation gegen eine stehende Uhr erreicht
@@ -449,6 +462,7 @@ void() Menu_DrawMapPreview =
 	float vx = MENU_PANEL_X * 0.5;
 
 	if (MENU_TOUCH) {
+		Menu_PanelHintergrund();
 		// Im Panel liegt darunter die Einstellungsliste: Bild nach oben und
 		// kleiner, sonst ueberlagern sich beide.
 		float fb = sui_current_frame_size()[0];
@@ -563,23 +577,29 @@ void(string l1, string l2, string l3, string l4, string l5, string l6, string l7
 	sui_fill([0, sui_current_frame_size()[1] - 53], [sui_current_frame_size()[0], 3], [1, 1, 0], 0.9, 0);
 
 	sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_START]);
-	sui_text([0, 110], MENU_TEXT_MEDIUM, l1, [1, 1, 1], 1, 0);
-	sui_text([0, 125], MENU_TEXT_MEDIUM, l2, [1, 1, 1], 1, 0);
-	sui_text([0, 140], MENU_TEXT_MEDIUM, l3, [1, 1, 1], 1, 0);
-	sui_text([0, 155], MENU_TEXT_MEDIUM, l4, [1, 1, 1], 1, 0);
-	sui_text([0, 170], MENU_TEXT_MEDIUM, l5, [1, 1, 1], 1, 0);
-	sui_text([0, 185], MENU_TEXT_MEDIUM, l6, [1, 1, 1], 1, 0);
-	sui_text([0, 200], MENU_TEXT_MEDIUM, l7, [1, 1, 1], 1, 0);
-	sui_text([0, 215], MENU_TEXT_MEDIUM, l8, [1, 1, 1], 1, 0);
-	sui_text([0, 230], MENU_TEXT_MEDIUM, l9, [1, 1, 1], 1, 0);
-	sui_text([0, 245], MENU_TEXT_MEDIUM, l10, [1, 1, 1], 1, 0);
-	sui_text([0, 260], MENU_TEXT_MEDIUM, l11, [1, 1, 1], 1, 0);
-	sui_text([0, 275], MENU_TEXT_MEDIUM, l12, [1, 1, 1], 1, 0);
-	sui_text([0, 290], MENU_TEXT_MEDIUM, l13, [1, 1, 1], 1, 0);
-	sui_text([0, 305], MENU_TEXT_MEDIUM, l14, [1, 1, 1], 1, 0);
-	sui_text([0, 320], MENU_TEXT_MEDIUM, l15, [1, 1, 1], 1, 0);
-	sui_text([0, 335], MENU_TEXT_MEDIUM, l16, [1, 1, 1], 1, 0);
-	sui_text([0, 350], MENU_TEXT_MEDIUM, l17, [1, 1, 1], 1, 0);
+	// Auf Touch groesser und weiter gesetzt: 14 virtuelle px sind rund 11
+	// CSS-px -- der einzige Bildschirm, der die Skalierung nicht mitbekam.
+	// 17 Zeilen zu 20 ab 68 enden bei 388; das Panel reicht bis frame_h-50.
+	vector tg = MENU_TOUCH ? MENU_DESC_SIZE : MENU_TEXT_MEDIUM;
+	float  ty = MENU_TOUCH ? 68 : 110;
+	float  ts = MENU_TOUCH ? 20 : 15;
+	sui_text([0, ty + 0 * ts], tg, l1, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 1 * ts], tg, l2, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 2 * ts], tg, l3, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 3 * ts], tg, l4, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 4 * ts], tg, l5, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 5 * ts], tg, l6, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 6 * ts], tg, l7, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 7 * ts], tg, l8, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 8 * ts], tg, l9, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 9 * ts], tg, l10, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 10 * ts], tg, l11, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 11 * ts], tg, l12, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 12 * ts], tg, l13, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 13 * ts], tg, l14, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 14 * ts], tg, l15, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 15 * ts], tg, l16, [1, 1, 1], 1, 0);
+	sui_text([0, ty + 16 * ts], tg, l17, [1, 1, 1], 1, 0);
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 };
 
@@ -591,10 +611,15 @@ void(string l1, string l2, string l3, string l4, string l5, string l6, string l7
 //
 void() Menu_DrawMapPanel =
 {
-	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
-	float hoehe = sui_current_frame_size()[1] - MENU_BAR_TOP - MENU_BAR_BOTTOM - 3;
-	sui_fill([MENU_PANEL_X, MENU_BAR_TOP], [sui_current_frame_size()[0], hoehe], [0, 0, 0], 0.9, 0);
-	sui_fill([MENU_PANEL_X, MENU_BAR_TOP], [max(3, 3 * MENU_UI_SCALE), hoehe], [1, 1, 0], 0.9, 0);
+	// Auf Touch gibt es keine Wertespalte mehr -- die Werte stehen in der Zeile.
+	// Der Streifen blieb dadurch auf den meisten Bildschirmen LEER und schnitt
+	// nur das Hintergrundbild ab. Im Vergleich sah BARRIEREFREIHEIT (das ihn nie
+	// zeichnete) deutlich lebendiger aus. Gezeichnet wird er hier deshalb nur
+	// noch auf dem Desktop; wo auf Touch wirklich Inhalt im Panel steht
+	// (Kartenvorschau, Lobby, Steckbriefe), holt ihn die jeweilige Stelle sich
+	// selbst ueber Menu_PanelHintergrund().
+	if (MENU_TOUCH) return;
+	Menu_PanelHintergrund();
 };
 
 //
@@ -704,6 +729,7 @@ float(float order, string id, string char_name, string map, string portrait, vec
 	         MENU_LABEL_SIZE, strtoupper(char_name), text_color, 1, 0);
 
 	if (zeigen) {
+		if (MENU_TOUCH) Menu_PanelHintergrund();
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
 
 		// Character Portrait
@@ -807,6 +833,7 @@ float(float order, string id, string bsp_name, float map_category, float usermap
 	sui_text(titelpos, MENU_LABEL_SIZE, strtoupper(title), text_color, 1, 0);
 
 	if (zeigen) {
+		if (MENU_TOUCH) Menu_PanelHintergrund();
 		sui_set_align([SUI_ALIGN_CENTER, SUI_ALIGN_CENTER]);
 
 		// Der x-Versatz ist die halbe Panelkante -- auf dem Desktop ergibt das
@@ -1108,10 +1135,43 @@ void(float order) Menu_DrawControllerGlyphDemo =
 // Menu_DrawCreditHeader()
 // Wrapper for drawing the role/title in credits.
 //
+//
+// Menu_TextHintergrund()
+// Dunkle Flaeche ueber dem Inhaltsbereich, fuer reine Textbildschirme. Seit das
+// Panel auf Touch nur noch dort gezeichnet wird, wo Inhalt steht, braucht der
+// Credits-Text eine eigene Unterlage -- sonst liegt er ungeschuetzt auf dem
+// Hintergrundbild.
+//
+void() Menu_TextHintergrund =
+{
+	if (!MENU_TOUCH) return;
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
+	float hoehe = sui_current_frame_size()[1] - MENU_BAR_TOP - MENU_BAR_BOTTOM - 3;
+	sui_fill([0, MENU_BAR_TOP], [sui_current_frame_size()[0], hoehe], [0, 0, 0], 0.78, 0);
+};
+
+// Laufende Hoehe im Credits-Bildschirm. Das 60er-Raster der Vorlage laesst bei
+// groesserer Schrift Luecken, wo ein Block nur eine Zeile hat -- auf Touch wird
+// deshalb fortlaufend gesetzt statt gerastert.
+float menu_credit_y;
+
 void(float order, string header) Menu_DrawCreditHeader =
 {
-	vector position = [8, 60 + (order * 60)];
 	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
+
+	if (MENU_TOUCH) {
+		// Nachgerechnet: 4 Kopfzeilen (20+3) + 9 Textzeilen (18+1) + 3 Blockluft
+		// = 281 Einheiten. Ab 63 endet das bei 344, die Fusszeile beginnt bei
+		// 361. Mit den urspruenglichen Abstaenden lief die letzte Zeile in
+		// ZURUECK hinein.
+		if (order <= 0) menu_credit_y = MENU_BAR_TOP + 8 * MENU_UI_SCALE;
+		else            menu_credit_y += 6 * MENU_UI_SCALE;
+		sui_text([MENU_LABEL_PAD, menu_credit_y], MENU_VALUE_SIZE, header, [1, 1, 0], 1, 0);
+		menu_credit_y += MENU_VALUE_SIZE_y + 3 * MENU_UI_SCALE;
+		return;
+	}
+
+	vector position = [8, 60 + (order * 60)];
 	sui_text(position - [getTextWidth(header, MENU_TEXT_SMALL_x), 0, 0] + [275, 0, 0], MENU_TEXT_SMALL, header, [1, 1, 0], 1, 0);
 };
 
@@ -1121,10 +1181,18 @@ void(float order, string header) Menu_DrawCreditHeader =
 //
 void(float order, float sub_order, string header) Menu_DrawCreditContributor =
 {
+	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
+
+	if (MENU_TOUCH) {
+		if (header == "") return;   // leere Plaetze kosten sonst eine Zeilenhoehe
+		sui_text([MENU_LABEL_PAD + 20 * MENU_UI_SCALE, menu_credit_y],
+		         MENU_DESC_SIZE, header, [0.94, 0.90, 0.82], 1, 0);
+		menu_credit_y += MENU_DESC_SIZE_y + 1 * MENU_UI_SCALE;
+		return;
+	}
+
 	vector position = [315, 60 + (order * 60)];
 	position_y += sub_order * (MENU_TEXT_SUPERSMALL_x + 3);
-
-	sui_set_align([SUI_ALIGN_START, SUI_ALIGN_START]);
 	sui_text(position, MENU_TEXT_SUPERSMALL, header, [1, 1, 1], 1, 0);
 };
 
@@ -1395,6 +1463,17 @@ void(string id, float order, __inout string text, __inout float cursor) Menu_Tex
 
 	order = Menu_PageOrder(order);
 	if (!order) return;
+	// Auf Touch gibt es keine Bildschirmtastatur -- ein Eingabefeld waere ein
+	// Knopf, der nichts tut. Schlimmer noch: es lag ueber der ganzen Zeile und
+	// verdeckte deren Beschriftung, der Text begann bei x=0 und wurde vom
+	// Bildrand abgeschnitten. Auf Touch wird der Wert nur noch angezeigt; den
+	// Decknamen setzt der Spieler in der Konto-Ansicht der Shell.
+	if (MENU_TOUCH) {
+		sui_text(Menu_ValuePos(order, text, MENU_VALUE_SIZE), MENU_VALUE_SIZE,
+		         text, [0.80, 0.76, 0.70], 1, 0);
+		return;
+	}
+
 	vector pos  = Menu_InputBox(order);
 	vector size = [MENU_ROW_W, MENU_ROW_H];
 
@@ -1412,6 +1491,14 @@ void(string id, float order, __inout string text, __inout float cursor) Menu_Pas
 
 	order = Menu_PageOrder(order);
 	if (!order) return;
+	if (MENU_TOUCH) {
+		string punkte = "";
+		for (int i = 0; i < strlen(text); i++) punkte = strcat(punkte, "*");
+		sui_text(Menu_ValuePos(order, punkte, MENU_VALUE_SIZE), MENU_VALUE_SIZE,
+		         punkte, [0.80, 0.76, 0.70], 1, 0);
+		return;
+	}
+
 	vector pos  = Menu_InputBox(order);
 	vector size = [MENU_ROW_W, MENU_ROW_H];
 	string safe = "";
