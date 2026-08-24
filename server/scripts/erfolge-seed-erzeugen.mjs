@@ -62,5 +62,35 @@ ${zeilen};
 `;
 
 const ziel = path.join(root, 'migrations/0002_erfolge.sql');
+
+// Wache: 0002 ist laengst angewandt. Der Migrations-Runner haelt je Datei eine
+// Pruefsumme und bricht ab, wenn sich eine angewandte Migration nachtraeglich
+// aendert -- ein stilles Ueberschreiben hier haette also die naechste
+// Auslieferung lahmgelegt, und zwar an einer Stelle, die nichts mit Erfolgen
+// zu tun hat. Real geworden ist das beim Freischalten der sieben ingame-Erfolge
+// (0004): `verfuegbar` steht in der Seed-Zeile, eine Neuerzeugung haette 0002
+// veraendert.
+//
+// Die Quelle der Wahrheit bleibt data/erfolge.json. Wer sie aendert, legt eine
+// neue, nummerierte Migration mit dem Unterschied an -- so wie 0004.
+if (fs.existsSync(ziel)) {
+  const alt = fs.readFileSync(ziel, 'utf8');
+  if (alt === sql) {
+    console.log(`unveraendert: ${path.relative(root, ziel)} (${d.erfolge.length} Erfolge)`);
+    process.exit(0);
+  }
+  if (process.argv.includes('--wirklich-ueberschreiben')) {
+    fs.writeFileSync(ziel, sql);
+    console.log(`UEBERSCHRIEBEN: ${path.relative(root, ziel)} -- nur richtig, solange 0002 nirgends angewandt ist.`);
+    process.exit(0);
+  }
+  console.error(`[FEHLER] ${path.relative(root, ziel)} wuerde sich aendern, ist aber bereits angewandt.`);
+  console.error('         Der Migrations-Runner bricht danach bei JEDER Migration ab.');
+  console.error('         Lege stattdessen eine neue Migration mit dem Unterschied an.');
+  console.error('         Nur wenn 0002 nachweislich nirgends angewandt ist:');
+  console.error('           node scripts/erfolge-seed-erzeugen.mjs --wirklich-ueberschreiben');
+  process.exit(1);
+}
+
 fs.writeFileSync(ziel, sql);
 console.log(`geschrieben: ${path.relative(root, ziel)} (${d.erfolge.length} Erfolge)`);
