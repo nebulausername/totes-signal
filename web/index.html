@@ -72,6 +72,15 @@
 		background:rgba(156,20,5,0.66); border-color:#e6431f; color:#fff;
 		box-shadow:0 0 16px rgba(224,46,18,0.6), inset 0 0 12px rgba(0,0,0,0.4); }
 	#touchui .tbtn.big:active, #touchui .tbtn.big.held { background:rgba(214,34,12,0.82); }
+	/* AKTION hebt sich ab, wenn wirklich etwas zu benutzen ist (TSUI:use).
+	   Vorher sah der Knopf immer gleich aus -- er ist einer von acht, und wer
+	   nicht weiss, wo eine Wandwaffe haengt, uebersieht ihn. Kein Blinken:
+	   das zoege den Blick vom Spielfeld ab, waehrend Zombies unterwegs sind. */
+	#touchui .tbtn.bereit {
+		background:rgba(150,18,4,calc(0.52 * var(--talpha)));
+		border-color:rgba(255,86,48,calc(0.95 * var(--talpha)));
+		color:rgba(255,255,255,var(--talpha));
+		box-shadow:0 0 15px rgba(230,52,20,0.5), inset 0 0 12px rgba(0,0,0,0.4); }
 	#touchui .tbtn.on {                                     /* Aim-Lock aktiv (Marker-synchron) */
 		background:rgba(140,20,5,0.6); border-color:#ff5030; color:#fff;
 		box-shadow:0 0 18px rgba(255,60,25,0.65), inset 0 0 12px rgba(0,0,0,0.4); }
@@ -398,7 +407,7 @@
 		<div class="tbtn" data-key="86" data-code="KeyV"      style="right:calc(42vmin + env(safe-area-inset-right)); bottom:calc(6vmin + env(safe-area-inset-bottom));">MESSER</div>
 		<div class="tbtn" data-key="71" data-code="KeyG"      style="right:calc(41vmin + env(safe-area-inset-right)); bottom:calc(21vmin + env(safe-area-inset-bottom));">GRANATE</div>
 		<div class="tbtn" data-key="17" data-code="ControlLeft" style="right:calc(41vmin + env(safe-area-inset-right)); bottom:calc(36vmin + env(safe-area-inset-bottom));">WAFFE</div>
-		<div class="tbtn" data-key="69" data-code="KeyE"      style="right:calc(6vmin + env(safe-area-inset-right));  bottom:calc(55vmin + env(safe-area-inset-bottom));">AKTION</div>
+		<div class="tbtn" id="usebtn" data-key="69" data-code="KeyE" style="right:calc(6vmin + env(safe-area-inset-right));  bottom:calc(55vmin + env(safe-area-inset-bottom));">AKTION</div>
 		<!-- Ecken: Menue oben rechts, Schnell-Einstellungen (Zahnrad) oben links. -->
 		<div class="tbtn" data-key="27" data-code="Escape" data-tap="1" style="right:calc(4vmin + env(safe-area-inset-right)); top:calc(4vmin + env(safe-area-inset-top));">MENÜ</div>
 		<div class="tbtn round" id="gearbtn"                  style="left:calc(4vmin + env(safe-area-inset-left)); top:calc(4vmin + env(safe-area-inset-top));">⚙</div>
@@ -426,7 +435,7 @@
 	</div></div>
 	<div id="mstart">
 		<!-- Atmosphaerischer Loop hinterm Gate: poster zeigt sofort das Still,
-		     das eigentliche Video laedt lazy in mobileStart() (nie bei
+		     das eigentliche Video laedt lazy in startGate() (nie bei
 		     prefers-reduced-motion); beim Start wird es pausiert+entladen. -->
 		<video id="gatevid" muted loop playsinline preload="none" poster="img/gate-poster.jpg"></video>
 	<div class="box">
@@ -549,6 +558,16 @@ function tsMarker(msg)
 		if (window.__ts_hudRand) __ts_hudRand();
 		if (window.TS_LANG) TS_LANG.anwenden();
 		if (window.__ts_renderMode) __ts_renderMode('game');
+		// AKTION zurueck in den Ruhezustand: wer an einer Kaufstelle stirbt,
+		// faende den Knopf im naechsten Lauf sonst leuchtend vor.
+		var ub0 = document.getElementById('usebtn');
+		if (ub0) ub0.classList.remove('bereit');
+		// Onboarding am Rechner. Auf Touch macht das TS_CTRL.setInGame -- dort
+		// haengt es am HUD-Zustand und darf nicht doppelt kommen.
+		if (!IS_TOUCH && window.__ts_hints && !window.__ts_hintsGezeigt){
+			window.__ts_hintsGezeigt = true;
+			setTimeout(function(){ __ts_hints(false); }, 600);
+		}
 	}
 	if (msg.indexOf('TSUI:menu') !== -1){
 		// Das Menue hat einen EIGENEN virtuellen Raum: 480 Zeilen, der Wert aus
@@ -566,6 +585,8 @@ function tsMarker(msg)
 		// TSUI:menu nimmt die Engine keine Konsolenbefehle an.
 		if (window.TS_LANG) TS_LANG.anwenden();
 		if (window.__ts_renderMode) __ts_renderMode('menu');
+		// Die Karte beschreibt die Bedienung IM SPIEL.
+		if (!IS_TOUCH && window.__ts_hintsWeg) __ts_hintsWeg();
 		if (window.TS_WEITER) TS_WEITER.einloesen();
 	}
 	// Pausemenue (CSQC): gleiche absolute Cursorlogik wie das Hauptmenue, aber im
@@ -598,6 +619,13 @@ function tsMarker(msg)
 		if (m) TS_DEATH.show(parseInt(m[1], 10));
 		else if (stateChange) TS_DEATH.hide();
 	}
+	// Ist hier gerade etwas zu benutzen? Dann hebt sich AKTION ab. Der Knopf
+	// sah bisher immer gleich aus, egal ob er etwas tat.
+	var mu = msg.match(/TSUI:use:([01])/);
+	if (mu){
+		var ub = document.getElementById('usebtn');
+		if (ub) ub.classList.toggle('bereit', mu[1] === '1');
+	}
 	var ma = msg.match(/TSUI:ads:([01])/);                   // Aim-Lock-Glow-Sync (nur Touch-Shell)
 	if (ma && window.__ts_setAds) __ts_setAds(ma[1] === '1');
 	if (window.TS_DEATH){                                     // Death-Screen 2.0: Daten VOR dem dead-Trigger
@@ -614,7 +642,8 @@ function tsMarker(msg)
 		var mc = msg.match(/TSUI:ach:([^\n]*)/);    if (mc) TS_RUN.onAch(mc[1]);
 	}
 	if (window.TS_FX){                                        // Treffer/Erschuetterung
-		var mf = msg.match(/TSUI:fx:([hkr])/);      if (mf) TS_FX.ausloesen(mf[1]);
+		// fx:r bleibt bewusst aussen vor: Gamepad-Rumble, kein Schaden.
+		var mf = msg.match(/TSUI:fx:([hkd])/);      if (mf) TS_FX.ausloesen(mf[1]);
 	}
 }
 (function(){
@@ -628,7 +657,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-22ai';
+var TS_BUILD = '2026-08-24a';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -827,6 +856,7 @@ var I18N = {
 		sub:'▚ KEIN SIGNAL ▚',
 		tap:'Koop-Zombie-Shooter im Browser. Kein Empfang. Nur Untote.',
 		play:'▶ TIPPEN ZUM SPIELEN',
+		playDesk:'▶ KLICKEN ZUM SPIELEN',
 		joinNoNet: 'Nachschlagen fehlgeschlagen — keine Verbindung.',
 		joinNoCode: 'Diesen Code kennt niemand (oder er ist abgelaufen).',
 		joinLook: 'Code wird nachgeschlagen …',
@@ -847,6 +877,10 @@ var I18N = {
 		gsBright:'HELLIGKEIT', bright0:'NORMAL', bright1:'HELL', bright2:'SEHR HELL',
 		gsHud:'HUD-GROESSE', hud0:'STANDARD', hud1:'GROSS', hud2:'SEHR GROSS',
 		on:'AN', off:'AUS',
+		pchint1:'WASD Bewegen · UMSCHALT Sprint · ALT Haltung · LEERTASTE Springen',
+		pchint2:'Maus Umsehen · Linksklick FEUER · Rechtsklick Zielen',
+		pchint3:'R Nachladen · E Benutzen · V Messer · G Granate · STRG Waffe · ESC Pause',
+		pchintOk:'▶ KLICKEN ZUM START',
 		hint1:'⟵ Stick: Bewegen — voll nach vorn = SPRINT',
 		hint2:'Rechts über den Bildschirm wischen = Umsehen ⟶',
 		hint3:'FEUER gedrückt halten · Stick lange halten = Ducken',
@@ -863,7 +897,8 @@ var I18N = {
 		gsKonto:'KONTO & ERFOLGE', gsSet:'STEUERUNG & BILD',
 		setTitle:'EINSTELLUNGEN', set_sens:'EMPFINDLICHKEIT', set_invy:'Y-ACHSE UMKEHREN',
 		set_aim:'ZIELHILFE', set_btnsize:'KNOPFGROESSE', set_btnalpha:'KNOPF-DECKKRAFT',
-		set_lefty:'LINKSHAENDER', set_qualitaet:'SPARSAM (FLUESSIGER)', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
+		set_lefty:'LINKSHAENDER', set_qualitaet:'SPARSAM (FLUESSIGER)',
+		set_hud:'HUD-GROESSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
 		accLevel:'Stufe', accBisLevel:'XP bis zur naechsten Stufe',
 		accStats:'Zahlen', accRuns:'Laeufe', accBestRound:'Beste Runde',
@@ -889,6 +924,7 @@ var I18N = {
 		sub:'▚ NO SIGNAL ▚',
 		tap:'Co-op zombie shooter in your browser. No signal. Only the undead.',
 		play:'▶ TAP TO PLAY',
+		playDesk:'▶ CLICK TO PLAY',
 		joinNoNet: 'Lookup failed — no connection.',
 		joinNoCode: 'Nobody knows that code (or it expired).',
 		joinLook: 'Looking up code …',
@@ -909,6 +945,10 @@ var I18N = {
 		gsBright:'BRIGHTNESS', bright0:'NORMAL', bright1:'BRIGHT', bright2:'BRIGHTEST',
 		gsHud:'HUD SIZE', hud0:'STANDARD', hud1:'LARGE', hud2:'EXTRA LARGE',
 		on:'ON', off:'OFF',
+		pchint1:'WASD to move · SHIFT sprint · ALT stance · SPACE jump',
+		pchint2:'Mouse to look · Left click FIRE · Right click aim',
+		pchint3:'R reload · E use · V knife · G grenade · CTRL weapon · ESC pause',
+		pchintOk:'▶ CLICK TO START',
 		hint1:'⟵ Stick: move — push fully forward = SPRINT',
 		hint2:'Swipe the right side of the screen = look around ⟶',
 		hint3:'Hold FIRE to shoot · hold the stick still = crouch',
@@ -925,7 +965,8 @@ var I18N = {
 		gsKonto:'ACCOUNT & ACHIEVEMENTS', gsSet:'CONTROLS & VIDEO',
 		setTitle:'SETTINGS', set_sens:'SENSITIVITY', set_invy:'INVERT Y AXIS',
 		set_aim:'AIM ASSIST', set_btnsize:'BUTTON SIZE', set_btnalpha:'BUTTON OPACITY',
-		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
+		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE',
+		set_hud:'HUD SIZE', set_hell:'BRIGHTNESS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
 		accAus:'No account yet. Enable leaderboard and progress.',
 		accLevel:'Level', accBisLevel:'XP to next level',
 		accStats:'Numbers', accRuns:'Runs', accBestRound:'Best round',
@@ -1825,7 +1866,7 @@ var TS_SET = {
 		  anwenden:function(v){ tsCmd('m_pitch ' + (Number(v) ? '-0.022' : '0.022') + '\n'); } },
 		{ id:'aim', typ:'schalter', std:1,
 		  anwenden:function(v){ tsCmd('in_aimassist ' + (Number(v) ? 1 : 0) + '\n'); } },
-		{ id:'btnsize', typ:'regler', min:0.8, max:1.4, schritt:0.05, std:1,
+		{ id:'btnsize', typ:'regler', min:0.8, max:1.4, schritt:0.05, std:1, nurTouch:true,
 		  anwenden:function(v){
 			document.documentElement.style.setProperty('--tscale', v);
 			// Groessere Knoepfe brauchen mehr Rand -- sonst rutscht die
@@ -1833,10 +1874,10 @@ var TS_SET = {
 			if (window.__ts_hudRand) __ts_hudRand();
 		  },
 		  zeigen:function(v){ return Math.round(v * 100) + '%'; } },
-		{ id:'btnalpha', typ:'regler', min:0.35, max:1, schritt:0.05, std:1,
+		{ id:'btnalpha', typ:'regler', min:0.35, max:1, schritt:0.05, std:1, nurTouch:true,
 		  anwenden:function(v){ document.documentElement.style.setProperty('--talpha', v); },
 		  zeigen:function(v){ return Math.round(v * 100) + '%'; } },
-		{ id:'lefty', typ:'schalter', std:0,
+		{ id:'lefty', typ:'schalter', std:0, nurTouch:true,
 		  anwenden:function(v){
 			var ui = document.getElementById('touchui');
 			if (ui) ui.classList.toggle('lefty', !!Number(v));
@@ -1862,7 +1903,18 @@ var TS_SET = {
 				tsCmd('nzp_particles 0\nnzp_decals 0\nr_dynamic 0\nr_fastsky 1\ncl_maxfps 60\n');
 			else
 				tsCmd('nzp_particles 1\nnzp_decals 1\nr_dynamic 1\nr_fastsky 0\ncl_maxfps 250\n');
-		  } }
+		  } },
+		// Zwei Stufenschalter, die ihre Persistenz SELBST fuehren (typ 'stufe').
+		// Sie liegen in TS_VIEW, weil das Zahnrad-Sheet dieselben Werte schaltet
+		// und es nur EINE Wahrheit geben darf. `allesAnwenden` laesst sie
+		// deshalb aus -- TS_VIEW haengt mit __ts_applyHud / __ts_applyBright
+		// selbst an TSUI:game.
+		{ id:'hud',  typ:'stufe',
+		  beschriftung:function(){ return TS_VIEW.hudLabel(); },
+		  weiter:function(){ TS_VIEW.naechsteHud(); } },
+		{ id:'hell', typ:'stufe',
+		  beschriftung:function(){ return TS_VIEW.hellLabel(); },
+		  weiter:function(){ TS_VIEW.naechsteHelligkeit(); } }
 	],
 
 	wert:function(d){
@@ -1874,11 +1926,20 @@ var TS_SET = {
 		try { localStorage.setItem('ts_set_' + d.id, String(v)); } catch(e){}
 		try { d.anwenden(v); } catch(e){}
 	},
+	// Was auf diesem Geraet ueberhaupt Sinn ergibt. Knopfgroesse, Deckkraft
+	// und Linkshaender-Modus beschreiben Bedienelemente, die es am Rechner
+	// nicht gibt -- sie stehen dort nicht als tote Regler herum.
+	sichtbar:function(){
+		return this.defs.filter(function(d){ return IS_TOUCH || !d.nurTouch; });
+	},
+
 	// Bei jedem Spielstart erneut anwenden -- sonst gelten wieder die
-	// Vorgaben aus nzportable.cfg.
+	// Vorgaben aus nzportable.cfg. `stufe`-Zeilen bleiben aussen vor: die
+	// gehoeren TS_VIEW, das sich selbst an TSUI:game haengt.
 	allesAnwenden:function(){
 		for (var i = 0; i < this.defs.length; i++){
 			var d = this.defs[i];
+			if (d.typ === 'stufe' || !d.anwenden) continue;
 			try { d.anwenden(this.wert(d)); } catch(e){}
 		}
 	},
@@ -1888,7 +1949,12 @@ var TS_SET = {
 		el.style.display = 'flex';
 		var ziel = document.getElementById('set-inhalt');
 		var self = this;
-		ziel.innerHTML = this.defs.map(function(d){
+		var liste = this.sichtbar();
+		ziel.innerHTML = liste.map(function(d){
+			if (d.typ === 'stufe')
+				return '<div class="set-row"><label>' + T('set_' + d.id) + '</label>' +
+					'<span class="set-schalter" id="sb-' + d.id + '">' +
+					d.beschriftung() + '</span></div>';
 			var v = self.wert(d);
 			if (d.typ === 'regler')
 				return '<div class="set-row"><label>' + T('set_' + d.id) + '</label>' +
@@ -1900,7 +1966,7 @@ var TS_SET = {
 				T(v ? 'on' : 'off') + '</span></div>';
 		}).join('');
 
-		this.defs.forEach(function(d){
+		liste.forEach(function(d){
 			if (d.typ === 'regler'){
 				var r = document.getElementById('sr-' + d.id);
 				if (r) r.addEventListener('input', function(){
@@ -1908,6 +1974,12 @@ var TS_SET = {
 					var a = document.getElementById('sv-' + d.id);
 					if (a) a.textContent = d.zeigen ? d.zeigen(v) : v;
 					self.setzen(d, v);
+				});
+			} else if (d.typ === 'stufe'){
+				var t = document.getElementById('sb-' + d.id);
+				if (t) t.addEventListener('click', function(){
+					d.weiter();
+					t.textContent = d.beschriftung();
 				});
 			} else {
 				var b = document.getElementById('sb-' + d.id);
@@ -1945,7 +2017,19 @@ var TS_SET = {
 // auf dem FEUER-Knopf -- gleiche Quelle, anderer Sinneskanal.
 var TS_FX = {
 	kannVibrieren: !!(navigator.vibrate),
-	muster: { h: 12, k: [0, 22, 40, 22], r: [0, 45, 35, 65] },
+	// h = eigener Treffer, k = Abschuss, d = SCHADEN AM SPIELER.
+	//
+	// Frueher hiess der dritte Fall `r` und haing an TSUI:fx:r. Das ist aber
+	// der GAMEPAD-Rumble der Engine, und der hat neun Quellen -- sieben davon
+	// sind Waffenaktionen (Feuern, Ziehen, Werfen, Waffengeraeusch, Betty
+	// scharfmachen, Hechtrolle). Das Handy vibrierte also bei JEDEM SCHUSS mit
+	// dem Treffer-Muster. Nachgezaehlt in quakec/source/server: neun Aufrufe
+	// von nzp_rumble, zwei davon bei Schaden.
+	//
+	// Seit CSQC_EVENT_HURTDIR gibt es ein eigenes Ereignis genau dort, wo ein
+	// Spieler Schaden nimmt (DamageHandler). fx:r wird bewusst ignoriert -- der
+	// Gamepad ruettelt weiterhin, das macht die Engine selbst.
+	muster: { h: 12, k: [0, 22, 40, 22], d: [0, 45, 35, 65] },
 	letzt: 0,
 
 	ausloesen: function(art){
@@ -1958,10 +2042,10 @@ var TS_FX = {
 		if (this.kannVibrieren){
 			try { navigator.vibrate(this.muster[art] || 12); } catch(e){}
 		}
-		// Nur eigene Treffer pulsen den FEUER-Knopf. 'r' ist Schaden AM
+		// Nur eigene Treffer pulsen den FEUER-Knopf. 'd' ist Schaden AM
 		// Spieler -- ein weisser Puls auf dem Feuerknopf laese sich dort wie
 		// ein Treffer, also genau falschherum. Dafuer zeichnet die Engine
-		// ohnehin ihre Blut-Ueberblendung.
+		// ihre Blut-Ueberblendung und seit 08/2026 den Richtungsbogen.
 		if (art === 'h' || art === 'k') this.puls(art);
 	},
 
@@ -2277,10 +2361,32 @@ var TS_PAUSE = {
 };
 if (IS_TOUCH) TS_PAUSE.start();
 
-function mobileStart()
+// Das Start-Gate. Es gab es lange nur auf Touch-Geraeten -- am Rechner lief
+// `begin()` sofort beim Parsen des Skripts. Damit fehlte dem Desktop ALLES,
+// was am Gate haengt: WEITERSPIELEN, der Zugang zum Konto, der Hinweis auf die
+// Downloadgroesse und die Wortmarke als Ankunftsmoment. Der Kommentar am
+// Konto-Einstieg behauptete sogar, das Gate SEI der Desktop-Weg dorthin --
+// es erschien dort nur nie.
+//
+// Zweiter Grund, der schwerer wiegt: `begin()` laedt die Engine asynchron.
+// Ohne vorangehende Nutzergeste entsteht der AudioContext ohne Geste. Auf dem
+// Handy war genau das die Ursache fuer stummen Ton; ob es am Rechner
+// dieselbe Wirkung hat, ist ungeprueft -- die Geste kostet aber nichts.
+//
+// Vollbild und Ausrichtungssperre bleiben touch-eigen: am Rechner ist ein
+// ungefragter Vollbildwechsel eine Zumutung, und drehen kann man einen
+// Monitor ohnehin nicht.
+function startGate()
 {	var g = document.getElementById('mstart');
 	g.style.display = 'flex';
 	gateHinweis();
+	// Am Rechner tippt niemand. Umgesetzt wird das ATTRIBUT, nicht der Text:
+	// applyI18N() faehrt bei jedem Sprachwechsel ueber alle [data-i18n] und
+	// wuerde ein gesetztes textContent wieder ueberschreiben.
+	if (!IS_TOUCH){
+		var pl = g.querySelector('.play[data-i18n="play"]');
+		if (pl){ pl.setAttribute('data-i18n', 'playDesk'); pl.textContent = T('playDesk'); }
+	}
 	// Gate-Loop lazy nachladen (nicht bei reduzierter Bewegung; poster bleibt)
 	var v = document.getElementById('gatevid');
 	if (v && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)){
@@ -2302,7 +2408,7 @@ function mobileStart()
 		g.style.display = 'none';
 		if (v){ try { v.pause(); v.removeAttribute('src'); v.load(); } catch(e){} }   // Decoder freigeben
 		var ib = document.getElementById('installbtn'); if (ib) ib.style.display = 'none';
-		enterImmersive();
+		if (IS_TOUCH) enterImmersive();
 		begin();
 		startDynRes();
 		setTimeout(updateOrient, 400);
@@ -2426,12 +2532,177 @@ window.addEventListener('appinstalled', function(){
 });
 
 if (window.location.hash != "" || Object.keys(Module.files).length) {
-	if (IS_TOUCH)
-		mobileStart();	//defer for fullscreen + audio unlock + landscape
-	else
-		begin();		//desktop: if the url has a #foo.fmf then just begin instantly,
+	// Beide Plattformen durch dasselbe Gate. Auf Touch zusaetzlich fuer
+	// Vollbild, Audio-Freigabe und Querformat-Sperre -- am Rechner fuer die
+	// Nutzergeste, das Konto und WEITERSPIELEN.
+	startGate();
 } else
 	showfiles();	//otherwise show our lame file dropper and wait for the user to click 'go'.
+
+// ---- Erste-Runde-Hinweise, fuer beide Plattformen --------------------------
+// Die Karte lag in der Touch-Klammer und beschrieb ausschliesslich Finger-
+// gesten. Am Rechner gab es GAR KEIN Onboarding -- wer zum ersten Mal
+// hereinkommt, muss dort raten, dass UMSCHALT sprintet und ALT die Haltung
+// wechselt (beides sind keine Standardbelegungen).
+//
+// Der Text haengt jetzt an der Plattform, die Mechanik nicht. Umgesetzt wird
+// das ATTRIBUT data-i18n und nicht der Text: applyI18N() faehrt bei jedem
+// Sprachwechsel ueber alle [data-i18n] und wuerde gesetztes textContent
+// wieder ueberschreiben.
+(function(){
+	var el = document.getElementById('hints');
+	if (!el) return;
+	if (!IS_TOUCH){
+		var karten = el.querySelectorAll('[data-i18n]');
+		for (var i = 0; i < karten.length; i++){
+			var k = karten[i].getAttribute('data-i18n');
+			if (I18N.de['pc' + k]){
+				karten[i].setAttribute('data-i18n', 'pc' + k);
+				karten[i].textContent = T('pc' + k);
+			}
+		}
+	}
+	var uhr = 0;
+	window.__ts_hints = function(erzwingen){
+		if (!erzwingen){ try { if (localStorage.getItem('ts_seen_hints') === '1') return; } catch(e){} }
+		el.style.display = 'flex';
+		// Notbremse: die Karte liegt ueber allem und sperrt die Eingabe. Wer
+		// sie nicht wegklickt (weil er sie fuer Deko haelt), soll nicht
+		// dauerhaft festsitzen -- nach 12 s verschwindet sie von selbst und
+		// gilt als gesehen.
+		if (uhr) clearTimeout(uhr);
+		uhr = setTimeout(function(){
+			uhr = 0;
+			if (el.style.display === 'flex'){
+				el.style.display = 'none';
+				try { localStorage.setItem('ts_seen_hints', '1'); } catch(e){}
+			}
+		}, 12000);
+	};
+	window.__ts_hintsWeg = function(){
+		if (uhr){ clearTimeout(uhr); uhr = 0; }
+		el.style.display = 'none';
+	};
+	// Am Rechner gibt es kein TS_CTRL, das den Spielzustand kennt -- der
+	// Ausloeser haengt dort direkt am Marker (siehe tsMarker).
+	if (!IS_TOUCH){
+		el.addEventListener('mousedown', function(e){
+			e.preventDefault();
+			try { localStorage.setItem('ts_seen_hints', '1'); } catch(err){}
+			__ts_hintsWeg();
+		});
+		// Eine Taste zaehlt genauso. Wer schon WASD drueckt, will die Karte weg.
+		document.addEventListener('keydown', function(){
+			if (el.style.display !== 'flex') return;
+			try { localStorage.setItem('ts_seen_hints', '1'); } catch(err){}
+			__ts_hintsWeg();
+		}, true);
+	}
+})();
+
+// ---- Bild-Einstellungen, die BEIDE Plattformen brauchen --------------------
+// HUD-Groesse und Helligkeit lagen bis hierher INNERHALB der Touch-Klammer
+// weiter unten. Die steigt auf einem Rechner in ihrer ersten Zeile aus -- ein
+// Desktop-Spieler hatte deshalb weder das eine noch das andere, und
+// `__ts_applyHud` / `__ts_applyBright` waren dort schlicht undefiniert. Die
+// Aufrufe in tsMarker sind mit `if (window....)` gewachst und liefen still ins
+// Leere; genau deshalb ist es niemandem aufgefallen.
+//
+// Die MESSUNG der Knopfspalte bleibt in der Touch-Klammer (`__ts_randMessen`):
+// sie misst ein Layout, das es nur dort gibt. TS_VIEW ruft sie auf, wenn es sie
+// gibt -- das ist die einzige Naht zwischen beiden.
+var TS_VIEW = (function(){
+	// gamma + v_contrastboost via Konsole. vid_hardwaregamma=1 ist gesetzt ->
+	// wirkt sofort. Persistenz primaer ueber localStorage (saveconfig ist im
+	// Web-Dateisystem unsicher), Re-Apply bei jedem TSUI:game.
+	var BRIGHT = [
+		{ key:'bright0', gamma:'1.0', cb:'1.0'  },
+		{ key:'bright1', gamma:'1.3', cb:'1.15' },
+		{ key:'bright2', gamma:'1.6', cb:'1.3'  }
+	];
+	// Das Spiel zeichnet sein HUD in einen virtuellen Raum von 480 Zeilen Hoehe
+	// (vid_conheight, gesetzt in nzportable.cfg INNERHALB der unantastbaren
+	// game.pk3). Kleinerer Wert = weniger virtuelle Zeilen auf derselben
+	// Flaeche = groesseres HUD. An diesem Build geprueft: 480 -> 260 macht den
+	// Punktestand rund 1,85x groesser, die gesamte 2D-Ebene skaliert mit.
+	//
+	// vid_conautoscale waere der dokumentierte Weg, hat hier aber KEINE
+	// Wirkung: ein explizit gesetztes vid_conheight schlaegt die Automatik.
+	// Und `fps_preset` ohne Argument oeffnet ein blockierendes Engine-Menue
+	// ueber dem Spiel; niemals ohne Stufe aufrufen.
+	var HUD = [
+		{ key:'hud0', conheight:480 },   // Standard
+		{ key:'hud1', conheight:380 },   // Gross
+		{ key:'hud2', conheight:300 }    // Sehr gross
+	];
+
+	var hell = 0;
+	var groesse = IS_TOUCH ? 1 : 0;      // am Handy ist GROSS die bessere Vorgabe
+	try {
+		hell = Math.min(BRIGHT.length - 1, Math.max(0,
+			parseInt(localStorage.getItem('ts_bright') || '0', 10) || 0));
+		var gespeichert = localStorage.getItem('ts_hudscale');
+		if (gespeichert !== null)
+			groesse = Math.min(HUD.length - 1, Math.max(0, parseInt(gespeichert, 10) || 0));
+	} catch(e){}
+
+	function stand(id, text, an){
+		var st = document.getElementById(id);
+		if (st){ st.textContent = text; st.classList.toggle('on', !!an); }
+	}
+
+	function helligkeitAnwenden(sichern){
+		var p = BRIGHT[hell];
+		tsCmd('gamma ' + p.gamma + '\nv_contrastboost ' + p.cb + '\n' +
+			(sichern ? 'saveconfig user_settings.cfg\n' : ''));
+		stand('gs-bright-state', T(p.key), hell > 0);
+	}
+
+	function hudAnwenden(){
+		var h = HUD[groesse];
+		// ts_touchui sagt dem HUD, dass unten links ein Joystick liegt. Die
+		// Engine kann das nicht selbst wissen -- platform_is_web gilt auch fuer
+		// den Desktop. Am Rechner MUSS die Cvar 0 bleiben, sonst reservierte
+		// GetTouchRightInset Rand fuer Knoepfe, die es dort nicht gibt.
+		tsCmd((IS_TOUCH ? 'ts_touchui 1\n' : '') + 'vid_conheight ' + h.conheight + '\n');
+		if (window.__ts_randMessen) __ts_randMessen(h.conheight);
+		stand('gs-hud-state', T(h.key), groesse > 0);
+	}
+
+	// Re-Apply bei jedem Spielstart: die Engine liest beim Kartenladen ihre
+	// eigene Konfiguration neu, unsere Uebersteuerung muss danach wieder greifen.
+	window.__ts_applyBright = function(){ if (hell > 0) helligkeitAnwenden(false); };
+	window.__ts_applyHud    = function(){ hudAnwenden(); };
+	// Einzeln aufrufbar: Knopfgroesse und Linkshaender-Modus verschieben die
+	// Knoepfe, ohne den Preset anzufassen. Gibt die Rechnung zurueck --
+	// tools/verify/specs/35-hud.spec.js liest sie.
+	window.__ts_hudRand = function(){
+		return window.__ts_randMessen ? __ts_randMessen(HUD[groesse].conheight) : undefined;
+	};
+
+	return {
+		naechsteHelligkeit: function(){
+			hell = (hell + 1) % BRIGHT.length;
+			try { localStorage.setItem('ts_bright', String(hell)); } catch(e){}
+			helligkeitAnwenden(true);
+		},
+		naechsteHud: function(){
+			groesse = (groesse + 1) % HUD.length;
+			try { localStorage.setItem('ts_hudscale', String(groesse)); } catch(e){}
+			hudAnwenden();
+		},
+		staendeZeigen: function(){
+			stand('gs-bright-state', T(BRIGHT[hell].key), hell > 0);
+			stand('gs-hud-state',    T(HUD[groesse].key), groesse > 0);
+		},
+		// Fuer die Einstellungsliste (TS_SET). Das Zahnrad-Sheet gibt es nur
+		// auf Touch -- ohne diese zwei Zeilen waeren HUD-Groesse und
+		// Helligkeit am Rechner weiterhin unerreichbar, nur eben aus einem
+		// anderen Grund als vorher.
+		hudLabel:  function(){ return T(HUD[groesse].key); },
+		hellLabel: function(){ return T(BRIGHT[hell].key); }
+	};
+})();
 
 //---------------------------------------------------------------------
 // Touch controls: virtual joystick -> WASD key events, action buttons
@@ -2558,25 +2829,10 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 	}
 
 	// --- Erste-Runde-Hinweise (Onboarding; via ⚙ > HILFE jederzeit wieder) ---
+	// Mechanik und Notbremse liegen weiter oben in __ts_hints -- die Karte
+	// gibt es auf beiden Plattformen, nur mit anderem Text.
 	var hintsEl = document.getElementById('hints');
-	var hintsAuto = 0;
-	function showHints(force){
-		if (!hintsEl) return;
-		if (!force){ try { if (localStorage.getItem('ts_seen_hints') === '1') return; } catch(e){} }
-		hintsEl.style.display = 'flex';
-		// Notbremse: die Karte liegt ueber allem und sperrt die Eingabe. Wer
-		// sie nicht antippt (weil er sie fuer Deko haelt), soll nicht dauerhaft
-		// festsitzen -- nach 12 s verschwindet sie von selbst und gilt als
-		// gesehen. Ueber das Zahnrad-Sheet ist sie jederzeit wieder da.
-		if (hintsAuto) clearTimeout(hintsAuto);
-		hintsAuto = setTimeout(function(){
-			hintsAuto = 0;
-			if (hintsEl.style.display === 'flex'){
-				hintsEl.style.display = 'none';
-				try { localStorage.setItem('ts_seen_hints', '1'); } catch(e){}
-			}
-		}, 12000);
-	}
+	function showHints(force){ if (window.__ts_hints) __ts_hints(force); }
 	if (hintsEl) hintsEl.addEventListener('pointerdown', function(e){
 		e.preventDefault(); hintsEl.style.display = 'none';
 		try { localStorage.setItem('ts_seen_hints', '1'); } catch(err){}
@@ -2597,23 +2853,8 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		}
 	});
 
-	// --- Helligkeits-Presets (V4): gamma + v_contrastboost via Konsole.
-	// vid_hardwaregamma=1 ist gesetzt -> wirkt sofort. Persistenz primaer via
-	// localStorage (saveconfig im Web-FS unsicher), Re-Apply bei TSUI:game. ---
-	var BRIGHT_PRESETS = [
-		{ key: 'bright0', gamma: '1.0', cb: '1.0'  },
-		{ key: 'bright1', gamma: '1.3', cb: '1.15' },
-		{ key: 'bright2', gamma: '1.6', cb: '1.3'  }
-	];
-	var brightIdx = 0;
-	try { brightIdx = Math.min(2, Math.max(0, parseInt(localStorage.getItem('ts_bright') || '0', 10) || 0)); } catch(e){}
-	function applyBright(save){
-		var p = BRIGHT_PRESETS[brightIdx];
-		tsCmd('gamma ' + p.gamma + '\nv_contrastboost ' + p.cb + '\n' + (save ? 'saveconfig user_settings.cfg\n' : ''));
-		var st = document.getElementById('gs-bright-state');
-		if (st){ st.textContent = T(p.key); st.classList.toggle('on', brightIdx > 0); }
-	}
-	window.__ts_applyBright = function(){ if (brightIdx > 0) applyBright(false); };   // Re-Apply-Hook (tsMarker)
+	// Helligkeit und HUD-Groesse leben jetzt in TS_VIEW, weiter oben und
+	// ausserhalb dieser Klammer -- beides brauchte auch der Desktop.
 
 	// --- HUD-Groesse: das Spiel zeichnet sein HUD in einen virtuellen Raum von
 	// 480 Zeilen Hoehe (vid_conheight, gesetzt in nzportable.cfg INNERHALB der
@@ -2682,35 +2923,10 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		         cssOben: Math.round(unterste), oben: oben };
 	}
 
-	var HUD_PRESETS = [
-		{ key: 'hud0', conheight: 480 },   // Standard (wie Desktop)
-		{ key: 'hud1', conheight: 380 },   // Gross
-		{ key: 'hud2', conheight: 300 }    // Sehr gross
-	];
-	var hudIdx = IS_TOUCH ? 1 : 0;         // auf dem Handy ist "Gross" die bessere Voreinstellung
-	try {
-		var storedHud = localStorage.getItem('ts_hudscale');
-		if (storedHud !== null)
-			hudIdx = Math.min(HUD_PRESETS.length - 1, Math.max(0, parseInt(storedHud, 10) || 0));
-	} catch(e){}
-	function applyHud(){
-		var h = HUD_PRESETS[hudIdx];
-		// ts_touchui sagt dem HUD, dass unten links ein Joystick liegt -- es
-		// schiebt Punktestand und Namen dann darueber. Die Engine kann das
-		// nicht selbst wissen: platform_is_web gilt auch fuer den Desktop.
-		// Dieser Block laeuft nur auf Touch-Geraeten (die IIFE steigt sonst
-		// vorher aus), die Cvar bleibt auf dem Desktop also 0.
-		tsCmd('ts_touchui 1\nvid_conheight ' + h.conheight + '\n');
-		meldeRandbreite(h.conheight);
-		var st = document.getElementById('gs-hud-state');
-		if (st){ st.textContent = T(h.key); st.classList.toggle('on', hudIdx > 0); }
-	}
-	// Re-Apply bei jedem Spielstart: die Engine liest nzportable.cfg beim Laden
-	// erneut, unsere Uebersteuerung muss danach wieder greifen.
-	window.__ts_applyHud = function(){ applyHud(); };
-	// Auch einzeln aufrufbar: Linkshaender-Modus und Knopfgroesse aendern die
-	// Knopflage, ohne den HUD-Preset anzufassen.
-	window.__ts_hudRand = function(){ return meldeRandbreite(HUD_PRESETS[hudIdx].conheight); };
+	// Die Messung gehoert der Touch-Schicht -- sie misst ein Layout, das es
+	// nur hier gibt. TS_VIEW ruft sie ueber diesen Einstieg auf; das ist die
+	// einzige Naht zwischen plattformneutraler Anzeige und Touch-Bedienung.
+	window.__ts_randMessen = meldeRandbreite;
 
 	// --- Zahnrad + Schnell-Einstellungen-Sheet (ersetzt die HUD-Buttons
 	// SPRINT/DUCKEN/GR.2/AUTO/VOLLBILD -> weniger Controls, gleiche Funktion) ---
@@ -2724,8 +2940,7 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 		var gear = document.getElementById('gearbtn');
 		if (!gear || !sheet) return;
 		updateGsAuto();
-		var bst = document.getElementById('gs-bright-state');
-		if (bst){ bst.textContent = T(BRIGHT_PRESETS[brightIdx].key); bst.classList.toggle('on', brightIdx > 0); }
+		TS_VIEW.staendeZeigen();
 		gear.addEventListener('pointerdown', function(e){
 			e.preventDefault(); sheetShow(sheet.style.display !== 'block');
 		});
@@ -2740,14 +2955,10 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 			updateGsAuto();
 		});
 		row('gs-bright', function(){
-			brightIdx = (brightIdx + 1) % BRIGHT_PRESETS.length;
-			try { localStorage.setItem('ts_bright', String(brightIdx)); } catch(err){}
-			applyBright(true);
+			TS_VIEW.naechsteHelligkeit();
 		});
 		row('gs-hud', function(){
-			hudIdx = (hudIdx + 1) % HUD_PRESETS.length;
-			try { localStorage.setItem('ts_hudscale', String(hudIdx)); } catch(err){}
-			applyHud();
+			TS_VIEW.naechsteHud();
 		});
 		row('gs-duck', function(){ sendKey('keydown', 18, 'AltLeft'); sendKey('keyup', 18, 'AltLeft'); });  // impulse 30
 		row('gs-nade', function(){ tsCmd('impulse 25\n'); });   // 2. Granate waehlen
