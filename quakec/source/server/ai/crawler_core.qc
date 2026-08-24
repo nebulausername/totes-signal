@@ -257,6 +257,12 @@ void(entity who) makeCrawler =
 		who.crawling = 2;
 		return;
 	}
+
+	// "Teile und herrsche" -- gezaehlt wird HIER, wo aus einem Zombie
+	// tatsaechlich ein Krabbler wird. Der Vergleich gegen die Rundenmenge
+	// steht in EndRound (rounds.qc); zurueckgesetzt wird in NewRound.
+	ach_tracker_crawl++;
+
 	who.crawling = 2;//this means we haven't technically initiated it, but we're going to...
 	
 	who.th_die = Zombie_Death;

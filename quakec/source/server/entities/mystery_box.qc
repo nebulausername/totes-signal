@@ -696,6 +696,14 @@ void() MBOX_Touch =
 				Create_Floating_Weapon();
 				MBOX_UpdatePosessionStatus();
 				self.spins++;
+
+				// "Truhen-Besessen" -- 20 Benutzungen in einem Spiel. Gezaehlt
+				// wird global und nicht je Truhe: auf Karten mit mehreren
+				// Standorten waere ein Zaehler pro Kiste nicht das, was die
+				// Beschreibung verspricht.
+				ach_tracker_mbox++;
+				if (ach_tracker_mbox >= 20)
+					GiveAchievement(32, other);
 			}
 			else {
         		centerprint (other, STR_NOTENOUGHPOINTS);

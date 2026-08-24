@@ -169,6 +169,20 @@ vector gun_kick;
 
 float hide_viewmodel;
 
+//
+// Schadensrichtung (CSQC_EVENT_HURTDIR)
+// ts_hurt_yaw ist der WELT-Winkel, aus dem der Treffer kam. Gegen die
+// Blickrichtung verrechnet wird erst beim Zeichnen -- der Spieler dreht sich
+// waehrend der Einblendung, ein einmal festgelegter Bildschirmwinkel zeigte
+// danach ins Leere.
+//
+float ts_hurt_yaw;
+float ts_hurt_time;
+
+// Ob gerade etwas zu benutzen ist (TSUI:use). Nur der letzte gemeldete
+// Zustand -- gedruckt wird bei Aenderung, nicht jeden Frame.
+float ts_last_use;
+
 // csqc player prediction by eukara
 vector playerOrigin;
 vector playerOriginOld;

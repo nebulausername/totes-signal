@@ -392,6 +392,36 @@ void(entity victim, entity attacker, float damage, float d_style) DamageHandler 
 		victim.punchangle_x = distance_x;
 		victim.punchangle_y = distance_y;
 
+#ifdef FTE
+
+		// Der EINZIGE Punkt im Spiel, an dem ein Spieler Schaden nimmt.
+		// Zwei Dinge haengen daran:
+		//
+		//  1. Die Richtung fuer den Bogen am Bildrand. Ohne Angreifer mit
+		//     echter Lage gibt es nichts zu zeigen -- bei Fallen und
+		//     Barrieren steht der Verursacher auf world oder genau auf dem
+		//     Spieler, und ein Bogen aus einer erfundenen Richtung ist
+		//     schlechter als keiner. Deshalb das Flag.
+		//  2. Die Rueckmeldung an die Web-Shell (Vibration). Die hing bisher
+		//     an CSQC_EVENT_RUMBLE -- und das ist ein GAMEPAD-Rumble mit
+		//     NEUN Quellen, von denen sieben Waffenaktionen sind (Feuern,
+		//     Ziehen, Werfen, Waffengeraeusch, Betty scharfmachen, Hechtrolle).
+		//     Das Handy vibrierte also mit dem Treffer-Muster bei jedem
+		//     Schuss. Gesendet wird jetzt hier, wo der Schaden entsteht.
+		float ts_richtung_bekannt = false;
+		float ts_hurt_yaw = 0;
+		if (attacker != world && attacker != victim) {
+			vector ts_hurt_vec = attacker.origin - victim.origin;
+			ts_hurt_vec_z = 0;
+			if (vlen(ts_hurt_vec) > 1) {
+				ts_richtung_bekannt = true;
+				ts_hurt_yaw = vectoyaw(ts_hurt_vec);
+			}
+		}
+		TS_SendHurtDirection(victim, ts_hurt_yaw, ts_richtung_bekannt);
+
+#endif // FTE
+
 		// Play pain noise if this isn't done by an electric barrier.
 		if (d_style != DMG_TYPE_ELECTRICTRAP) {
 			Sound_PlaySound(victim, "sounds/player/pain4.wav", SOUND_TYPE_PLAYER_VOICE, SOUND_PRIORITY_PLAYALWAYS);
@@ -480,6 +510,10 @@ void(entity inflictor, entity attacker, float damage2, float mindamage, float ra
 	entity	ent;
 
 	float 	multi, r;
+
+	// Abschuesse DIESER einen Explosion (Erfolg "Danke, Sprengstoff").
+	float 	ts_explosion_kills = 0;
+
 	ent = findradius(inflictor.origin, radius);
 	
 	while (ent != world)
@@ -635,8 +669,31 @@ void(entity inflictor, entity attacker, float damage2, float mindamage, float ra
 		}
 
 		if (final_damage > 0) {
-			if (CanDamage (ent, inflictor))
+			if (CanDamage (ent, inflictor)) {
+				// Zustand VOR dem Schaden merken -- danach laesst sich nicht
+				// mehr unterscheiden, ob dieser Treffer den Tod verursacht hat.
+				float ts_lebte = (ent.health > 0);
+				float ts_war_spieler_am_leben = (ent.classname == "player" && !ent.downed);
+
 				DamageHandler (ent, attacker, final_damage, damage_style);
+
+				// "Danke, Sprengstoff" -- zehn Zombies mit EINER Granate.
+				// Gezaehlt wird innerhalb dieses einen Explosionsaufrufs,
+				// deshalb steht der Zaehler lokal und nicht global.
+				if (ts_lebte && ent.health <= 0 && inflictor.classname == "grenade" &&
+				    (ent.classname == "ai_zombie" || ent.classname == "ai_dog")) {
+					ts_explosion_kills++;
+					if (ts_explosion_kills == 10)
+						GiveAchievement(31, attacker);
+				}
+
+				// "Komm her, Suesser!" -- mit der eigenen Granate umgebracht.
+				// inflictor.owner == ent ist oben schon die Bedingung dafuer,
+				// dass die Granate ueberhaupt Schaden am Spieler macht.
+				if (ts_war_spieler_am_leben && ent.downed && inflictor.classname == "grenade" &&
+				    inflictor.owner == ent)
+					GiveAchievement(18, ent);
+			}
 		}
 		ent = ent.chain;
 	}

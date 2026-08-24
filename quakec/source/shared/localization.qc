@@ -69,6 +69,7 @@ string(string english) T =
 	case "Control Options and Bindings.": return "Steuerung und Tastenbelegung.";
 	case "ACCESSIBILITY": return "BARRIEREFREIHEIT";
 	case "CONTROLS & DISPLAY": return "STEUERUNG & ANZEIGE";   // Touch: oeffnet den Shell-Einstellungsschirm
+	case "Sensitivity, aim assist, HUD size, brightness.": return "Empfindlichkeit, Zielhilfe, HUD-Groesse, Helligkeit.";
 	case "TAP TO CLOSE": return "TIPPEN ZUM SCHLIESSEN";
 	case "Content, Interface, and Readability options.": return "Inhalts-, Interface- und Lesbarkeitsoptionen.";
 	case "OPEN CONSOLE": return "KONSOLE OEFFNEN";

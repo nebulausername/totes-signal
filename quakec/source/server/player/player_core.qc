@@ -566,6 +566,27 @@ void(float override) JumpCheck =
 
 void() PlayerPreThink =
 {
+	// "Worauf warten wir?" -- zwei Minuten am Stueck stillgestanden.
+	// Gemessen an der Geschwindigkeit und nicht an der Eingabe: wer gegen
+	// eine Wand laeuft, bewegt sich nicht, wartet aber auch nicht. Ein
+	// Niedergehen bricht die Serie ab.
+	//
+	// Gemerkt wird der ZEITPUNKT, nicht die Summe. Die erste Fassung addierte
+	// `frametime` je Aufruf -- und der Erfolg fiel im Testlauf nach rund 50
+	// Sekunden statt nach 120. PlayerPreThink laeuft offenbar oefter als
+	// einmal je Serverframe (FTE bearbeitet Eingabepakete einzeln), die Summe
+	// lief also schneller als die Uhr. `time` kann das nicht passieren.
+	if (self.ach_tracker_still != -1) {          // -1 = in diesem Lauf vergeben
+		if (self.downed || vlen(self.velocity) > 2)
+			self.ach_tracker_still = 0;
+		else if (self.ach_tracker_still == 0)
+			self.ach_tracker_still = time;      // Beginn merken
+		else if (time - self.ach_tracker_still >= 120) {
+			self.ach_tracker_still = -1;
+			GiveAchievement(35, self);
+		}
+	}
+
 	if (self.downed) {
 		self.maxspeed = 30;
 	} else {

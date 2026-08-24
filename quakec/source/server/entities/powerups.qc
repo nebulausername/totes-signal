@@ -602,6 +602,21 @@ void() PU_MaxAmmo =
 	while(players) {
 
 		if (!players.downed) {
+			// "Voll ist voll" -- Max-Munition aufgenommen, obwohl schon alles
+			// voll war. Muss VOR dem Auffuellen geprueft werden, danach ist
+			// die Bedingung immer wahr.
+			float ts_war_voll = true;
+			for (float v = 0; v < MAX_PLAYER_WEAPONS; v++) {
+				if (players.weapons[v].weapon_id == 0)
+					continue;
+				if (players.weapons[v].weapon_reserve < getWeaponAmmo(players.weapons[v].weapon_id)) {
+					ts_war_voll = false;
+					break;
+				}
+			}
+			if (ts_war_voll && players.weapons[0].weapon_id != 0)
+				GiveAchievement(22, players);
+
 			// Fill all weapons
 			for (float i = 0; i < MAX_PLAYER_WEAPONS; i++) {
 				players.weapons[i].weapon_reserve = getWeaponAmmo(players.weapons[i].weapon_id);

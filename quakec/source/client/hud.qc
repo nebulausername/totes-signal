@@ -1666,6 +1666,82 @@ void() HUD_Hitmark =
 	drawpic([g_width/2 - 10, g_height/2 - 10], "gfx/hud/hit_marker.tga", [20, 20], hitmark_color, hitmark_alpha);
 }
 
+/**************************
+*   HUD Schadensrichtung  *
+**************************/
+
+//
+// HUD_HurtDirection()
+// Zeigt als Bogen am Bildrand, aus welcher Richtung der letzte Treffer kam.
+// Gespeist aus CSQC_EVENT_HURTDIR (server/damage.qc).
+//
+// Warum ueberhaupt: die rote Ueberblendung (HUD_Health) sagt DASS man getroffen
+// wurde, nie WOHER. Am Rechner dreht man sich schnell genug, um das selbst zu
+// klaeren; auf dem Handy kostet eine halbe Drehung mehrere Wische.
+//
+// Gezeichnet wird mit drawline statt mit einem Bild: kein neues Asset und
+// keine Aufloesungsfrage.
+//
+void() HUD_HurtDirection =
+{
+	if (ts_hurt_time <= time)
+		return;
+
+	float rest = ts_hurt_time - time;
+
+	// Kurz voll sichtbar, dann ueber die letzte halbe Sekunde ausblenden.
+	float alpha = 1;
+	if (rest < 0.5)
+		alpha = rest / 0.5;
+
+	// WELT-Winkel gegen die aktuelle Blickrichtung verrechnen -- erst hier,
+	// damit der Bogen beim Drehen mitwandert.
+	vector blick = getproperty(VF_ANGLES);
+	float rel = ts_hurt_yaw - blick[1];
+
+	// Auf (-180, 180] normalisieren. TS_ShortAngle aus client/main.qc waere
+	// dasselbe, steht aber weiter unten im Uebersetzungslauf und ist hier
+	// deshalb `Unknown value`.
+	while (rel > 180)  rel -= 360;
+	while (rel <= -180) rel += 360;
+
+	float cx = g_width / 2;
+	float cy = g_height / 2;
+	float radius = g_height * 0.36;
+
+	// rel = 0 -> oben, +90 -> links, 180 -> unten. Bildschirm-y zeigt nach
+	// unten, daher beide Vorzeichen negativ.
+	float DEG = 0.01745329;
+	float halb = 22;            // halbe Bogenbreite in Grad
+	float schritte = 10;
+
+	// KNOCHENWEISS, nicht Signal-Rot. Am Bild geprueft: in genau dem Moment,
+	// in dem der Bogen erscheint, faerbt HUD_Health den ganzen Schirm rot --
+	// ein roter Bogen darauf war kaum zu erkennen. Die dunkle Unterlage
+	// darunter macht ihn auch vor hellen Waenden lesbar.
+	float i;
+	float vx = 0, vy = 0;
+
+	for (i = 0; i <= schritte; i = i + 1) {
+		float t = rel - halb + (halb * 2) * (i / schritte);
+		float px = cx - radius * sin(t * DEG);
+		float py = cy - radius * cos(t * DEG);
+
+		if (i > 0) {
+			// Zu den Enden hin duenner -- ein Balken mit harten Kanten sieht
+			// aus wie ein Zeichenfehler, ein auslaufender Bogen wie Absicht.
+			float mitte = (i - 0.5) / schritte;          // 0 .. 1
+			float dicke = 2 + 5 * sin(mitte * 180 * DEG);
+
+			drawline(dicke + 3, [vx, vy, 0], [px, py, 0], [0, 0, 0], alpha * 0.55, 0);
+			drawline(dicke,     [vx, vy, 0], [px, py, 0], [1, 0.94, 0.88], alpha, 0);
+		}
+
+		vx = px;
+		vy = py;
+	}
+};
+
 /*******************
 *   HUD Crosshair  *
 *******************/
@@ -2657,6 +2733,9 @@ void() HUD_DrawElementsForPlayer =
 
 	// Crosshair for Player weapons.
 	HUD_Crosshair();
+
+	// Woher kam der Treffer.
+	HUD_HurtDirection();
 
 	// Being scoped-in hides all low-priority elements.
 	if (getstatf(STAT_WEAPONZOOM) != 2 || zoom_2_time >= time) {

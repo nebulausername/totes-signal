@@ -86,6 +86,13 @@ float 	ach_tracker_col2;
 float 	ach_tracker_barr;
 float 	ach_tracker_spin;
 
+// Erfolge, deren Erkennung bisher fehlte. Jeder dieser Zaehler gehoert zu
+// GENAU einem Erfolg -- die Vergabestelle steht jeweils dort, wo das
+// Ereignis entsteht, nicht in einer Sammelfunktion.
+.float 	ach_tracker_still;      // "Worauf warten wir?"  -- Sekunden stillgestanden
+float 	ach_tracker_mbox;       // "Truhen-Besessen"     -- Truhennutzungen im Spiel
+float 	ach_tracker_crawl;      // "Teile und herrsche"  -- Krabbler DIESER Runde
+
 float global_trace_damage_multiplier;
 
 .float has_ads_toggle;

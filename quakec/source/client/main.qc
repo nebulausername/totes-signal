@@ -1048,6 +1048,10 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 	float ts_seq = stof(serverkey("ts_runseq"));
 	if (ts_seq > 0 && ts_seq != ts_last_runseq) {
 		ts_last_runseq = ts_seq;
+		// Den gemeldeten AKTION-Zustand ungueltig machen: nach einem weichen
+		// Neustart soll der erste Frame die Wahrheit drucken, nicht das
+		// Ergebnis eines Vergleichs mit dem alten Lauf.
+		ts_last_use = -1;
 		// Anzeigename VOR rstart, damit die Shell ihn schon hat, wenn der Lauf
 		// ankommt. Eigener Marker statt eines neuen Feldes in rstart: das
 		// Feld-Layout eines bestehenden Markers zu aendern waere ein Bruch
@@ -1063,6 +1067,18 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 	// zoom 1|2 = zielt (Hold ODER impulse-26-Latch); zoom 3 = Sprint (kein ADS).
 	// Nur bei Aenderung drucken -- der Server kann den Latch still loesen
 	// (W_AimOut setzt ads_release=false), darum ist DIESER Stat die Wahrheit.
+	// Gibt es hier gerade etwas zu benutzen? Der AKTION-Knopf der Shell sah
+	// immer gleich aus, egal ob er etwas tat -- auf dem Handy ist er einer von
+	// acht Knoepfen, und wer nicht weiss, wo eine Wandwaffe haengt, findet sie
+	// auch nicht. useprint_time wird vom Server waehrend der Beruehrung
+	// staendig erneuert (CSQC_EVENT_USEPRINT, +0.1 s), taugt also als
+	// Dauerzustand. Nur bei AENDERUNG drucken.
+	float ts_use_now = (useprint_time > time) ? 1 : 0;
+	if (ts_use_now != ts_last_use) {
+		ts_last_use = ts_use_now;
+		print(ts_use_now ? "\nTSUI:use:1\n" : "\nTSUI:use:0\n");
+	}
+
 	float ts_zoom = getstatf(STAT_WEAPONZOOM);
 	float ts_ads_now = (ts_zoom == 1 || ts_zoom == 2) ? 1 : 0;
 	if (ts_ads_now != ts_last_ads) {
@@ -1454,6 +1470,15 @@ noref void() CSQC_Parse_Event =
 			// Dieselbe Erschuetterung an die Shell: auf dem Handy gibt es
 			// keinen Controller, der ruettelt.
 			print("\nTSUI:fx:r\n");
+			break;
+		case CSQC_EVENT_HURTDIR:
+			float ts_dir_bekannt = readbyte();
+			ts_hurt_yaw = readbyte() * 360 / 256;
+			ts_hurt_time = ts_dir_bekannt ? time + 1.15 : 0;
+			// Echter Schaden am Spieler -- die Web-Shell haengt ihre Vibration
+			// hieran und NICHT mehr an fx:r (das ist ein Gamepad-Rumble und
+			// kommt zu sieben Neunteln von Waffenaktionen).
+			print("\nTSUI:fx:d\n");
 			break;
 		case CSQC_EVENT_SETGAMEMODE:
 			active_gamemode = readbyte();

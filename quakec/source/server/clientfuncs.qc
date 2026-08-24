@@ -302,6 +302,31 @@ void(entity target, float low_frequency, float high_frequency, float duration) n
 	multicast('0 0 0', MULTICAST_ONE);
 };
 
+//
+// TS_SendHurtDirection(target, welt_yaw)
+// Sagt dem Client, aus welcher Richtung der Treffer kam.
+//
+// Bis hierher gab es beim Treffer nur die rote Ueberblendung -- sie sagt DASS,
+// nie WOHER. Am Rechner dreht man sich schnell genug, um es selbst
+// herauszufinden; auf dem Handy dauert eine halbe Drehung mehrere Wische, und
+// in der Zeit steht schon der zweite Zombie daneben.
+//
+// Gesendet wird der Weltwinkel, nicht die Ablage zur Blickrichtung: die
+// Einblendung steht rund eine Sekunde, und der Spieler dreht sich in dieser
+// Sekunde. Waere die Ablage fest, zeigte der Bogen nach der ersten Drehung in
+// die falsche Richtung.
+//
+void(entity target, float welt_yaw, float richtung_bekannt) TS_SendHurtDirection =
+{
+	WriteByte(MSG_MULTICAST, SVC_CGAMEPACKET);
+	WriteByte(MSG_MULTICAST, CSQC_EVENT_HURTDIR);
+	WriteByte(MSG_MULTICAST, richtung_bekannt ? 1 : 0);
+	WriteByte(MSG_MULTICAST, rint(welt_yaw * 256 / 360) & 255);
+
+	msg_entity = target;
+	multicast('0 0 0', MULTICAST_ONE);
+};
+
 #endif // FTE
 
 void(float count) UpdatePlayerCount = {

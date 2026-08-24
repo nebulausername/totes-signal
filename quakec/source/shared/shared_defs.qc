@@ -103,6 +103,14 @@
 #define EVENT_ENDGAME					35
 #define EVENT_MAPTYPE					36
 
+// Aus welcher Richtung der Treffer kam. Ein Byte reicht: 256 Schritte auf
+// 360 Grad sind 1,4 Grad Aufloesung, und die Anzeige ist ein Bogen von 44
+// Grad Breite -- feiner waere verschenkt. Gesendet wird der WELT-Winkel;
+// der Spieler dreht sich waehrend der Einblendung weiter, die Verrechnung
+// gegen die Blickrichtung gehoert deshalb in den Zeichenschritt.
+#define CSQC_EVENT_HURTDIR				37	// <byte> richtung_bekannt
+											// <byte> welt_yaw / 1.40625
+
 //
 // Perk-A-Cola draw presets
 //

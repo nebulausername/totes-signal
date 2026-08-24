@@ -195,6 +195,13 @@ void() EndRound =
 		}
 	}
 
+	// "Teile und herrsche" -- in dieser Runde wurde JEDER Zombie zum Krabbler.
+	// Verglichen wird gegen die Rundenmenge, nicht gegen die Abschuesse: einen
+	// Krabbler, der die Runde ueberlebt, gibt es nicht, und Hundrunden haben
+	// gar keine Krabbler.
+	if (roundtype == 1 && Total_Zombies > 0 && ach_tracker_crawl >= Total_Zombies)
+		GiveAchievement(23);
+
 	// Fire off all trigger_atroundent ents
 	entity triggers = find(world, classname, "trigger_atroundend");
 	while(triggers != world) {
@@ -252,6 +259,9 @@ void() NewRound =
 	}
 
 	rounds = rounds + 1;
+
+	// Zaehler fuer "Teile und herrsche" gehoert an den Rundenbeginn.
+	ach_tracker_crawl = 0;
 
 #ifdef FTE
 
@@ -339,6 +349,56 @@ void() NewRound =
 		zaps = find(zaps, classname, "zapper_switch");
 	}
 }
+
+//
+// TS_RoundEndNow()
+// Beendet die laufende Runde sofort. Werkzeug fuer das Rundenlabor.
+//
+// Warum es das braucht: bis hierher konnte niemand einen Rundenwechsel
+// ansehen, ohne eine Runde wirklich durchzuspielen -- und am Rundenwechsel
+// haengt das meiste, was noch nie geprueft wurde (Rundenanzeige, Hundrunde,
+// Musik, trigger_atroundend, die Erfolge "Ohne Perks? Kein Problem" und
+// "Teile und herrsche"). `sv_startround` setzt nur den EINSTIEG.
+//
+// Der Weg ist bewusst der echte: jeder lebende Gegner stirbt ueber sein
+// eigenes th_die(), also ueber dieselbe Kette wie ein Kopfschuss (Zaehler,
+// Aufraeumen, Beute, Erfolge). Danach steht Total_Zombies auf dem bereits
+// gespawnten Stand, damit Round_Core keine Nachzuegler mehr schickt;
+// Remaining_Zombies faellt auf 0 und der normale Rundenabschluss laeuft von
+// selbst an.
+//
+// ERREICHBAR UEBER `impulse 27`, NICHT ueber ein Konsolenkommando: die
+// QuakeC-Kommandotabelle in utilities/command_parser.qc ist in diesem Build
+// tot -- SV_ParseClientCommand wird nie gerufen. Am laufenden Spiel
+// nachgemessen (ein echo als allererste Zeile der Funktion kam nie an,
+// auch nicht bei `cmd god`; das "godmode ON" dort stammt vom
+// ENGINE-eigenen god-Befehl). Impulse dagegen tragen: das Touch-HUD
+// benutzt 23/25/26/30 taeglich.
+//
+void() TS_RoundEndNow =
+{
+	entity oldself = self;
+	entity z = find(world, aistatus, "1");
+
+	while (z != world) {
+		// Den Nachfolger VOR dem Toeten holen: th_die() setzt aistatus auf
+		// "0", und ein find() ab einer Entitaet, die das Suchkriterium nicht
+		// mehr erfuellt, ist unnoetig heikel.
+		entity naechster = find(z, aistatus, "1");
+
+		if ((z.classname == "ai_zombie" || z.classname == "ai_dog") && z.health > 0) {
+			self = z;
+			self.th_die();
+		}
+
+		z = naechster;
+	}
+
+	self = oldself;
+
+	// Keine Nachzuegler: Round_Core spawnt, solange Total > Current.
+	Total_Zombies = Current_Zombies;
+};
 
 void() Round_Core =
 {

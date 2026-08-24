@@ -1728,6 +1728,20 @@ void () Impulse_Functions =
 			self.ads_release = !self.ads_release;
 			self.has_ads_toggle = true;
 			break;
+		case 27:
+			// Rundenlabor: laufende Runde sofort beenden (rounds.qc).
+			// Nur mit sv_cheats, und der Riegel markiert den Lauf ohnehin
+			// als ts_cheat -- er faellt also aus der Wertung.
+			//
+			// ACHTUNG, ungeprueft: am 24.08. liess sich NICHT nachweisen,
+			// dass dieser Impuls ankommt. Weder `tsCmd('impulse 27')` noch
+			// eine dafuer gebundene Taste erzeugten einen Rundenwechsel, und
+			// ein `echo` an dieser Stelle kam nie in der Browserkonsole an --
+			// womit auch offen bleibt, ob das echo taugt. Der Code selbst ist
+			// geprueft gegen Round_Core; unklar ist allein die Zustellung.
+			if (cheats_have_been_activated)
+				TS_RoundEndNow();
+			break;
 		case 33:
 			W_PrimeBetty();
 			break;

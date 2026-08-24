@@ -80,7 +80,7 @@ void() Menu_Options_ToggleLanguage =
 
 void() Menu_Options =
 {
-	Menu_Page_Begin(MENU_TOUCH ? 5 : 6.25, 1);
+	Menu_Page_Begin(MENU_TOUCH ? 5 : 7.25, 1);
     Menu_DrawBackground();
     Menu_DrawTitle(T("CONFIGURATION"));
 
@@ -101,14 +101,26 @@ void() Menu_Options =
         Menu_Button(4, "om_acces", T("ACCESSIBILITY"), "") ? current_menu = MENU_ACCESSIBILITY : 0;
         Menu_Button(5, "om_lang", language_label, "") ? Menu_Options_ToggleLanguage() : 0;
     } else {
-        Menu_Button(1, "om_video", T("VIDEO"), T("Visual Fidelity options.")) ? current_menu = MENU_VIDEO : 0;
-        Menu_Button(2, "om_audio", T("AUDIO"), T("Volume sliders.")) ? current_menu = MENU_AUDIO : 0;
-        Menu_Button(3, "om_binds", T("CONTROLS"), T("Control Options and Bindings.")) ? current_menu = MENU_CONTROL : 0;
-        Menu_Button(4, "om_acces", T("ACCESSIBILITY"), T("Content, Interface, and Readability options.")) ? current_menu = MENU_ACCESSIBILITY : 0;
-        Menu_DrawDivider(5);
-        Menu_Button(5.25, "om_console", T("OPEN CONSOLE"), T("Access the Developer Console.")) ? localcmd("toggleconsole\n") : 0;
+        // Dieselbe Zeile wie auf dem Handy, und zwar aus demselben Grund:
+        // Empfindlichkeit, Y-Achse, Zielhilfe, HUD-Groesse, Helligkeit und
+        // Sparsam-Modus liegen in der Web-Shell. Am Rechner waren sie bis
+        // hierher UEBERHAUPT nicht erreichbar -- das Zahnrad-Sheet, hinter
+        // dem sie sonst stecken, gibt es dort nicht. Die Shell blendet die
+        // rein touch-eigenen Zeilen (Knopfgroesse, Deckkraft, Linkshaender)
+        // selbst aus.
+        //
+        // Wichtig: die Zielhilfe steht dahinter. `in_aimassist` ist auf 1
+        // vorbelegt (mobile-first) und wirkt auch mit der Maus -- ohne diesen
+        // Zugang koennte ein Desktop-Spieler sie nicht abschalten.
+        Menu_Button(1, "om_touch", T("CONTROLS & DISPLAY"), T("Sensitivity, aim assist, HUD size, brightness.")) ? print("\nTSUI:open:settings\n") : 0;
+        Menu_Button(2, "om_video", T("VIDEO"), T("Visual Fidelity options.")) ? current_menu = MENU_VIDEO : 0;
+        Menu_Button(3, "om_audio", T("AUDIO"), T("Volume sliders.")) ? current_menu = MENU_AUDIO : 0;
+        Menu_Button(4, "om_binds", T("CONTROLS"), T("Control Options and Bindings.")) ? current_menu = MENU_CONTROL : 0;
+        Menu_Button(5, "om_acces", T("ACCESSIBILITY"), T("Content, Interface, and Readability options.")) ? current_menu = MENU_ACCESSIBILITY : 0;
+        Menu_DrawDivider(6);
+        Menu_Button(6.25, "om_console", T("OPEN CONSOLE"), T("Access the Developer Console.")) ? localcmd("toggleconsole\n") : 0;
 
-        Menu_Button(6.25, "om_lang", language_label, T("Switch the game language.")) ? Menu_Options_ToggleLanguage() : 0;
+        Menu_Button(7.25, "om_lang", language_label, T("Switch the game language.")) ? Menu_Options_ToggleLanguage() : 0;
     }
 
 #ifdef MENU

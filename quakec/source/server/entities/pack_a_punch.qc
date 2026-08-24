@@ -175,6 +175,11 @@ void(entity pap, entity buyer, float machine_cost) PAP_UpgradeWeapon =
 
 	Player_RemoveScore(self, machine_cost);
 
+	// "Mehr Feuerkraft!" -- erste Benutzung von Pack-a-Punch. Der Erfolg war
+	// eingetragen, hatte aber nie eine Vergabestelle. Hier ist der einzige
+	// Punkt, durch den JEDE Aufwertung laeuft (Sofort- und Rollenvariante).
+	GiveAchievement(28, buyer);
+
 	// Instant Pack-A-Punch -- just take their money and assign their weapon.
 	if (game_modifier_packapunch_is_instant) {
 		float instant_weapon_tier = 0;
