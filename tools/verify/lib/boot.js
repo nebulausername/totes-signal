@@ -9,8 +9,11 @@ export async function booten(page, url = '/') {
   // Dreh-Hinweis -- jede Messung am laufenden Spiel braucht Querformat.
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  const touch = await page.evaluate(() => !!window.IS_TOUCH);
-  if (touch) await page.locator('#mstart').click();
+  // Das Start-Gate haelt die Engine an, bis geklickt wird -- seit 08/2026 auf
+  // BEIDEN Plattformen (davor lief `begin()` am Rechner sofort beim Parsen).
+  // Gefragt wird deshalb das Gate selbst und nicht mehr IS_TOUCH: die Frage
+  // ist "steht da etwas im Weg", nicht "welches Geraet ist das".
+  if (await page.locator('#mstart').isVisible()) await page.locator('#mstart').click();
   await page.waitForFunction(() => window.Module && window.Module.began === true, null, { timeout: 120_000 });
   await page.waitForTimeout(22_000);   // Engine + MenuQC brauchen danach noch Zeit
   return markers;

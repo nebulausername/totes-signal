@@ -15,11 +15,11 @@ test('Shell bootet, Engine startet, Menue-Marker kommt an', async ({ page, brows
   const build = await page.evaluate(() => window.TS_BUILD);
   expect(build, 'TS_BUILD nicht gesetzt').toBeTruthy();
 
-  // Auf Touch-Geraeten haelt das Start-Gate die Engine an, bis getippt wird.
-  const isTouch = await page.evaluate(() => !!window.IS_TOUCH);
-  if (isTouch) {
-    await page.locator('#mstart').click();
-  }
+  // Das Start-Gate haelt die Engine an, bis geklickt wird -- auf BEIDEN
+  // Plattformen. Am Rechner kam es dazu, damit WEITERSPIELEN, der Zugang zum
+  // Konto und die Nutzergeste vor dem AudioContext auch dort ankommen.
+  await expect(page.locator('#mstart')).toBeVisible();
+  await page.locator('#mstart').click();
 
   // Engine geladen?
   await page.waitForFunction(() => window.Module && window.Module.began === true,

@@ -12,8 +12,9 @@ async function bootenUndSpielen(page, url) {
     if (u.pathname.includes('/api/')) api.push(`${r.method()} ${u.host}${u.pathname}`);
   });
   await page.goto(url, { waitUntil: 'domcontentloaded' });
-  const touch = await page.evaluate(() => !!window.IS_TOUCH);
-  if (touch) await page.locator('#mstart').click();
+  // Gefragt wird das Gate, nicht die Plattform -- es steht seit 08/2026 auf
+  // beiden.
+  if (await page.locator('#mstart').isVisible()) await page.locator('#mstart').click();
   await page.waitForFunction(() => window.Module && window.Module.began === true, null, { timeout: 120_000 });
   await page.waitForTimeout(22_000);
   return { markers, api };

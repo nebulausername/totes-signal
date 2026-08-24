@@ -28,12 +28,16 @@ sind **9 Controls** (Controls 2.0); alles Weitere steckt im ⚙-Sheet.
 | **FEUER** (großer Button) | Feuern | synthetischer `mousedown`/`mouseup` → nativer `MOUSE1`/`+attack`; halten = Dauerfeuer; AUTO-Modus (⚙) = Tap-Latch mit 110-ms-Puls |
 | LADEN / AKTION / MESSER / GRANATE / SPRUNG | Nachladen, Benutzen, Messer, Granate, Springen | Key-Events auf die `nzportable.cfg`-Binds (R, E, V, G, SPACE) |
 | ZIELEN | ADS | Key-Event `Q`; Bind `q +button8` aus `config/autoexec.cfg` |
+| **AKTION** hebt sich hervor | zeigt an, dass etwas zu kaufen ist | Marker `TSUI:use:0\|1` aus `CSQC_UpdateView`; die Shell setzt die Klasse `.bereit`. Kein Blinken -- das zoege den Blick vom Spielfeld ab. Beim Spielstart zurueckgesetzt, sonst bliebe die Hervorhebung nach einem Tod an einer Kaufstelle haengen |
 | WAFFE | Waffe wechseln | Key-Event CTRL (`+button4`) |
 | MENÜ (oben rechts) | Pausemenü | Key-Event ESCAPE (tap) |
 | ⚙ (oben links) | Schnell-Einstellungen | Sheet: AUTO-FEUER an/aus, HALTUNG, GRANATE WECHSELN (`impulse 25` via `tsCmd`), VOLLBILD, HILFE |
 
 Einmaliges **Onboarding-Overlay** (localStorage `ts_seen_hints`) erklärt
 Stick/Sprint/Ducken/Look/Feuer; über ⚙ → HILFE jederzeit wieder aufrufbar.
+Es gibt dieselbe Karte am Rechner, dort mit der echten Tastenbelegung
+(`pchint1..3`) — die Mechanik liegt seit 08/2026 plattformneutral in
+`__ts_hints`, nur der Text hängt an der Plattform.
 Nach dem Tod erscheint das **SIGNAL-VERLOREN-Overlay** (`TSUI:dead:<runden>`)
 mit NOCHMAL (`restart`) und ZUR LOBBY (`disconnect` + `ts_maps`).
 
@@ -52,6 +56,24 @@ mit NOCHMAL (`restart`) und ZUR LOBBY (`disconnect` + `ts_maps`).
   `touch-action: none` und `overscroll-behavior: none` verhindern Scroll/Zoom.
 - Der Ladehinweis nennt die Downloadgröße (~95 MB); der Browser cached die
   Dateien nach dem ersten Besuch.
+
+## Rückmeldung bei Schaden
+
+Zwei Dinge, die vorher fehlten bzw. falsch lagen:
+
+- **Woher kam der Treffer.** Die rote Überblendung sagt nur *dass*. Am Rechner
+  dreht man sich schnell genug, um das selbst zu klären; auf dem Handy kostet
+  eine halbe Drehung mehrere Wische. `CSQC_EVENT_HURTDIR` liefert den
+  **Welt**-Winkel (nicht die Ablage zur Blickrichtung — der Bogen steht gut
+  eine Sekunde, und in der Sekunde dreht man sich), `HUD_HurtDirection`
+  zeichnet daraus einen Bogen am Bildrand. Knochenweiß auf dunkler Unterlage:
+  die erste Fassung war signalrot und lag damit auf der roten Blendung, die
+  im selben Moment den ganzen Schirm füllt.
+- **Die Vibration hing am falschen Ereignis.** `TSUI:fx:r` ist der
+  *Gamepad*-Rumble mit neun Quellen, sieben davon Waffenaktionen — das Handy
+  ruckelte also bei jedem Schuss mit dem Treffer-Muster. Sie hängt jetzt an
+  `TSUI:fx:d`, gesendet dort, wo Schaden entsteht. Siehe Footgun 27 in
+  `CLAUDE.md`.
 
 ## Bekannte Grenzen / Ideen
 
