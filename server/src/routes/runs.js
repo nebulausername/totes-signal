@@ -115,6 +115,14 @@ export default async function routes(app) {
       // Das Cheat-Flag kommt aus dem TSUI:dmeta-Marker. Der Riegel im Spiel
       // rastet einbahnig ein: sv_cheats 0 loescht ihn nicht mehr.
       cheat_flag: b.cheat === 1 || b.cheat === true || (zahl(b.flags, 0, 65535) & 16) !== 0,
+      // Beim START stand oft noch nicht fest, wie viele mitspielen: die
+      // Konfiguration wird beim Kartenladen veroeffentlicht, und da ist der
+      // Gastgeber allein. Massgeblich ist deshalb der Stand am ENDE -- und
+      // zwar der HOECHSTE, den es waehrend des Laufs gab. Beide Werte stammen
+      // aus dem Spiel (ts_flag_bits, Bit 3 = Koop), nicht aus einer
+      // Behauptung der Shell.
+      flags: zahl(b.flags, 0, 65535) || run.flags,
+      player_count: Math.max(zahl(b.player_count, 1, 8, 1), run.player_count || 1),
     };
 
     // Die beim START gemeldete Konfiguration gegen die beim ENDE gemeldete
@@ -145,11 +153,13 @@ export default async function routes(app) {
         `UPDATE ts.runs SET status=$2, rounds=$3, score=$4, kills=$5, headshots=$6,
                             downs=$7, revives=$8, in_game_secs=$9, wall_secs=$10,
                             cheat_flag=$11, plausibility=$12, reject_reason=$13,
+                            flags=$14, player_count=$15,
                             submitted_at=now()
          WHERE id=$1 AND status='open' RETURNING *`,
         [run.id, urteil.status, fertig.rounds, fertig.score, fertig.kills, fertig.headshots,
          fertig.downs, fertig.revives, fertig.in_game_secs, wall, fertig.cheat_flag,
-         JSON.stringify(urteil.checks), urteil.reason]);
+         JSON.stringify(urteil.checks), urteil.reason,
+         fertig.flags, fertig.player_count]);
 
       if (!upd.rows[0]) { await client.query('ROLLBACK'); throw fail('RUN_NOT_OPEN', 'Lauf wurde inzwischen abgeschlossen.', 409); }
       const gespeichert = upd.rows[0];
