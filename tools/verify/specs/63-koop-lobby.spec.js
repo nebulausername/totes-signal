@@ -42,6 +42,11 @@ async function auf(page, groesse) {
       schalterUnten: Math.round(document.getElementById('raum-oeff-zeile').getBoundingClientRect().bottom),
       rollt: (() => { const k = el.querySelector('.lb-koerper');
                       return k ? k.scrollHeight > k.clientHeight + 1 : false; })(),
+      // Sofort messen -- genau die Lage, in der die Platte leer war.
+      codeSichtbar: [...el.querySelectorAll('.raum-code span')]
+        .every((x) => +getComputedStyle(x).opacity > 0.9)
+        && el.querySelector('.raum-code').textContent.length > 0,
+      spielerKnopf: (document.getElementById('lb-spieler') || {}).textContent,
       cmds,
     };
   });
@@ -71,6 +76,15 @@ for (const [name, groesse] of [
 
     expect(r.schalterUnten, 'der Sichtbarkeits-Schalter muss im Bild liegen')
       .toBeLessThanOrEqual(r.hoehe);
+
+    // Der Code muss SOFORT lesbar sein. Er war es einmal nicht: die
+    // Zeichen-Animation lief mit `both` aus opacity 0 heraus, und lief sie
+    // nie, blieb der Code fuer immer unsichtbar -- eine leere Platte,
+    // waehrend jede Messung "passt" meldete. Gesehen nur auf einer Aufnahme.
+    expect(r.codeSichtbar, 'der Raumcode darf nie unsichtbar sein').toBe(true);
+    // Und ein leerer Knopf ist schlimmer als keiner: die Beschriftung der
+    // Spielerliste wurde nur im Lobby-Zustand gesetzt.
+    expect(r.spielerKnopf, 'der SPIELER-Knopf braucht eine Beschriftung').not.toBe('');
     expect(r.rollt, 'im Gastgeber-Schirm darf nichts weggerollt sein').toBe(false);
 
     // Ein Code, den man am Telefon vorlesen kann.

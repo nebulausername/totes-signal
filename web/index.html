@@ -73,7 +73,7 @@
 		#touchui .tbtn.fx-h, #touchui .tbtn.fx-k,
 		.ts-ov::after, .ts-mark, .rp-scan, .raum-code span,
 		#raumchip::before, #updatepill, #rotate .rot { animation:none !important; }
-		.raum-code span { opacity:1; filter:none; transform:none; }
+		.raum-code span { filter:none; transform:none; }
 		.rp-scan { display:none; }
 		.play { transition:none; }
 	}
@@ -154,7 +154,8 @@
 		--z-touch:10; --z-gear:12; --z-hints:40;
 		--z-rotate:44;      /* UNTER allem, was Inhalt zeigt */
 		--z-death:45; --z-konto:47; --z-set:49;
-		--z-lobby:46;       /* reserviert: Koop-Lobby */
+		--z-lobby:46;       /* Koop: Gastgeber-Schirm */
+		--z-spieler:48;     /* Koop: Spielerliste, ueber dem Konto-Schirm */
 		--z-gate:50; --z-join:51; --z-load:52;
 		--z-install:60; --z-build:65; --z-update:70;
 	}
@@ -223,6 +224,10 @@
 	#lobbyui .death-actions { gap:14px; margin-top:6px; }
 	#lobbyui .play, #lobbyui .play.alt { margin-top:10px; }
 	#lobbyui .set-row { width:min(420px,86vw); margin:10px auto 0; border-bottom:0; }
+	#lobbyui #hp-set .set-row { margin-top:4px; }
+	.hp-hinweis { color:#9a9384; font-size:0.82em; letter-spacing:0; }
+	.hp-wert { flex:0 0 auto; min-width:132px; padding:6px 10px; }
+	#hp-tabs { margin-bottom:2px; }
 	/* Fester Kopf, fester Fuss, EIN nachgiebiger Teil. Ohne diese Struktur
 	   waechst die Karte mit ihrem Inhalt und schiebt ihre eigenen Knoepfe
 	   hinaus -- beim Hinzufuegen des Sichtbarkeits-Schalters sofort passiert:
@@ -236,10 +241,24 @@
 	   findet, ist so gut wie keiner. Also passt hier alles hinein: kleinerer
 	   Code, engere Abstaende. Dieselbe Schwelle wie bei der Wortmarke. */
 	@media (max-height: 520px) {
-		#lobbyui .raum-platte { padding:6px min(5vw,20px) 7px; margin:6px auto 0; }
-		#lobbyui .raum-code { font-size:min(9vw,40px); letter-spacing:5px; }
+		#lobbyui .raum-platte { padding:4px min(4.5vw,18px) 5px; margin:4px auto 0; }
+		#lobbyui .raum-code { font-size:min(7.5vw,34px); letter-spacing:4px; }
+		/* Die Reiterleiste kostet Hoehe, und im Querformat gibt es keine.
+		   Der Hinweis unter dem Titel ist entbehrlich -- der Code darunter
+		   erklaert sich selbst. */
+		#lobbyui .ts-mark { font-size:min(4vh,22px); margin:0; }
+		#lobbyui > .box > .hint[data-i18n="hostHint"] { display:none; }
+		#lobbyui .raum-zeile .play.alt { padding:5px 12px; font-size:min(3vw,13px); }
 		#lobbyui .hint { margin-top:6px; }
 		#lobbyui .set-row { margin-top:6px; padding:6px 12px; }
+		/* Der Einstellungs-Reiter traegt vier Zeilen -- auf WebKit im
+		   Querformat rollte er sonst, und ein Wert, den man erst suchen muss,
+		   wird nicht eingestellt. */
+		#lobbyui #hp-set .set-row { margin-top:2px; padding:4px 10px; }
+		#lobbyui #hp-set .set-row label { font-size:min(2vh,11px); }
+		#lobbyui .hp-hinweis { display:none; }
+		#lobbyui .hp-wert { min-width:110px; padding:4px 8px; }
+		#hp-tabs .dtab { padding:5px 12px; }
 		#lobbyui .raum-zeile { margin-top:6px; }
 		#lobbyui .play, #lobbyui .play.alt { margin-top:6px; }
 		#lobbyui .death-actions { margin-top:2px; }
@@ -271,10 +290,18 @@
 		text-shadow:0 0 4px rgba(242,237,224,0.5), 0 0 22px rgba(224,52,26,0.6);
 		-webkit-user-select:all; user-select:all; }
 	/* Jedes Zeichen taucht einzeln auf -- der Code wird empfangen, nicht
-	   hingeschrieben. Reine Deko: der Text steht auch ohne die Animation da. */
+	   hingeschrieben.
+	   KEIN opacity in der Animation: mit `both` gilt vor dem Start der
+	   from-Zustand, und lief die Animation nie (verstecktes Element,
+	   abgeschaltete Animationen, ein Browser der sie ueberspringt), blieb der
+	   Code FUER IMMER unsichtbar. Genau das war auf einer Aufnahme zu sehen --
+	   eine leere Platte, waehrend jede Messung "passt" meldete. Ein Code, den
+	   man nicht lesen kann, ist das Gegenteil seines Zwecks.
+	   Unschaerfe und Versatz reichen voellig: sie sehen genauso aus und
+	   koennen den Text nicht verschwinden lassen. */
 	.raum-code span { display:inline-block; animation:rpein 0.5s both; }
-	@keyframes rpein { from{opacity:0; transform:translateY(-6px); filter:blur(4px)}
-	                     to{opacity:1; transform:none;             filter:none} }
+	@keyframes rpein { from{ transform:translateY(-6px); filter:blur(5px) }
+	                     to{ transform:none;             filter:none } }
 	.raum-zeile { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
 	.raum-zeile .play.alt { margin-top:0; font-size:min(3.6vw,15px); padding:9px 16px; }
 	/* Waehrend einer angebotenen Runde bleibt der Code sichtbar -- sonst muss
@@ -290,7 +317,7 @@
 	/* Die Wartezone liegt ueber dem Spiel, faengt aber KEINE Beruehrungen ab
 	   -- nur ihr Knopf tut das. Wer auf Freunde wartet, will sich umsehen
 	   koennen, nicht gegen eine Glasscheibe tippen. */
-	#spielerui { z-index:var(--z-join); }
+	#spielerui { z-index:var(--z-spieler); }
 	#spielerui .ts-mark { font-size:min(5vh,26px); letter-spacing:3px; margin:0 0 6px; }
 	#spielerui .box { display:flex; flex-direction:column; max-height:100%; width:min(560px,94vw); }
 	.pl-liste { flex:1 1 auto; min-height:0; overflow-y:auto; text-align:left; margin:6px 0 2px; }
@@ -631,6 +658,7 @@
 			<div class="gs-row" id="gs-duck"><span data-i18n="gsDuck"></span></div>
 			<div class="gs-row" id="gs-nade"><span data-i18n="gsNade"></span></div>
 			<div class="gs-row" id="gs-fs"><span data-i18n="gsFs"></span></div>
+			<div class="gs-row" id="gs-spieler"><span data-i18n="plBtn"></span></div>
 			<div class="gs-row" id="gs-set"><span data-i18n="gsSet"></span></div>
 			<div class="gs-row" id="gs-konto"><span data-i18n="gsKonto"></span></div>
 			<div class="gs-row" id="gs-help"><span data-i18n="gsHelp"></span></div>
@@ -720,7 +748,12 @@
 	<div id="lobbyui" class="ts-ov"><div class="box">
 		<p class="ts-mark" data-i18n="hostTitle"></p>
 		<p class="hint" data-i18n="hostHint"></p>
+		<div class="death-tabs" id="hp-tabs">
+			<button type="button" class="dtab active" data-hp="code" data-i18n="hpTabCode"></button>
+			<button type="button" class="dtab" data-hp="set" data-i18n="hpTabSet"></button>
+		</div>
 		<div class="lb-koerper">
+		<div id="hp-code">
 		<div class="raum-platte">
 			<span class="rp-ecke rp-lo"></span><span class="rp-ecke rp-ro"></span>
 			<span class="rp-ecke rp-lu"></span><span class="rp-ecke rp-ru"></span>
@@ -736,6 +769,11 @@
 			<button type="button" class="set-schalter" id="raum-oeff"></button>
 		</div>
 		<p class="hint" id="raum-meldung" style="min-height:1.2em;color:#c9a06a"></p>
+		</div>
+		<!-- Die Runde stellt der Gastgeber ein, nicht jeder fuer sich: es ist
+		     SEIN Server. Bisher lagen diese Werte in einem eigenen
+		     Engine-Menue, das man nur ueber die Lobby fand. -->
+		<div id="hp-set" style="display:none"></div>
 		</div>
 		<div class="death-actions">
 			<button type="button" class="play" id="raum-los" data-i18n="hostGo"></button>
@@ -1024,7 +1062,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-29k';
+var TS_BUILD = '2026-08-29l';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1266,6 +1304,18 @@ var I18N = {
 		plKick: 'ENTFERNEN',
 		plNone: 'Niemand sonst ist gerade dabei.',
 		plBtn: 'SPIELER',
+		hpTabCode: 'CODE',
+		hpTabSet: 'RUNDE',
+		hpDiff: 'SCHWIERIGKEIT',
+		hpMode: 'SPIELMODUS',
+		hpMagic: 'MAGIE',
+		hpFast: 'SCHNELLE RUNDEN',
+		hpHorde: 'HORDEN-GRÖSSE',
+		hpOn: 'AN', hpOff: 'AUS',
+		hpD0: 'NORMAL', hpD1: 'LEICHT', hpD2: 'SCHWER', hpD3: 'ALPTRAUM',
+		hpM0: 'KLASSISCH', hpM2: 'WAFFENJAGD', hpM3: 'HARTGESOTTEN',
+		hpM4: 'WILDER WESTEN', hpM5: 'MESSER & GRANATEN', hpM6: 'FIEBER',
+		hpMagicHint: 'Perks, Powerups und Wundertüte',
 		kicked: 'Du wurdest aus der Runde entfernt.',
 		hostLeft: 'Der Gastgeber hat das Spiel beendet.',
 		joinLost: 'Verbindung zum Gastgeber verloren.',
@@ -1374,6 +1424,18 @@ var I18N = {
 		plKick: 'ENTFERNEN',
 		plNone: 'Niemand sonst ist gerade dabei.',
 		plBtn: 'SPIELER',
+		hpTabCode: 'CODE',
+		hpTabSet: 'RUNDE',
+		hpDiff: 'SCHWIERIGKEIT',
+		hpMode: 'SPIELMODUS',
+		hpMagic: 'MAGIE',
+		hpFast: 'SCHNELLE RUNDEN',
+		hpHorde: 'HORDEN-GRÖSSE',
+		hpOn: 'AN', hpOff: 'AUS',
+		hpD0: 'NORMAL', hpD1: 'LEICHT', hpD2: 'SCHWER', hpD3: 'ALPTRAUM',
+		hpM0: 'KLASSISCH', hpM2: 'WAFFENJAGD', hpM3: 'HARTGESOTTEN',
+		hpM4: 'WILDER WESTEN', hpM5: 'MESSER & GRANATEN', hpM6: 'FIEBER',
+		hpMagicHint: 'Perks, Powerups und Wundertüte',
 		kicked: 'Du wurdest aus der Runde entfernt.',
 		hostLeft: 'The host ended the match.',
 		joinLost: 'Lost connection to the host.',
@@ -2852,6 +2914,15 @@ var TS_SPIELER = {
 		var an = function(id, fn){ var e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
 		an('pl-zu', function(){ self.schliessen(); });
 		an('lb-spieler', function(){ self.zeigen(); });
+		an('gs-spieler', function(){
+			var g = document.getElementById('gearsheet'); if (g) g.classList.remove('an');
+			self.zeigen();
+		});
+		// Die Beschriftung EINMAL, nicht je Zustand. Als sie nur im
+		// Lobby-Zustand gesetzt wurde, stand im Einstiegsfenster und beim
+		// Zuschauen ein LEERER Knopf in der Leiste.
+		var b = document.getElementById('lb-spieler');
+		if (b) b.textContent = T('plBtn');
 	}
 };
 
@@ -2993,6 +3064,7 @@ var TS_LOBBY = {
 		this.codeZeichnen();
 		document.getElementById('raum-meldung').textContent = '';
 		this.schalterZeichnen();
+		this.reiter('code');
 		el.style.display = 'flex';
 		var b = document.getElementById('raum-los');
 		setTimeout(function(){ try { b.focus(); } catch(e){} }, 60);
@@ -3022,6 +3094,88 @@ var TS_LOBBY = {
 
 	melden: function(k){
 		var m = document.getElementById('raum-meldung'); if (m) m.textContent = T(k);
+	},
+
+	// --- Was fuer eine Runde? ------------------------------------------------
+	// Der Gastgeber stellt sie ein, nicht jeder fuer sich: es ist SEIN Server,
+	// und beim Beitretenden wirken diese Cvars gar nicht. Bisher lagen sie in
+	// einem eigenen Engine-Menue, das man nur ueber die Lobby fand -- und dort
+	// haengt jede Eingabe an einer Tastatur, die es auf dem Handy nicht gibt.
+	//
+	// Datengetrieben wie TS_SET: eine neue Option ist eine Zeile in dieser
+	// Liste, kein neues Markup. Jede kennt ihre Cvar, ihre Werte und ihre
+	// Beschriftung.
+	//
+	// Modus 1 (GRIEF) fehlt mit Absicht: menu_gset.qc setzt dort sofort
+	// sv_gamemode 2, der Eintrag verspricht also etwas anderes, als er startet.
+	EINST: [
+		{ cvar: 'sv_difficulty', label: 'hpDiff', werte: [0,1,2,3],
+		  text: function(v){ return T('hpD' + v); } },
+		{ cvar: 'sv_gamemode',   label: 'hpMode', werte: [0,2,3,4,5,6],
+		  text: function(v){ return T('hpM' + v); } },
+		{ cvar: 'sv_magic',      label: 'hpMagic', hinweis: 'hpMagicHint', werte: [1,0],
+		  text: function(v){ return v ? T('hpOn') : T('hpOff'); } },
+		{ cvar: 'sv_fastrounds', label: 'hpFast', werte: [0,1],
+		  text: function(v){ return v ? T('hpOn') : T('hpOff'); } }
+	],
+	// Cvars sind aus JS NICHT lesbar -- localStorage ist auch hier die
+	// Wahrheit, und alles wird beim Start der Runde erneut geschrieben.
+	einstLesen: function(e){
+		try {
+			var v = localStorage.getItem('ts_h_' + e.cvar);
+			if (v !== null && e.werte.indexOf(+v) >= 0) return +v;
+		} catch(x){}
+		return e.werte[0];
+	},
+	einstSchreiben: function(e, v){
+		try { localStorage.setItem('ts_h_' + e.cvar, String(v)); } catch(x){}
+	},
+	einstZeichnen: function(){
+		var box = document.getElementById('hp-set'); if (!box) return;
+		box.innerHTML = '';
+		var self = this;
+		this.EINST.forEach(function(e){
+			var v = self.einstLesen(e);
+			var z = document.createElement('div'); z.className = 'set-row';
+			var l = document.createElement('label');
+			l.textContent = T(e.label);
+			if (e.hinweis){
+				var kl = document.createElement('span');
+				kl.className = 'hp-hinweis'; kl.textContent = T(e.hinweis);
+				l.appendChild(document.createElement('br')); l.appendChild(kl);
+			}
+			var b = document.createElement('button');
+			b.type = 'button'; b.className = 'set-schalter hp-wert';
+			b.textContent = e.text(v);
+			b.setAttribute('aria-label', T(e.label) + ': ' + e.text(v));
+			b.addEventListener('click', function(){
+				// Durchtippen statt Regler: auf dem Handy ist ein Regler mit
+				// vier Rasten schwerer zu treffen als ein Knopf.
+				var i = e.werte.indexOf(self.einstLesen(e));
+				var nv = e.werte[(i + 1) % e.werte.length];
+				self.einstSchreiben(e, nv);
+				self.einstZeichnen();
+			});
+			z.appendChild(l); z.appendChild(b);
+			box.appendChild(z);
+		});
+	},
+	// Beim Start der Runde in EINEM tsCmd -- jeder cbufadd loest window.focus()
+	// aus.
+	einstBefehl: function(){
+		var self = this, zeilen = '';
+		this.EINST.forEach(function(e){ zeilen += e.cvar + ' ' + self.einstLesen(e) + '\n'; });
+		return zeilen;
+	},
+	reiter: function(welche){
+		var c = document.getElementById('hp-code'), t = document.getElementById('hp-set');
+		if (!c || !t) return;
+		c.style.display = (welche === 'code') ? '' : 'none';
+		t.style.display = (welche === 'set')  ? '' : 'none';
+		if (welche === 'set') this.einstZeichnen();
+		var tabs = document.querySelectorAll('#hp-tabs .dtab');
+		for (var i = 0; i < tabs.length; i++)
+			tabs[i].classList.toggle('active', tabs[i].getAttribute('data-hp') === welche);
 	},
 
 	// --- Oeffentliche Sichtbarkeit ------------------------------------------
@@ -3141,7 +3295,8 @@ var TS_LOBBY = {
 		// unbekannte Cvar ist fuer die Konsole ein unbekannter BEFEHL,
 		// lautlos wirkungslos. `set` legt sie an. Derselbe Grund wie bei
 		// ts_raum.
-		if (window.tsCmd) tsCmd('set ts_raum "' + this.code + '"\nset ts_lobby 1\nts_koop\n');
+		if (window.tsCmd) tsCmd('set ts_raum "' + this.code + '"\nset ts_lobby 1\n' +
+			this.einstBefehl() + 'ts_koop\n');
 		this.chip();
 	},
 
@@ -3213,7 +3368,6 @@ var TS_LOBBY = {
 			                             : T('lobbyWait');
 			zahl.textContent = n === 1 ? T('lobbyOne') : T('lobbyN').replace('{n}', n);
 			los.textContent  = T('lobbyGo');
-			document.getElementById('lb-spieler').textContent = T('plBtn');
 			// Nur der Gastgeber darf starten -- ein Gast, der den Knopf saehe,
 			// wuerde ihn druecken, und nichts geschaehe.
 			bar.classList.toggle('gast', !this.aktiv);
@@ -3249,6 +3403,9 @@ var TS_LOBBY = {
 		this.listeSchliessen();
 		this.oeffentlich = false; this.nameGemeldet = false;
 		this.aktiv = false; this.code = null;
+		// Sonst zeigt die Spielerliste in der naechsten Runde die Namen der
+		// vorigen -- und "(du)" am falschen Platz.
+		if (window.TS_SPIELER){ TS_SPIELER.zeilen = {}; TS_SPIELER.ich = null; }
 		var c = document.getElementById('raumchip'); if (c) c.style.display = 'none';
 		var bar = document.getElementById('lobbybar'); if (bar) bar.classList.remove('an');
 		if (window.tsCmd) tsCmd('set ts_raum ""\nset ts_lobby 0\n');
@@ -3264,6 +3421,9 @@ var TS_LOBBY = {
 		an('raumchip',      function(){ self.teilen(); });
 		an('lb-los',        function(){ self.losgehts(); });
 		an('raum-oeff',     function(){ self.oeffentlichSchalten(); });
+		var tabs = document.querySelectorAll('#hp-tabs .dtab');
+		for (var i = 0; i < tabs.length; i++)
+			tabs[i].addEventListener('click', function(){ self.reiter(this.getAttribute('data-hp')); });
 		an('lb-code',       function(){ if (self.code) self.teilen(); });
 
 		// Einladungslink: ?raum=ABC-234 fuellt das Beitrittsfeld vor. Ein Code,
