@@ -64,6 +64,38 @@ rsync -a --delete --exclude='nzp/game.pk3' /var/www/totersignal.de/ /var/www/dem
 
 ---
 
+## Koop-Betrieb: zwei Dienste ausserhalb des Repos
+
+Ohne sie laedt das Spiel und startet, und nur SPIEL ANBIETEN fuehrt stumm ins
+Leere -- deshalb stehen sie hier und nicht nur in der Wissensdatei.
+
+```bash
+systemctl status ts-broker coturn
+journalctl -u ts-broker -n 50 --no-pager
+curl -sS https://totersignal.de/api/health      # Feld "broker": true/false
+```
+
+| Dienst | Was er tut | Faellt er aus |
+| --- | --- | --- |
+| `ts-broker` | WebRTC-Vermittler (FTEs `ftemaster`), TCP 27950, nur ueber Loopback erreichbar | Kein Koop mehr. Solo, Bestenliste und Konten laufen weiter. |
+| `coturn` | STUN auf 3478/udp+tcp, `no-auth`, **kein TURN** | Koop laeuft im gleichen Netz weiter und scheitert ueber das Internet. Der gemeinste Ausfall: er sieht aus wie „geht manchmal". |
+
+- **`/api/health` meldet den Vermittler mit** (`"broker": true`), **aendert den
+  Statuscode aber NICHT**: ohne ihn ist die API vollstaendig benutzbar, und ein
+  503 dafuer waere gelogen. Wer ihn ueberwachen will, prueft das Feld -- der
+  vorhandene StatusForge-Monitor kann ein Schluesselwort.
+- **27950 NIE in ufw oeffnen.** nginx erreicht den Vermittler ueber Loopback;
+  von aussen soll ihn niemand direkt sprechen.
+- **Ein Rollback der nginx-Konfiguration nimmt die Vermittler-Route mit.**
+  `location ^~ /NZP-REBOOT-WEB/` steht im vhost `totersignal.de`, die
+  `map`-Zeile in `conf.d/ts-upgrade.conf`. Nach jedem nginx-Rollback pruefen:
+  ein `curl` auf `/NZP-REBOOT-WEB/x` muss einen Upgrade-Versuch ergeben, keinen
+  404 aus dem Dateisystem.
+- **Hausputz laeuft im API-Prozess** (`server/src/lib/hausputz.js`), stuendlich:
+  geschlossene Raeume nach einer Stunde, abgelaufene nach einem Tag. Kein
+  systemd-Timer -- ein zusaetzlicher Dienst waere ein zusaetzliches Teil, das
+  kaputtgehen und vergessen werden kann.
+
 ## Verbote
 
 - **Niemals `pkill -f next`** — das killt acht fremde PM2-Anwendungen.

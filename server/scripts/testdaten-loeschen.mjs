@@ -22,6 +22,11 @@
 //
 //   node scripts/testdaten-loeschen.mjs                     # Trockenlauf, zeigt die Praefixe
 //   node scripts/testdaten-loeschen.mjs --von <praefix> --wirklich
+//
+// Raeumt zusaetzlich ts.raeume nach derselben Herkunftsregel. Der Hausputz im
+// API-Prozess (lib/hausputz.js) entfernt abgelaufene und geschlossene Raeume
+// ohnehin stuendlich -- hier geht es nur um das, was ein Testlauf frisch
+// hinterlassen hat.
 import { pool } from '../src/lib/db.js';
 
 const argv = process.argv.slice(2);
@@ -70,6 +75,14 @@ try {
       const d = await c.query(
         `DELETE FROM ts.users u WHERE ${bedingung} RETURNING u.id`, [von]);
       console.log(`${d.rowCount} Konten geloescht (Laeufe, XP und Profile haengen per ON DELETE CASCADE dran).`);
+
+      // Raeume haengen per ON DELETE CASCADE am Konto -- aber nur die, die
+      // EINEM gehoeren. Ein Testlauf kann auch Raeume ohne Konto hinterlassen
+      // haben, und die faenden sonst niemand. Dieselbe Herkunftsregel: nur,
+      // was aus dem genannten Praefix stammt.
+      const r = await c.query(
+        `DELETE FROM ts.raeume WHERE ip_prefix = $1::inet RETURNING code`, [von]);
+      console.log(`${r.rowCount} Raeume aus ${von} geloescht.`);
     }
   }
 } finally {

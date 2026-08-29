@@ -7,6 +7,7 @@ import runRoutes from './routes/runs.js';
 import achRoutes from './routes/achievements.js';
 import spielRoutes from './routes/spiel.js';
 import raumRoutes from './routes/raeume.js';
+import { hausputzStarten, vermittlerLebt } from './lib/hausputz.js';
 
 export function build() {
   const app = Fastify({
@@ -65,14 +66,26 @@ export function build() {
 
   const started = Date.now();
 
+  // Hausputz laeuft im API-Prozess: der laeuft ohnehin, die Arbeit ist winzig,
+  // und ein zusaetzlicher Dienst waere ein zusaetzliches Teil, das kaputtgehen
+  // und vergessen werden kann.
+  hausputzStarten(app.log);
+
   app.get('/api/health', async (req, reply) => {
     const db = await healthy();
+    // Der Vermittler wird MITGEMELDET, aendert den Statuscode aber NICHT: ohne
+    // ihn ist die API vollstaendig benutzbar (Solo, Bestenliste, Konten), und
+    // ein 503 dafuer waere gelogen. Sichtbar muss sein Ausfall trotzdem sein --
+    // sonst laedt die Seite, das Spiel startet, und nur SPIEL ANBIETEN fuehrt
+    // stumm ins Leere.
+    const broker = await vermittlerLebt();
     // Ohne Datenbank ist die API nutzlos -> 503, damit der Watchdog und
     // StatusForge das als Ausfall sehen und nicht als "laeuft ja".
     reply.code(db ? 200 : 503);
     return {
       ok: db,
       db,
+      broker,
       version: env.TS_API_VERSION || '0.1.0',
       uptime_s: Math.round((Date.now() - started) / 1000),
     };
