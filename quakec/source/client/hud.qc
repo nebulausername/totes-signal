@@ -2016,9 +2016,53 @@ void() HUD_Scores =
 {
 	vector TEXTCOLOR = [1, 1, 1];
 
-	float header_x_start = -75;
-	float header_x_increment = 65;
-	float scoreboard_text_size = 10;
+	// Diese Tafel war auf feste Zahlen gebaut: ts_mitte +- 270, y 177..197,
+	// Schrift 10. In dem Raum, fuer den sie gemacht wurde (conheight 480),
+	// passt das. Die Web-Shell bietet aber 480/380/300 an, und bei 300 klebte
+	// sie an der Unterkante und lief in die Knopfspalte hinein.
+	//
+	// Vor allem aber: Schriftgroesse 10 sind bei der Touch-Vorgabe (380)
+	// gerade 10,3 CSS-Pixel. Das ist die EINE Flaeche, auf der vier Spieler
+	// ihre Zahlen vergleichen -- und sie war die kleinste Schrift im Spiel.
+	float tui = cvar("ts_touchui");
+	float scoreboard_text_size = tui ? 14 : 10;
+	// Die KOPFZEILE bleibt klein, auch wenn die Zahlen wachsen: sie wird einmal
+	// gelesen, die Zahlen darunter staendig. Waechst sie mit, passt kein
+	// Spaltenname mehr in seine Spalte.
+	float ts_kopfgroesse = 10;
+	float ts_zeile  = scoreboard_text_size + 5;
+
+	// Die Tafel wird in den FREIEN Bereich geschoben, nicht auf die halbe
+	// Bildbreite genagelt. Der erste Anlauf zog die rechte Knopfspalte einfach
+	// von der halben Breite ab -- dabei blieben 120 Einheiten uebrig, und die
+	// Spaltenkoepfe lagen uebereinander ("NachtPonkKiWledOnhchhesse").
+	// Der Bildschirm ist nicht symmetrisch, wenn sich die Shell eine Seite
+	// nimmt; die Mitte des freien Bereichs ist nicht die Mitte des Bildes.
+	float ts_l = GetUltraWideOffset() + GetTouchShift();
+	float ts_r = g_width - GetUltraWideOffset() - GetTouchRightInset();
+	float ts_mitte = (ts_l + ts_r) * 0.5;
+	float ts_hw = (ts_r - ts_l) * 0.5 - 4;
+	if (ts_hw > 271) ts_hw = 271;
+	if (ts_hw < 120) ts_hw = 120;
+
+	// Passt nicht alles, faellt lieber eine Spalte weg als dass sich Text
+	// ueberlagert. Deutsche Kopfzeilen sind lang ("Kopfschuesse",
+	// "Wiederbelebt") -- eine abgeschnittene Tafel liest sich als Fehler,
+	// eine kuerzere nicht.
+	float ts_spalten = 5;
+	if (ts_hw < 250) ts_spalten = 3;
+	else if (ts_hw < 265) ts_spalten = 4;
+
+	// Senkrecht mittig statt auf y 177 festgenagelt -- und nie unter dem
+	// oberen Streifen (Zahnrad bzw. im Linkshaender-Modus MENUE).
+	float ts_hoch = 18 + 4 * ts_zeile;
+	float ts_oben = (g_height - ts_hoch) * 0.5;
+	if (ts_oben < GetTouchTopInset() + 8) ts_oben = GetTouchTopInset() + 8;
+	float ts_reihe = ts_oben + 18;
+
+	// Die Spalten teilen sich die Haelfte rechts vom Namen.
+	float header_x_increment = (ts_hw * 1.15) / (ts_spalten + 1);
+	float header_x_start = -ts_hw * 0.2767;
 	float header_x_pos = header_x_start;
 	
 	if(serverkey("constate") != "disconnected")
@@ -2026,26 +2070,30 @@ void() HUD_Scores =
 		Draw_String([5, g_height - scoreboard_text_size - 5], sprintf("%s %s", GAME_NAME, build_datetime), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
 
 		// Scoreboard header
-		drawfill([g_width/2 - 271, 177], [270 * 2 + 2, 1], [0.2, 0.2, 0.2], 1, 0);
-		drawfill([g_width/2 - 271, 178 + scoreboard_text_size + 4], [270 * 2 + 2, 1], [0.2, 0.2, 0.2], 1, 0);
-		drawfill([g_width/2 - 271, 178], [1, scoreboard_text_size + 4], [0.2, 0.2, 0.2], 1, 0);
-		drawfill([g_width/2 + 270, 178], [1, scoreboard_text_size + 4], [0.2, 0.2, 0.2], 1, 0);
-		drawfill([g_width/2 - 270, 178], [270 * 2, scoreboard_text_size + 4], [0, 0, 0], 0.80, 0);
+		drawfill([ts_mitte - ts_hw, ts_oben], [ts_hw * 2, 1], [0.2, 0.2, 0.2], 1, 0);
+		drawfill([ts_mitte - ts_hw, ts_oben + 1 + scoreboard_text_size + 4], [ts_hw * 2, 1], [0.2, 0.2, 0.2], 1, 0);
+		drawfill([ts_mitte - ts_hw, ts_oben + 1], [1, scoreboard_text_size + 4], [0.2, 0.2, 0.2], 1, 0);
+		drawfill([ts_mitte + ts_hw - 1, ts_oben + 1], [1, scoreboard_text_size + 4], [0.2, 0.2, 0.2], 1, 0);
+		drawfill([ts_mitte - ts_hw + 1, ts_oben + 1], [ts_hw * 2 - 2, scoreboard_text_size + 4], [0, 0, 0], 0.80, 0);
 
 		// Name
 		string map_name = serverkey("mapname_pretty");
-		Draw_String([g_width/2 - 265, 180], map_name, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+		Draw_String([ts_mitte - ts_hw + 6, ts_oben + 3], map_name, [ts_kopfgroesse, ts_kopfgroesse], TEXTCOLOR, 1, 0); 
 
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Score"), scoreboard_text_size)/2), 180], T("Score"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
+		Draw_String([ts_mitte + (header_x_pos - getTextWidth(T("Score"), ts_kopfgroesse)/2), ts_oben + 3], T("Score"), [ts_kopfgroesse, ts_kopfgroesse], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Kills"), scoreboard_text_size)/2), 180], T("Kills"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
+		Draw_String([ts_mitte + (header_x_pos - getTextWidth(T("Kills"), ts_kopfgroesse)/2), ts_oben + 3], T("Kills"), [ts_kopfgroesse, ts_kopfgroesse], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Downs"), scoreboard_text_size)/2), 180], T("Downs"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
+		Draw_String([ts_mitte + (header_x_pos - getTextWidth(T("Downs"), ts_kopfgroesse)/2), ts_oben + 3], T("Downs"), [ts_kopfgroesse, ts_kopfgroesse], TEXTCOLOR, 1, 0);
 		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Revives"), scoreboard_text_size)/2), 180], T("Revives"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
-		header_x_pos += header_x_increment;
-		Draw_String([g_width/2 + (header_x_pos - getTextWidth(T("Headshots"), scoreboard_text_size)/2), 180], T("Headshots"), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
-		header_x_pos += header_x_increment;
+		if (ts_spalten >= 4) {
+			Draw_String([ts_mitte + (header_x_pos - getTextWidth(T("Revives"), ts_kopfgroesse)/2), ts_oben + 3], T("Revives"), [ts_kopfgroesse, ts_kopfgroesse], TEXTCOLOR, 1, 0);
+			header_x_pos += header_x_increment;
+		}
+		if (ts_spalten >= 5) {
+			Draw_String([ts_mitte + (header_x_pos - getTextWidth(T("Headshots"), ts_kopfgroesse)/2), ts_oben + 3], T("Headshots"), [ts_kopfgroesse, ts_kopfgroesse], TEXTCOLOR, 1, 0);
+			header_x_pos += header_x_increment;
+		}
 	
 		for (int i = 0; i < 4; i = i + 1)
 		{
@@ -2057,57 +2105,61 @@ void() HUD_Scores =
 			
 			TEXTCOLOR = HUD_ResolveTextColorForPlayer(i);
 
-			float y_pos = (scoreboard_text_size + 5) * i;
+			float y_pos = ts_zeile * i;
 
 			// Fill
-			drawfill([g_width/2 - 270, 195 + y_pos], [270 * 2, scoreboard_text_size + 5], [0, 0, 0], 0.80, 0);
-			drawfill([g_width/2 + (header_x_start - header_x_increment/2), 195 + y_pos], [header_x_increment, scoreboard_text_size + 5], [0.3, 0, 0], 0.15, 0);
-			drawfill([g_width/2 + ((header_x_start + header_x_increment*2) - header_x_increment/2), 195 + y_pos], [header_x_increment, scoreboard_text_size + 5], [0.3, 0, 0], 0.15, 0);
-			drawfill([g_width/2 + ((header_x_start + header_x_increment*4) - header_x_increment/2), 195 + y_pos], [header_x_increment, scoreboard_text_size + 5], [0.3, 0, 0], 0.15, 0);
+			drawfill([ts_mitte - ts_hw + 1, ts_reihe + y_pos], [ts_hw * 2 - 2, ts_zeile], [0, 0, 0], 0.80, 0);
+			drawfill([ts_mitte + (header_x_start - header_x_increment/2), ts_reihe + y_pos], [header_x_increment, scoreboard_text_size + 5], [0.3, 0, 0], 0.15, 0);
+			drawfill([ts_mitte + ((header_x_start + header_x_increment*2) - header_x_increment/2), ts_reihe + y_pos], [header_x_increment, scoreboard_text_size + 5], [0.3, 0, 0], 0.15, 0);
+			drawfill([ts_mitte + ((header_x_start + header_x_increment*4) - header_x_increment/2), ts_reihe + y_pos], [header_x_increment, scoreboard_text_size + 5], [0.3, 0, 0], 0.15, 0);
 
 			// Top
 			if (i == 0)
-				drawfill([g_width/2 - 271, 194 + y_pos], [270 * 2 + 2, 1], [0.2, 0.2, 0.2], 1, 0); 
+				drawfill([ts_mitte - ts_hw, ts_reihe - 1 + y_pos], [ts_hw * 2, 1], [0.2, 0.2, 0.2], 1, 0); 
 
 			// Bottom
 			if (player_count == i + 1)
-				drawfill([g_width/2 - 271, 195 + y_pos + scoreboard_text_size + 4], [270 * 2 + 2, 1], [0.2, 0.2, 0.2], 1, 0);
+				drawfill([ts_mitte - ts_hw, ts_reihe + y_pos + scoreboard_text_size + 4], [ts_hw * 2, 1], [0.2, 0.2, 0.2], 1, 0);
 
 			// Left
-			drawfill([g_width/2 - 271, 194 + y_pos], [1, scoreboard_text_size + 6], [0.2, 0.2, 0.2], 1, 0);
+			drawfill([ts_mitte - ts_hw, ts_reihe - 1 + y_pos], [1, scoreboard_text_size + 6], [0.2, 0.2, 0.2], 1, 0);
 
 			// Right			
-			drawfill([g_width/2 + 270, 194 + y_pos], [1, scoreboard_text_size + 6], [0.2, 0.2, 0.2], 1, 0);
+			drawfill([ts_mitte + ts_hw - 1, ts_reihe - 1 + y_pos], [1, scoreboard_text_size + 6], [0.2, 0.2, 0.2], 1, 0);
 
 			header_x_pos = header_x_start;
 			
 			// Name
 			string player_name = getplayerkeyvalue(i, "name");
-			Draw_String([g_width/2 - 265, 197 + y_pos], player_name, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+			Draw_String([ts_mitte - ts_hw + 6, ts_reihe + 2 + y_pos], player_name, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
 
 			// Score
 			string score_string = ftos(client.points);
-			Draw_String([g_width/2 + (header_x_pos - getTextWidth(score_string, scoreboard_text_size)/2), 197 + y_pos], score_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+			Draw_String([ts_mitte + (header_x_pos - getTextWidth(score_string, scoreboard_text_size)/2), ts_reihe + 2 + y_pos], score_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
 			header_x_pos += header_x_increment;
 
 			// Kills
 			string kills_string = ftos(client.kills);
-			Draw_String([g_width/2 + (header_x_pos - getTextWidth(kills_string, scoreboard_text_size)/2), 197 + y_pos], kills_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+			Draw_String([ts_mitte + (header_x_pos - getTextWidth(kills_string, scoreboard_text_size)/2), ts_reihe + 2 + y_pos], kills_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
 			header_x_pos += header_x_increment;
 
 			// Downs
 			string downs_string = ftos(client.downs);
-			Draw_String([g_width/2 + (header_x_pos - getTextWidth(downs_string, scoreboard_text_size)/2), 197 + y_pos], downs_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+			Draw_String([ts_mitte + (header_x_pos - getTextWidth(downs_string, scoreboard_text_size)/2), ts_reihe + 2 + y_pos], downs_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
 			header_x_pos += header_x_increment;
 
 			// Revives
-			string revives_string = ftos(client.revives);
-			Draw_String([g_width/2 + (header_x_pos - getTextWidth(revives_string, scoreboard_text_size)/2), 197 + y_pos], revives_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
-			header_x_pos += header_x_increment;
+			if (ts_spalten >= 4) {
+				string revives_string = ftos(client.revives);
+				Draw_String([ts_mitte + (header_x_pos - getTextWidth(revives_string, scoreboard_text_size)/2), ts_reihe + 2 + y_pos], revives_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
+				header_x_pos += header_x_increment;
+			}
 
 			// Headshots
-			string headshots_string = ftos(client.headshots);
-			Draw_String([g_width/2 + (header_x_pos - getTextWidth(headshots_string, scoreboard_text_size)/2), 197 + y_pos], headshots_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0); 
+			if (ts_spalten >= 5) {
+				string headshots_string = ftos(client.headshots);
+				Draw_String([ts_mitte + (header_x_pos - getTextWidth(headshots_string, scoreboard_text_size)/2), ts_reihe + 2 + y_pos], headshots_string, [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
+			}
 			
 			// Ping
 			float ping_num_bars;
@@ -2131,10 +2183,10 @@ void() HUD_Scores =
 			float ping_bar_height_increment = 2;
 
 			string ping_string = sprintf("%dms", client.ping);
-			Draw_String([g_width/2 + ((header_x_pos + 28) - getTextWidth(ping_string, scoreboard_text_size - 2)/2), 199 + y_pos], ping_string, [scoreboard_text_size - 2, scoreboard_text_size - 2], TEXTCOLOR, 1, 0); 
+			Draw_String([ts_mitte + ((header_x_pos + 28) - getTextWidth(ping_string, scoreboard_text_size - 2)/2), ts_reihe + 4 + y_pos], ping_string, [scoreboard_text_size - 2, scoreboard_text_size - 2], TEXTCOLOR, 1, 0); 
 
 			for(float bars = ping_num_bars; bars > 0; bars--) {
-				drawfill([g_width/2 + header_x_pos, 197 + y_pos + (11 - ping_bar_height)], [ping_bar_width, ping_bar_height], ping_bar_color, 1, 0);
+				drawfill([ts_mitte + header_x_pos, ts_reihe + 2 + y_pos + (11 - ping_bar_height)], [ping_bar_width, ping_bar_height], ping_bar_color, 1, 0);
 				ping_bar_height += ping_bar_height_increment;
 				header_x_pos += 3;
 			}

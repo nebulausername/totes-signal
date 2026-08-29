@@ -405,11 +405,16 @@ string(string english) T =
 	case "Players": return "Spieler";
 
 	// === HUD: scoreboard headers ===
+	// KURZ halten. Diese Woerter stehen als Spaltenkoepfe nebeneinander, und
+	// eine Spalte ist rund 50 Einheiten breit -- "Kopfschuesse" braucht das
+	// Doppelte und legte sich ueber den Nachbarn ("KWiedeKopfschuesse"). Die
+	// englischen Originale sind kurz, die deutschen Entsprechungen waren es
+	// nicht. Unter einer Zahlenspalte ist "Kopf" genauso eindeutig.
 	case "Score": return "Punkte";
 	case "Kills": return "Kills";
 	case "Downs": return "K.O.";
-	case "Revives": return "Wiederbelebt";
-	case "Headshots": return "Kopfschuesse";
+	case "Revives": return "Hilfe";
+	case "Headshots": return "Kopf";
 
 	// >>> ERFOLGE-ANFANG (erzeugt) <<<
 	// === Erfolge (erzeugt aus server/data/erfolge.json) ===
