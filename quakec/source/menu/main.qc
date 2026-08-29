@@ -199,10 +199,21 @@ void() m_init =
 	current_menu = last_menu = MENU_MAIN;
 	ts_ui_state = -1;   // erzwingt beim ersten m_draw einen frischen Menue/Spiel-Marker an die Web-Shell
 
-	// Engine-Default "Unknown Soldier" -> deutscher Standardname ("Willkommen,
-	// Ueberlebender"). Greift nur, solange der Spieler keinen eigenen Namen hat.
-	if (cvar_string("name") == "Unknown Soldier")
-		localcmd("seta name Ueberlebender\n");
+	// Engine-Default "Unknown Soldier" -> eigener Standardname. Greift nur,
+	// solange der Spieler keinen eigenen hat.
+	//
+	// Bewusst OHNE Umlaut, nicht transliteriert: die Spielschrift kann nur
+	// ASCII 33..126 (gfx/kerning_map.txt, Footgun 3), und "Ueberlebender"
+	// liest sich fuer einen deutschen Spieler wie ein Fehler. Wo die Schrift
+	// ASCII erzwingt, waehlt man das Wort danach aus, statt ein anderes zu
+	// verstuemmeln.
+	//
+	// Der alte Wert wird mitgefangen: wer ihn schon gespeichert hat, soll ihn
+	// nicht behalten muessen. Sichtbar ist der Vorgabename ohnehin selten --
+	// die Shell setzt beim ersten Menue Signal-NNNN, ein Konto einen Decknamen.
+	if (cvar_string("name") == "Unknown Soldier" ||
+	    cvar_string("name") == "Ueberlebender")
+		localcmd("seta name Signal\n");
 
 	// Die Web-Shell setzt ts_touchui auf Touch-Geraeten bei jedem TSUI:menu.
 	// MenuQC ist ein eigenes Progs -- die Deklaration in client/main.qc gilt hier

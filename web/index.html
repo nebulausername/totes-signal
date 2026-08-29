@@ -290,6 +290,30 @@
 	/* Die Wartezone liegt ueber dem Spiel, faengt aber KEINE Beruehrungen ab
 	   -- nur ihr Knopf tut das. Wer auf Freunde wartet, will sich umsehen
 	   koennen, nicht gegen eine Glasscheibe tippen. */
+	#spielerui { z-index:var(--z-join); }
+	#spielerui .ts-mark { font-size:min(5vh,26px); letter-spacing:3px; margin:0 0 6px; }
+	#spielerui .box { display:flex; flex-direction:column; max-height:100%; width:min(560px,94vw); }
+	.pl-liste { flex:1 1 auto; min-height:0; overflow-y:auto; text-align:left; margin:6px 0 2px; }
+	.pl-zeile { display:flex; align-items:center; gap:10px; padding:9px 12px; margin-bottom:6px;
+		border:1px solid rgba(194,21,0,0.3); border-radius:10px;
+		background:rgba(20,14,12,0.72); font-family:monospace; font-size:min(3.4vw,14px); }
+	.pl-name { flex:1 1 auto; color:#f2ede0; letter-spacing:1px;
+		overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+	.pl-ich { color:#c9a06a; }
+	.pl-wert { color:#9a9384; white-space:nowrap; font-size:0.9em; }
+	.pl-raus { flex:0 0 auto; padding:4px 10px; border-radius:7px; cursor:pointer;
+		border:1px solid rgba(210,60,40,0.6); background:rgba(60,14,8,0.6);
+		color:#e6b0a0; font:inherit; font-size:0.86em; }
+	.pl-raus:hover { background:rgba(120,24,12,0.7); color:#fff; }
+	/* Kurzmeldung: liegt ueber allem, faengt nichts ab, geht von selbst weg. */
+	#toast { position:fixed; z-index:var(--z-update); pointer-events:none;
+		left:50%; transform:translateX(-50%);
+		bottom:calc(16px + env(safe-area-inset-bottom));
+		display:none; max-width:min(90vw,520px); padding:10px 16px; border-radius:10px;
+		background:rgba(12,8,7,0.92); border:1px solid rgba(194,21,0,0.6);
+		box-shadow:0 0 24px rgba(0,0,0,0.6);
+		color:#e6e1d2; font:min(3.6vw,14px)/1.5 monospace; text-align:center; }
+	#toast.an { display:block; }
 	#browseui { z-index:var(--z-join); }
 	#browseui .ts-mark { font-size:min(5vh,28px); letter-spacing:3px; margin:0 0 4px; }
 	#browseui .death-actions { gap:12px; margin-top:6px; }
@@ -328,7 +352,8 @@
 	#lb-zahl { color:#c9a06a; }
 	#lobbybar .play.alt { pointer-events:auto; margin:0; padding:6px 14px;
 		font-size:min(3.2vw,13px); }
-	#lobbybar.gast .play.alt { display:none; }
+	/* Beim Gast entfaellt nur der START-Knopf -- die Spielerliste sieht jeder. */
+	#lobbybar.gast #lb-los { display:none; }
 	/* Offenes Einstiegsfenster: warm statt signalrot. Rot heisst in diesem
 	   Spiel "Achtung"; hier geht es um eine Gelegenheit, die sich schliesst --
 	   das ist ein anderer Ton, und er soll sich auch anders anfuehlen. */
@@ -731,12 +756,26 @@
 			<button type="button" class="play alt" id="browse-zu" data-i18n="close"></button>
 		</div>
 	</div></div>
+	<!-- Wer ist da? Namen statt einer blossen Zahl -- und fuer den Gastgeber
+	     ein Weg, jemanden zu entfernen, sobald die Runde oeffentlich ist. -->
+	<div id="spielerui" class="ts-ov"><div class="box">
+		<p class="ts-mark" data-i18n="plTitle"></p>
+		<div id="pl-liste" class="pl-liste"></div>
+		<div class="death-actions">
+			<button type="button" class="play alt" id="pl-zu" data-i18n="close"></button>
+		</div>
+	</div></div>
+	<!-- Kurzmeldung. Es gab bisher keine Stelle fuer "das ist gerade passiert",
+	     und ein Rausgeworfener sah nur die Engine-Meldung "oh noes! something
+	     bad happened!". -->
+	<div id="toast" role="status" aria-live="polite"></div>
 	<div id="raumchip"></div>
 	<!-- Wartezone waehrend der Lobby. BEWUSST kein Overlay: wer wartet, soll
 	     sich umsehen koennen. Nur der Knopf nimmt Beruehrungen an. -->
 	<div id="lobbybar">
 		<span id="lb-code"></span>
 		<span id="lb-zahl"></span>
+		<button type="button" class="play alt" id="lb-spieler"></button>
 		<button type="button" class="play alt" id="lb-los"></button>
 	</div>
 	<div id="settingsui" class="ts-ov"><div class="box">
@@ -774,6 +813,35 @@
 // mitgibt.
 var TS_VERMITTLER = 'wss://totersignal.de';
 
+// Klartext-Meldungen der Engine. tsMarker steigt bei allem ohne "TSUI:" sofort
+// aus -- das ist richtig so, sein Vertrag sind die Marker. Meldungen wie ein
+// Rauswurf kommen aber als gewoehnliche englische Konsolenzeile, und dafuer
+// braucht es eine eigene, sehr kurze Liste. Alles hier ist Text, den ein
+// Spieler sonst gar nicht oder auf Englisch zu sehen bekaeme.
+function tsEngineText(msg)
+{
+	// Nach einem Rauswurf setzt die Engine "oh noes! something bad happened!"
+	// hinterher. Wer entfernt wurde, soll wissen WARUM und nicht denken, das
+	// Spiel sei kaputt.
+	if (msg.indexOf('You were kicked') !== -1) {
+		tsEngineText._rauswurf = Date.now();
+		tsHinweis(T('kicked'), 7000);
+		return;
+	}
+	// Verbindung zum Gastgeber weg. Der Gastgeber-Browser IST der Server --
+	// geht er, ist die Runde vorbei. Das gehoert gesagt, nicht verschwiegen.
+	//
+	// ABER: nach einem Rauswurf schickt die Engine genau diese Zeile gleich
+	// hinterher und ueberschrieb damit die genauere Meldung. Wer entfernt
+	// wurde, las danach "Verbindung verloren" -- als waere es ein technisches
+	// Problem gewesen. Die spezifischere Meldung gewinnt fuer ein paar
+	// Sekunden.
+	if (msg.indexOf('Host_EndGame') !== -1 || msg.indexOf('Server disconnected') !== -1) {
+		if (Date.now() - (tsEngineText._rauswurf || 0) < 8000) return;
+		tsHinweis(T('joinLost'), 6000);
+	}
+}
+
 function tsMarker(msg)
 {
 	if (typeof msg !== 'string' || msg.indexOf('TSUI:') === -1)
@@ -799,7 +867,10 @@ function tsMarker(msg)
 		if (window.tsCmd) tsCmd('ts_shell_death 1\n');
 		if (window.__ts_applyBright) __ts_applyBright();
 		if (window.__ts_applyHud)    __ts_applyHud();
-		if (window.TS_API && TS_ORIGIN_OK) TS_API.nameNachschieben();
+		// Der Name gehoert NICHT hinter TS_ORIGIN_OK: ihn zu setzen ist eine
+		// reine Cvar-Sache ohne API, und im Spiegel spielt man genauso Koop.
+		// Ohne das hiessen dort alle "Ueberlebender".
+		if (window.TS_API) TS_API.nameNachschieben();
 		if (window.TS_RUN && TS_ORIGIN_OK) TS_RUN.erfolgeWiederherstellen();
 		if (window.TS_SET) TS_SET.allesAnwenden();
 		// NACH TS_SET: Knopfgroesse und Linkshaender-Modus verschieben die
@@ -904,6 +975,8 @@ function tsMarker(msg)
 		TS_BROWSE.zeigen();
 	if (msg.indexOf('TSUI:mp:') !== -1 && window.TS_LOBBY)
 		TS_LOBBY.mp(msg.split('TSUI:mp:')[1].split('\n')[0].trim());
+	if (msg.indexOf('TSUI:mprow:') !== -1 && window.TS_SPIELER)
+		TS_SPIELER.auf(msg.split('TSUI:mprow:')[1].split('\n')[0].trim());
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
 		if (m) TS_DEATH.show(parseInt(m[1], 10));
@@ -939,7 +1012,11 @@ function tsMarker(msg)
 (function(){
 	var orig = console.log.bind(console);
 	console.log = function(){
-		try { for (var i = 0; i < arguments.length; i++) tsMarker(String(arguments[i])); } catch(e){}
+		try { for (var i = 0; i < arguments.length; i++){
+			var z = String(arguments[i]);
+			tsMarker(z);
+			tsEngineText(z);
+		} } catch(e){}
 		return orig.apply(null, arguments);
 	};
 })();
@@ -947,7 +1024,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-29j';
+var TS_BUILD = '2026-08-29k';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -977,6 +1054,7 @@ var Module = {
 	{	//stdout...
 		console.log(msg);
 		tsMarker(msg);
+		tsEngineText(msg);
 	},
 	printErr: function(text)
 	{	//stderr...
@@ -1167,7 +1245,7 @@ var I18N = {
 		lobbyWait: 'Warte auf den Gastgeber …',
 		joinOpen: 'Beitritt bis Runde {n}',
 		joinLast: 'Letzte Runde zum Beitreten',
-		specWait: 'Du schaust zu — bei der naechsten Runde bist du dabei.',
+		specWait: 'Du schaust zu — bei der nächsten Runde bist du dabei.',
 		joinedLate: 'In Runde {n} eingestiegen.',
 		browseTitle: 'OFFENE RUNDEN',
 		browseHint: 'Runden, denen du gerade beitreten kannst.',
@@ -1182,6 +1260,13 @@ var I18N = {
 		hostPublicOn: 'AN',
 		hostPublicOff: 'AUS',
 		hostPublicNeedsAcc: 'Dafür wird ein Konto angelegt.',
+		plTitle: 'SPIELER',
+		plYou: '(du)',
+		plSpec: 'schaut zu',
+		plKick: 'ENTFERNEN',
+		plNone: 'Niemand sonst ist gerade dabei.',
+		plBtn: 'SPIELER',
+		kicked: 'Du wurdest aus der Runde entfernt.',
 		hostLeft: 'Der Gastgeber hat das Spiel beendet.',
 		joinLost: 'Verbindung zum Gastgeber verloren.',
 		joinWatch: 'Du schaust zu, bis die Runde endet.',
@@ -1268,7 +1353,7 @@ var I18N = {
 		lobbyWait: 'Warte auf den Gastgeber …',
 		joinOpen: 'Beitritt bis Runde {n}',
 		joinLast: 'Letzte Runde zum Beitreten',
-		specWait: 'Du schaust zu — bei der naechsten Runde bist du dabei.',
+		specWait: 'Du schaust zu — bei der nächsten Runde bist du dabei.',
 		joinedLate: 'In Runde {n} eingestiegen.',
 		browseTitle: 'OFFENE RUNDEN',
 		browseHint: 'Runden, denen du gerade beitreten kannst.',
@@ -1283,6 +1368,13 @@ var I18N = {
 		hostPublicOn: 'AN',
 		hostPublicOff: 'AUS',
 		hostPublicNeedsAcc: 'Dafür wird ein Konto angelegt.',
+		plTitle: 'SPIELER',
+		plYou: '(du)',
+		plSpec: 'schaut zu',
+		plKick: 'ENTFERNEN',
+		plNone: 'Niemand sonst ist gerade dabei.',
+		plBtn: 'SPIELER',
+		kicked: 'Du wurdest aus der Runde entfernt.',
 		hostLeft: 'The host ended the match.',
 		joinLost: 'Lost connection to the host.',
 		joinWatch: 'You are spectating until the round ends.',
@@ -1706,8 +1798,16 @@ var TS_API = {
 	nameNachschieben(){
 		try {
 			var n = localStorage.getItem('ts_name_ascii');
-			if (n) this.nameSetzen(n);
+			if (n) { this.nameSetzen(n); return; }
 		} catch(e){}
+		// Ohne Konto heisst JEDER "Ueberlebender" -- die Engine haengt dann
+		// "(1)", "(2)" davor, um sie auseinanderzuhalten. In einer Runde mit
+		// Freunden ist das die Stelle, an der niemand weiss, wer wer ist.
+		// Ein eigener Name kostet nichts und wird vom Server-Decknamen
+		// ueberschrieben, sobald ein Konto entsteht.
+		var r = new Uint32Array(1);
+		(window.crypto || window.msCrypto).getRandomValues(r);
+		this.nameSetzen('Signal-' + (1000 + (r[0] % 9000)));
 	},
 
 	// Wird NUR aus einer ausdruecklichen Nutzerhandlung heraus gerufen. Genau
@@ -2500,7 +2600,7 @@ function enterImmersive()
 // Liegt gerade ein Overlay vor dem Spiel? EINE Wahrheit dafuer -- vorher
 // leitete sich jede Stelle das aus dem Inline-Stil eines einzelnen Overlays
 // ab. Wird von Phase U-A (TS_OVL) uebernommen, sobald es sie gibt.
-var TS_OVERLAYS = ['mstart','loadscreen','deathui','accountui','settingsui','joinui','lobbyui','browseui'];
+var TS_OVERLAYS = ['mstart','loadscreen','deathui','accountui','settingsui','joinui','lobbyui','browseui','spielerui'];
 function overlayOffen(){
 	for (var i = 0; i < TS_OVERLAYS.length; i++){
 		var e = document.getElementById(TS_OVERLAYS[i]);
@@ -2645,6 +2745,113 @@ var TS_JOIN = {
 		if (los) los.addEventListener('click', function(){ self.verbinden(); });
 		if (zu)  zu.addEventListener('click',  function(){ self.schliessen(); });
 		if (f)   f.addEventListener('keydown', function(e){ if (e.key === 'Enter') self.verbinden(); });
+	}
+};
+
+// ---- Kurzmeldung ----------------------------------------------------------
+// Es gab bisher keine Stelle fuer "das ist gerade passiert". Ein aus der Runde
+// Entfernter sah nur die Engine-Meldung "oh noes! something bad happened!".
+function tsHinweis(text, ms){
+	var t = document.getElementById('toast'); if (!t) return;
+	t.textContent = text;
+	t.classList.add('an');
+	clearTimeout(tsHinweis._u);
+	tsHinweis._u = setTimeout(function(){ t.classList.remove('an'); }, ms || 5000);
+}
+
+// ---- Wer ist da? ----------------------------------------------------------
+// Die Zeilen kommen als TSUI:mprow:<slot>|<punkte>|<downs>|<zuschauer>|<name>.
+// Der Name steht ganz HINTEN, weil er ein '|' enthalten KANN -- am Ende kann
+// er nichts verschieben, der Rest wird einfach wieder zusammengefuegt.
+var TS_SPIELER = {
+	zeilen: {},          // slot -> {punkte, downs, zuschauer, name}
+	ich: null,           // eigener Slot
+
+	auf: function(roh){
+		var p = String(roh).split('|');
+		if (p.length < 5) return;
+		var slot = +p[0];
+		if (!(slot >= 0 && slot < 8)) return;
+		// Feld 4 ist ein Bitfeld: 1 = schaut zu, 2 = das bin ich. Ein eigenes
+		// Feld dafuer haette den Namen weiter nach hinten geschoben, ohne
+		// etwas zu gewinnen.
+		var f = +p[3] || 0;
+		this.zeilen[slot] = {
+			punkte: +p[1] || 0, downs: +p[2] || 0,
+			zuschauer: (f & 1) !== 0,
+			name: p.slice(4).join('|').slice(0, 40)   // alles ab Feld 5 ist Name
+		};
+		if (f & 2) this.ich = slot;
+		var el = document.getElementById('spielerui');
+		if (el && el.style.display === 'flex') this.zeichnen();
+	},
+
+	// Die Liste kommt vollstaendig und in kurzen Abstaenden. Meldet sich
+	// jemand nicht mehr, ist er weg -- dann wird neu aufgebaut statt geraten.
+	abgleichen: function(anzahl){
+		if (Object.keys(this.zeilen).length > anzahl) this.zeilen = {};
+	},
+
+	zeigen: function(){
+		var el = document.getElementById('spielerui'); if (!el) return;
+		this.zeichnen(); el.style.display = 'flex';
+	},
+	schliessen: function(){
+		var el = document.getElementById('spielerui'); if (el) el.style.display = 'none';
+	},
+
+	zeichnen: function(){
+		var box = document.getElementById('pl-liste'); if (!box) return;
+		box.innerHTML = '';
+		var self = this;
+		var slots = Object.keys(this.zeilen).map(Number).sort(function(a,b){ return a-b; });
+		if (!slots.length){
+			var p = document.createElement('p');
+			p.className = 'br-leer'; p.textContent = T('plNone');
+			box.appendChild(p); return;
+		}
+		slots.forEach(function(slot){
+			var d = self.zeilen[slot];
+			var z = document.createElement('div'); z.className = 'pl-zeile';
+			var n = document.createElement('span'); n.className = 'pl-name';
+			// textContent: ein Spielername ist Daten, kein Markup.
+			n.textContent = d.name || ('Spieler ' + (slot + 1));
+			z.appendChild(n);
+			if (slot === self.ich){
+				var i = document.createElement('span'); i.className = 'pl-ich';
+				i.textContent = T('plYou'); z.appendChild(i);
+			}
+			var w = document.createElement('span'); w.className = 'pl-wert';
+			w.textContent = d.zuschauer ? T('plSpec')
+				: (d.punkte + ' P' + (d.downs ? ' \u00b7 ' + d.downs + ' K.O.' : ''));
+			z.appendChild(w);
+			// Entfernen darf nur der Gastgeber, und nie sich selbst.
+			if (window.TS_LOBBY && TS_LOBBY.aktiv && slot !== self.ich){
+				var b = document.createElement('button');
+				b.type = 'button'; b.className = 'pl-raus';
+				b.textContent = T('plKick');
+				b.addEventListener('click', function(){ self.entfernen(slot); });
+				z.appendChild(b);
+			}
+			box.appendChild(z);
+		});
+	},
+
+	entfernen: function(slot){
+		if (!(slot >= 0 && slot < 8)) return;      // landet in einer Konsolenzeile
+		if (!window.TS_LOBBY || !TS_LOBBY.aktiv) return;
+		// `clientkick` ist am 2026-08-29 an einer echten Zweier-Runde geprueft:
+		// der Gast fliegt, die Spielerzahl geht zurueck auf 1.
+		if (window.tsCmd) tsCmd('clientkick ' + slot + '\n');
+		delete this.zeilen[slot];
+		this.zeichnen();
+	},
+
+	start: function(){
+		var self = this;
+		var an = function(id, fn){ var e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
+		an('pl-zu', function(){ self.schliessen(); });
+		an('lb-spieler', function(){ self.zeigen(); });
 	}
 };
 
@@ -2965,6 +3172,8 @@ var TS_LOBBY = {
 		var fenster   = +p[3] || 0;
 		var zuschauer = (+p[4] === 1);
 		this.spieler = n; this.runde = runde;
+		// Wer nicht mehr meldet, ist weg -- dann baut die Liste sich neu auf.
+		if (window.TS_SPIELER) TS_SPIELER.abgleichen(n);
 		// Stand melden, solange wir selbst anbieten und sichtbar sein wollen.
 		if (this.aktiv) {
 			// Beim Eintragen war die Karte noch nicht gewaehlt -- der Eintrag
@@ -3004,6 +3213,7 @@ var TS_LOBBY = {
 			                             : T('lobbyWait');
 			zahl.textContent = n === 1 ? T('lobbyOne') : T('lobbyN').replace('{n}', n);
 			los.textContent  = T('lobbyGo');
+			document.getElementById('lb-spieler').textContent = T('plBtn');
 			// Nur der Gastgeber darf starten -- ein Gast, der den Knopf saehe,
 			// wuerde ihn druecken, und nichts geschaehe.
 			bar.classList.toggle('gast', !this.aktiv);
@@ -3073,6 +3283,7 @@ var TS_LOBBY = {
 TS_JOIN.start();
 TS_LOBBY.start();
 TS_BROWSE.start();
+TS_SPIELER.start();
 
 // ---- Weiterspielen: der letzte Lauf als Ein-Tipp-Angebot im Start-Gate ----
 // Ein Wiederkehrer brauchte bisher fuenf Interaktionen und zwei Wartezeiten bis

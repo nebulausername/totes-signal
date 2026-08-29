@@ -978,6 +978,8 @@ float ts_fx_next;    // Drossel fuer Treffer-Rueckmeldung an die Shell
 // Lebensdauer vollstaendig.
 float ts_last_runseq;   // zuletzt gemeldeter Lauf (TSUI:rstart-Marker)
 string ts_last_mp;      // zuletzt gemeldeter Mehrspieler-Zustand (TSUI:mp)
+string ts_last_mprow;   // zuletzt gemeldete Spielerliste (TSUI:mprow)
+float ts_mprow_naechste;// Drossel: hoechstens zweimal je Sekunde
 
 // Herzschlag fuer die Bestenliste: einmal je Runde. Der Server vergleicht die
 // Spur spaeter mit der Endwertung -- eine Endrunde, die von der Spur nicht
@@ -1090,6 +1092,45 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 	// in eine Zahl zu falten waere genau die Art von Trick, bei der spaeter
 	// zwei verschiedene Zustaende denselben Wert ergeben und der Marker
 	// stillschweigend ausbleibt.
+	// Wer ist da? Eine Zeile je Spieler, damit der Gastgeber Namen sieht statt
+	// einer blossen Zahl -- und jemanden entfernen kann, ohne raten zu muessen.
+	//
+	// Der NAME steht ganz HINTEN. Ein Spielername kann ein '|' enthalten (der
+	// eigene Server filtert es, ein fremder Client muss das nicht), und dann
+	// verschoebe er alle Felder dahinter. Am Ende kann er nichts mehr kaputt
+	// machen: die Shell fuegt den Rest einfach wieder zusammen.
+	//
+	// Nur bei AENDERUNG und hoechstens zweimal je Sekunde: dieser Block laeuft
+	// in jedem Bild, und 60 print/s wuerden die Konsole fluten.
+	if (time > ts_mprow_naechste) {
+		ts_mprow_naechste = time + 0.5;
+		string ts_zeilen = "";
+		float i;
+		for (i = 0; i < 4; i = i + 1) {
+			float pn = getplayerkeyfloat(i, "client_index");
+			entity cl = findfloat(world, playernum, pn);
+			if (cl == world || !cl.classname) continue;
+			// Bitfeld statt eigenem Feld: 1 = schaut zu, 2 = das bin ich.
+			// Ein weiteres Feld haette den Namen nur nach hinten geschoben.
+			float bits = (cl.is_spectator ? 1 : 0)
+			           + ((pn == getstatf(STAT_PLAYERNUM)) ? 2 : 0);
+			ts_zeilen = strcat(ts_zeilen, sprintf("%d|%d|%d|%d|%s\n",
+				i, cl.points, cl.downs, bits,
+				getplayerkeyvalue(i, "name")));
+		}
+		if (ts_zeilen != ts_last_mprow) {
+			ts_last_mprow = ts_zeilen;
+			// Eine print-Zeile je Spieler -- wie TSUI:dboard. Ein einzelner
+			// sprintf koennte die Acht-Parameter-Grenze reissen.
+			float anz = tokenizebyseparator(ts_zeilen, "\n");
+			float j;
+			for (j = 0; j < anz; j = j + 1) {
+				if (argv(j) == "") continue;
+				print(sprintf("\nTSUI:mprow:%s\n", argv(j)));
+			}
+		}
+	}
+
 	string ts_mp_now = sprintf("%d|%d|%d|%d|%d",
 		player_count,
 		stof(serverkey("ts_lobby")) ? 1 : 0,

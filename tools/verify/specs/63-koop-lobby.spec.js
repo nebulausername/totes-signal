@@ -6,11 +6,18 @@
 // spielen selbst deckt 61-koop-rtc ab.
 import { test, expect } from '@playwright/test';
 
+// Cache-Brecher. Nicht Kosmetik: dieser Test ist dreimal direkt nach einem
+// Deploy rot geworden, und der gemeldete Wert war jedes Mal exakt der aus dem
+// Build DAVOR -- die Seite war veraltet, nicht der Code falsch. Ein Test, den
+// eine alte Seite taeuschen kann, meldet Fehler, die es nicht gibt, und
+// verdeckt damit die, die es gibt.
+const frisch = () => '/?t=' + Date.now() + Math.random().toString(36).slice(2, 7);
+
 test.setTimeout(120_000);
 
 async function auf(page, groesse) {
   await page.setViewportSize(groesse);
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   return page.evaluate(() => {
     const cmds = [];
@@ -73,7 +80,7 @@ for (const [name, groesse] of [
 
 test('KARTE WAEHLEN schickt Code und Befehl in EINEM Aufruf', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   const r = await page.evaluate(() => {
     const cmds = [];
@@ -93,7 +100,7 @@ test('KARTE WAEHLEN schickt Code und Befehl in EINEM Aufruf', async ({ page }) =
 });
 
 test('Die Beitrittspruefung laesst die Raumform durch und Einschleusung nicht', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   const r = await page.evaluate(() => ({
     // Die RELATIVE Form ist die einzige, die den Raum des Gastgebers trifft.
@@ -121,7 +128,7 @@ test('Die Beitrittspruefung laesst die Raumform durch und Einschleusung nicht', 
 // dem jemand daran denkt, es hier einzutragen.
 test('Jedes Overlay traegt den gemeinsamen Vertrag', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   const r = await page.evaluate(() => {
     return [...document.querySelectorAll('.ts-ov')].map((el) => {
@@ -156,7 +163,7 @@ test('Jedes Overlay traegt den gemeinsamen Vertrag', async ({ page }) => {
 // es als serverinfo mit).
 test('Wartezone zeigt Stand, sperrt den Start fuer Gaeste und blockiert das Spiel nicht', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   const r = await page.evaluate(() => {
     const cmds = [];
@@ -225,7 +232,7 @@ test('Wartezone zeigt Stand, sperrt den Start fuer Gaeste und blockiert das Spie
 // TSUI:mp:1|0|1|3|0 zeigte und die Bedingung fuer die Einstiegsleiste damit
 // erfuellt gewesen waere.
 test('Der Raumcode wird beim Rueckweg ins Menue geraeumt', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   const r = await page.evaluate(() => {
     window.tsCmd = () => true;
@@ -253,7 +260,7 @@ test('Der Raumcode wird beim Rueckweg ins Menue geraeumt', async ({ page }) => {
 // Endpunkt hat seine eigene Pruefung (65-koop-api).
 test('Offene Runden: echte Zeilen, ehrlicher Leerzustand, Knoepfe im Bild', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
   const r = await page.evaluate(async () => {
     const cmds = [];

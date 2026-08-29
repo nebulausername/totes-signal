@@ -4,10 +4,14 @@ import crypto from 'node:crypto';
 // Name wird per `seta name` in die Engine geschoben, und deren Schrift kann
 // nur ASCII 33..126. Kein '|' (Marker-Trennzeichen), kein '^' (Quake-
 // Farbcodes), kein ';' oder '"' (cbuf-Injektion).
+// Jedes Wort kommt OHNE Umlaut aus -- keines ist transliteriert. Das ist der
+// Unterschied: "Nachzuegler-4821" liest sich wie ein Fehler, "Schlusslicht-4821"
+// wie ein Name. Wo die Engine-Schrift ASCII erzwingt, waehlt man das Wort
+// danach aus, statt ein anderes zu verstuemmeln.
 const WOERTER = [
-  'Funker', 'Nachzuegler', 'Sperrgebiet', 'Blackout', 'Nordwind', 'Signalgeber',
+  'Funker', 'Schlusslicht', 'Sperrgebiet', 'Blackout', 'Nordwind', 'Signalgeber',
   'Kurzwelle', 'Trabant', 'Schattenmann', 'Rauschen', 'Peilsender', 'Letzter',
-  'Stoerfeuer', 'Totmann', 'Hoerposten', 'Nachtwache', 'Grenzgaenger', 'Relais',
+  'Sperrfeuer', 'Totmann', 'Horchposten', 'Nachtwache', 'Grenzposten', 'Relais',
 ];
 
 export function makeCodename() {
@@ -25,5 +29,6 @@ export function toAscii(name) {
     .replace(/[^\x21-\x7e]/g, '')                        // Engine-Schrift: ASCII 33..126
     .replace(/[|^"';]/g, '')                             // Trennzeichen, Farbcodes, Injektion
     .slice(0, 20);
-  return s.length >= 3 ? s : 'Ueberlebender';
+  // Rueckfall ebenfalls ohne Transliteration.
+  return s.length >= 3 ? s : 'Signal';
 }

@@ -7,12 +7,19 @@
 // dieser Test durch; das ist der Zweck.
 import { test, expect } from '@playwright/test';
 
+// Cache-Brecher. Nicht Kosmetik: dieser Test ist dreimal direkt nach einem
+// Deploy rot geworden, und der gemeldete Wert war jedes Mal exakt der aus dem
+// Build DAVOR -- die Seite war veraltet, nicht der Code falsch. Ein Test, den
+// eine alte Seite taeuschen kann, meldet Fehler, die es nicht gibt, und
+// verdeckt damit die, die es gibt.
+const frisch = () => '/?t=' + Date.now() + Math.random().toString(36).slice(2, 7);
+
 test.describe('Zugang ohne Maus', () => {
   test.setTimeout(240_000);
 
   test('das Spiel laesst sich allein mit der Tastatur starten', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
     await page.locator('#mstart').waitFor({ state: 'visible', timeout: 30_000 });
 
     // Bis zu 12 Mal Tab: mehr Bedienelemente hat das Gate nicht, und wenn der
@@ -51,7 +58,7 @@ test.describe('Zugang ohne Maus', () => {
   });
 
   test('der Dreh-Hinweis liegt unter allem, was Inhalt zeigt', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
     const z = await page.evaluate(() => {
       const w = (id) => {
         const e = document.getElementById(id);
