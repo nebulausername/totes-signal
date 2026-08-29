@@ -225,6 +225,31 @@ vector(float index) HUD_ResolveTextColorForPlayer =
 			return '1 1 1';
 	}
 };
+// Das sichere Rechteck: die Flaeche, die dem SPIEL gehoert. Alles ausserhalb
+// gehoert der Shell -- Joystick unten links, Knopfspalte rechts, Zahnrad bzw.
+// MENUE oben.
+//
+// Es gab die sechs Inset-Helfer darueber schon lange, aber sie wurden an rund
+// vierzig Stellen einzeln angewandt, und ausgerechnet die fuenf KOOP-Elemente
+// waren nicht dabei: Namensschilder, Wiederbeleben-Symbole, Punktetafel,
+// Rundrufe, Fortschrittsbalken. Das faellt im Solo nicht auf -- es gibt sie
+// dort nicht.
+//
+// Rueckgabe: [links, oben, rechts] -- QuakeC-Vektoren haben drei Felder, die
+// Unterkante kommt aus HUD_SafeBottom(). Getrennt, weil ein vector nicht mehr
+// traegt und ein struct hier Umstaende machte.
+vector() HUD_SafeRect =
+{
+	return [GetUltraWideOffset() + GetTouchShift(),
+	        GetTouchTopInset(),
+	        g_width - GetUltraWideOffset() - GetTouchRightInset()];
+};
+
+float() HUD_SafeBottom =
+{
+	return g_height - GetTouchLift();
+};
+
 
 //
 // HUD_GetAlphaForWeaponObjects()
@@ -1632,16 +1657,29 @@ void() HUD_Progressbar =
 	progress = ftos(percent);
 	ws_offset = (strlen(progress) - 1);
 
-	float bar_width = 200;
+	// Balken und Beschriftung waren ZWEI unabhaengige Rechnungen: der Balken
+	// bei g_height*0.75, die Beschriftung bei g_height-105. Bei conheight 480
+	// liegen sie 20 Einheiten auseinander, bei 300 steht die Beschriftung
+	// UEBER dem Balken. Jetzt ein Element mit festem Abstand -- und im
+	// sicheren Rechteck, damit beides nicht in der Knopfspalte landet.
+	//
+	// Der Text kommt jetzt aus T(): "Reviving..." stand hart im Quelltext,
+	// ausgerechnet auf der Anzeige, die man WAEHREND des Helfens liest.
+	float ts_pg = cvar("ts_touchui") ? 14 : 12;
+	vector ts_sr = HUD_SafeRect();
+	float ts_frei = ts_sr_z - ts_sr_x;
+
+	float bar_width = (ts_frei * 0.45 > 200) ? 200 : ts_frei * 0.45;
 	float bar_height = 12;
-	float bar_x = (g_width - bar_width)/2;
-	float bar_y = g_height*0.75;
+	float bar_x = ts_sr_x + (ts_frei - bar_width) * 0.5;
+	float bar_y = ts_sr_y + (HUD_SafeBottom() - ts_sr_y) * 0.62;
 
 	drawfill ([bar_x - 1, bar_y - 1, 0], [bar_width+2, bar_height, 0], [0, 0, 0], 0.4, 0);
 	drawfill ([bar_x, bar_y, 0], [bar_width * percent, bar_height-2, 0], [1, 1, 1], 0.4, 0);
-	float x = (g_width/2) - (getTextWidth("Reviving...", 12)/2);
+	string ts_txt = T("Reviving...");
+	float x = bar_x + (bar_width - getTextWidth(ts_txt, ts_pg)) * 0.5;
 
-	HUD_DrawStringWithBackdrop([x, g_height - 105], "Reviving...", [12, 12], [1, 1, 1], 1, 0); 
+	HUD_DrawStringWithBackdrop([x, bar_y - ts_pg - 6], ts_txt, [ts_pg, ts_pg], [1, 1, 1], 1, 0); 
 }
 
 /*******************
@@ -1988,11 +2026,21 @@ void() HUD_Broadcast =
 			break;
 	}
 
-	float print_width = getTextWidth(broadcast_msg, 12);
-	float x = (g_width - print_width)/2;
+	// Stand bisher GENAU in der Bildmitte -- also unter dem Fadenkreuz und
+	// ueber dem, worauf man zielt. Ausgerechnet die Meldung "X braucht
+	// Wiederbelebung" verdeckte damit den Weg zu X.
+	//
+	// Jetzt als Band im oberen Drittel des sicheren Rechtecks, und auf Touch
+	// groesser: 12 Einheiten sind bei conheight 380 rund 12 CSS-px.
+	float ts_bg = cvar("ts_touchui") ? 15 : 12;
+	vector ts_sr = HUD_SafeRect();
+	float print_width = getTextWidth(broadcast_msg, ts_bg);
+	float x = ts_sr_x + ((ts_sr_z - ts_sr_x) - print_width) * 0.5;
+	if (x < ts_sr_x + 2) x = ts_sr_x + 2;
+	float y = ts_sr_y + (HUD_SafeBottom() - ts_sr_y) * 0.28;
 
 	if (broadcast_msg != "") {
-		HUD_DrawStringWithBackdrop([x, g_height/2, 0], broadcast_msg, [12, 12], [1, 1, 1], 1, 0);
+		HUD_DrawStringWithBackdrop([x, y, 0], broadcast_msg, [ts_bg, ts_bg], [1, 1, 1], 1, 0);
 	}
 };
 
@@ -2504,11 +2552,34 @@ void() HUD_PlayerNames =
 		if (player_origin == '0 0 48')
 			continue;
 
-		screen_position_x -= getTextWidth(text, 8)/2;
+		// Auf Touch groesser: 8 Einheiten sind bei conheight 380 rund 8 CSS-px,
+		// und ein Name, den man nicht lesen kann, sagt einem nicht, wem man
+		// gerade helfen soll.
+		float ts_ng = cvar("ts_touchui") ? 11 : 8;
+		float ts_nb = getTextWidth(text, ts_ng);
+		screen_position_x -= ts_nb/2;
 		text_color = HUD_ResolveTextColorForPlayer(i);
 
 		if (screen_position_z > 0) {
-			HUD_DrawStringWithBackdrop(screen_position, text, [8, 8], text_color, 1, 0);
+			// In das sichere Rechteck klemmen. Ohne das verschwindet ein
+			// Mitspieler am rechten Bildrand hinter FEUER und LADEN -- er ist
+			// dann nicht etwa weit weg, er ist unsichtbar.
+			//
+			// Wird geklemmt, sagt ein Pfeil, WOHIN man schauen muss. Ein
+			// Schild, das an der Kante klebt, waere sonst eine Falschaussage
+			// ueber die Richtung.
+			vector ts_sr = HUD_SafeRect();
+			float ts_lo = ts_sr_x + 2, ts_ro = ts_sr_z - ts_nb - 2;
+			string ts_pfeil = "";
+			if (screen_position_x < ts_lo) { screen_position_x = ts_lo; ts_pfeil = "<"; }
+			else if (screen_position_x > ts_ro) { screen_position_x = ts_ro; ts_pfeil = ">"; }
+			if (screen_position_y < ts_sr_y + 2) screen_position_y = ts_sr_y + 2;
+			if (screen_position_y > HUD_SafeBottom() - ts_ng - 2)
+				screen_position_y = HUD_SafeBottom() - ts_ng - 2;
+
+			if (ts_pfeil == "<")      text = strcat("< ", text);
+			else if (ts_pfeil == ">") text = strcat(text, " >");
+			HUD_DrawStringWithBackdrop(screen_position, text, [ts_ng, ts_ng], text_color, 1, 0);
 		}
 	}
 }
@@ -2549,14 +2620,29 @@ void() HUD_ReviveIcons =
 			continue;
 
 		if (screen_position_z > 0) {
-			// Client is actively being revived, render white.
-			if (revive_icons[i].state == 2) {
-				drawpic(screen_position, "gfx/hud/revive_icon.tga", [32, 32, 1], [1,1,1], 1);
-			} 
-			// Draw with a yellow->red hue.
-			else {
-				drawpic(screen_position, "gfx/hud/revive_icon.tga", [32, 32, 1], [1,1 - (revive_icons[i].timer/30),0], 1);
-			}
+			// DAS hier ist das lebenswichtige Symbol. Lag es hinter FEUER oder
+			// LADEN, wusste niemand, dass ein Mitspieler am Boden liegt -- und
+			// nach dreissig Sekunden ist er endgueltig unten.
+			//
+			// Deshalb wird es in das sichere Rechteck geklemmt statt verdeckt
+			// zu werden, und an der Klemmkante steht ein Pfeil: das Symbol
+			// sagt "jemand braucht Hilfe", der Pfeil sagt "dort drueben".
+			vector ts_sr = HUD_SafeRect();
+			float ts_lo = ts_sr_x + 2, ts_ro = ts_sr_z - 34;
+			float ts_pf = 0;                      // -1 links, +1 rechts
+			if (screen_position_x < ts_lo) { screen_position_x = ts_lo; ts_pf = -1; }
+			else if (screen_position_x > ts_ro) { screen_position_x = ts_ro; ts_pf = 1; }
+			if (screen_position_y < ts_sr_y + 2) screen_position_y = ts_sr_y + 2;
+			if (screen_position_y > HUD_SafeBottom() - 34)
+				screen_position_y = HUD_SafeBottom() - 34;
+
+			vector ts_farbe = (revive_icons[i].state == 2)
+				? [1, 1, 1]
+				: [1, 1 - (revive_icons[i].timer/30), 0];
+			drawpic(screen_position, "gfx/hud/revive_icon.tga", [32, 32, 1], ts_farbe, 1);
+			if (ts_pf != 0)
+				Draw_String([screen_position_x + (ts_pf < 0 ? -10 : 34), screen_position_y + 10],
+					(ts_pf < 0) ? "<" : ">", [14, 14], ts_farbe, 1, 0);
 		}
 	}
 }

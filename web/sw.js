@@ -6,7 +6,7 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v70';                // v13: Cache-Entkopplung + no-cache fuer progs.pk3
+const SW_VERSION = 'v71';                // v13: Cache-Entkopplung + no-cache fuer progs.pk3
 const SHELL = 'totes-shell-' + SW_VERSION;
 
 // EINGEFROREN auf v12 -- absichtlich noch die alte Nummer.

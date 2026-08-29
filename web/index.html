@@ -371,7 +371,13 @@
 		background:rgba(10,7,6,0.82); border:1px solid rgba(194,21,0,0.6);
 		box-shadow:0 0 22px rgba(194,21,0,0.35);
 		color:#e6e1d2; font:600 min(3.4vw,13px)/1.5 monospace; letter-spacing:2px;
-		max-width:min(92vw,560px); }
+		/* NICHT umbrechen. Als der SPIELER-Knopf dazukam, brach der Raumcode
+		   mitten durch ("XAC-" / "JVR") -- und ein umgebrochener Code ist beim
+		   Vorlesen wertlos. Lieber schmaler werden als falsch aussehen: der
+		   Hinweistext darf kuerzen, der Code nie. */
+		flex-wrap:nowrap; white-space:nowrap; max-width:96vw; }
+	#lb-code { flex:0 0 auto; }
+	#lb-zahl { flex:0 1 auto; overflow:hidden; text-overflow:ellipsis; }
 	#lobbybar.an { display:flex; }
 	#lb-code { color:#f2ede0; text-shadow:0 0 12px rgba(224,52,26,0.6); }
 	#lb-code::before { content:'●'; color:#e0341a; margin-right:7px;
@@ -1062,7 +1068,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-29l';
+var TS_BUILD = '2026-08-29m';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —

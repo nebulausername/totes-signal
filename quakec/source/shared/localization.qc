@@ -410,6 +410,7 @@ string(string english) T =
 	// Doppelte und legte sich ueber den Nachbarn ("KWiedeKopfschuesse"). Die
 	// englischen Originale sind kurz, die deutschen Entsprechungen waren es
 	// nicht. Unter einer Zahlenspalte ist "Kopf" genauso eindeutig.
+	case "Reviving...": return "Wiederbeleben ...";
 	case "Score": return "Punkte";
 	case "Kills": return "Kills";
 	case "Downs": return "K.O.";
