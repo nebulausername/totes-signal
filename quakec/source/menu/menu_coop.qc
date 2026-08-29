@@ -218,7 +218,12 @@ void() Menu_Coop_Create =
 
 	// Max players
 	Menu_Button(4, "ccm_maxplayers", T("MAX PLAYERS"), T("Change the maximum number of players who can join your server.")) ? 0 : 0;
-    Menu_CvarSlider(4, "ccm_maxplayers", [1, 8, 7], "maxplayers", true, false, false);
+	// 2 bis 4. Startpunkte gaebe es fuer acht (Player_PickSpawnPoint), aber
+	// nur Karten mit info_player_5..8_spawn bedienen mehr als vier -- und die
+	// Punktetafel (HUD_Scores) wie der Endstand-Marker TSUI:dboard sind auf
+	// vier Zeilen gebaut. Ein Regler, der 8 anbietet, verspricht etwas, das
+	// keine Karte einloest.
+    Menu_CvarSlider(4, "ccm_maxplayers", [2, 4, 3], "maxplayers", true, false, false);
 
 	Menu_DrawDivider(5);
 	Menu_Button(5.25, "ccm_choosemap", T("CHOOSE MAP"), T("Select a Map to start the Game.")) ? Menu_StartCoop() : 0;
@@ -260,18 +265,33 @@ void() Menu_Coop =
 	Menu_Button(1, "cm_playername", T("PLAYER NAME"), T("Name that appears in-game and on the Scoreboard."));
 	Menu_TextInput("cm_playername", 1, player_name, player_name_cursor);
 
-	if (MENU_TOUCH) {
-		// Auf Touch fuehren die Unterschirme ins Leere: sie bestehen aus
-		// Texteingaben, und ohne Bildschirmtastatur laesst sich dort nichts
-		// eintippen. Das Beitreten uebernimmt die Web-Shell -- sie hat ein
-		// echtes Eingabefeld samt Tastatur. Marker statt Bildschirmwechsel.
-		menu_primary_id = "cm_join";
-		Menu_Button(2, "cm_join", T("JOIN SERVER"), "") ? print("\nTSUI:open:join\n") : 0;
-
-		// Anbieten kann ein Browser NICHT: er nimmt keine Verbindungen an.
-		// Sichtbar gesperrt statt weggelassen -- sonst fragt sich der Spieler,
-		// wo die Haelfte des Bildschirms hin ist.
-		Menu_GreyButton(3, T("HOST GAME"));
+	// Im BROWSER (nicht: auf Touch) uebernimmt die Web-Shell beide Wege.
+	// Die Unterschirme darunter fuehren dort naemlich alle ins Leere:
+	//
+	//  - SERVER SUCHEN braucht einen UDP/TLS-Socket zum Master-Server. Den
+	//    gibt es im Browser nicht, die Liste bliebe fuer immer leer.
+	//  - SPIEL ERSTELLEN setzt sv_public 2 und startet die Karte -- im
+	//    wasm-Build endet das in "Browsers are unable to host regular
+	//    servers", weil dieser Zweig einen WebSocket-Listener will. Der
+	//    richtige Weg ist der WebRTC-Vermittler, und der braucht einen
+	//    Raumcode, den nur die Shell kennt (Cvars sind aus JS nicht lesbar).
+	//  - Und jede Texteingabe haengt an einer Tastatur, die es auf dem Handy
+	//    nicht gibt.
+	//
+	// Die Pruefung geht bewusst auf die PLATTFORM, nicht auf MENU_TOUCH: ein
+	// Rechner-Browser ist kein Touch-Geraet, hat aber genau dieselben
+	// Grenzen -- vorher lief er in den kaputten Erstellen-Zweig.
+	//
+	// Anbieten kann ein Browser sehr wohl: am 2026-08-24 am gepinnten Build
+	// gemessen. Die frueher hier stehende gegenteilige Behauptung war falsch.
+	if (running_platform == PLATFORM_WEB) {
+		menu_primary_id = "cm_host";
+		Menu_Button(2, "cm_host", T("HOST GAME"),
+			T("Start a Match and invite friends with a code.")) ? print("\nTSUI:open:host\n") : 0;
+		Menu_Button(3, "cm_join", T("JOIN GAME"),
+			T("Join a friend's Match using their code.")) ? print("\nTSUI:open:join\n") : 0;
+		Menu_Button(4, "cm_browse", T("BROWSE GAMES"),
+			T("See which Matches are open right now.")) ? print("\nTSUI:open:browse\n") : 0;
 	} else {
 		Menu_DrawDivider(2);
 		Menu_Button(2.25, "cm_join", T("JOIN GAME"), T("Join an in-progress Match.")) ? Menu_Coop_EnterJoin() : 0;
@@ -299,8 +319,12 @@ string menu_coop_create_buttons[] = {
 	"ccm_servername", "ccm_port", "ccm_password", "ccm_choosemap", "ccm_back"
 };
 
+// Der Tastatur- und Gamepad-Ring. Was hier fehlt, ist mit D-Pad und Pfeilen
+// nicht erreichbar -- ein Knopf, den man nur mit der Maus trifft, gibt es im
+// Menue nicht. Enthaelt bewusst die Namen BEIDER Zweige (Browser und nativ):
+// der Ring ueberspringt, was auf dem aktuellen Schirm nicht gezeichnet wird.
 string menu_coop_buttons[] = {
-	"cm_playername", "cm_join", "cm_create", "cm_back"
+	"cm_playername", "cm_host", "cm_join", "cm_browse", "cm_create", "cm_back"
 };
 
 // can you tell i'm a C user at heart? -- erysdren

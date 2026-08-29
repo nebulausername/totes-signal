@@ -1810,13 +1810,36 @@ void(string id, vector pos, vector size, __inout vector scrollofs, float num_ser
 
 void() Menu_StartCoop =
 {
-	localcmd("sv_public 2; sv_listen_qw 1\n");
+	// sv_public traegt hier den RAUMNAMEN, nicht die Zahl 2.
+	//
+	// `sv_public 2` registrierte einen Raum mit ZUFALLSNAMEN. Den erfaehrt die
+	// Shell nie -- Cvars sind aus JS nicht lesbar -- und ohne den Namen kann
+	// sie keinen Einladungscode anzeigen. Die Zeichenketten-Form registriert
+	// genau einen Raum unter unserem Namen und setzt intern trotzdem ival=2,
+	// woran menu_loby.qc:71 den Koop-Countdown erkennt.
+	//
+	// sv_port_rtc muss LEER sein: es steht ab Werk auf "/" und wuerde sonst
+	// einen ZWEITEN Raum mit Zufallsnamen daneben anmelden (gemessen am
+	// 2026-08-24: "Listening on /NZP-REBOOT-WEB/1126" neben dem gewollten).
+	//
+	// ts_raum kommt aus der Web-Shell, die den Code erzeugt und teilt.
+	if (cvar_string("ts_raum") != "") {
+		localcmd(sprintf("sv_public \"/%s\"\n", cvar_string("ts_raum")));
+		localcmd("sv_port_rtc \"\"\n");
+	} else {
+		localcmd("sv_public 2\n");
+	}
+	localcmd("sv_listen_qw 1\n");
 	current_menu = MENU_COOPSTOCK;
 };
 
 void() Menu_StartSolo =
 {
-	localcmd("sv_public 0; sv_listen_qw 0\n");
+	// sv_port_rtc ausdruecklich leeren: es steht ab Werk auf "/", und wer
+	// vorher eine Runde angeboten hat, meldete sonst beim naechsten Solo-Start
+	// wieder einen Raum beim Vermittler an. Solo spricht mit niemandem --
+	// das ist eine Zusage, keine Feinheit (siehe 60-koop-sonde.spec.js).
+	localcmd("sv_public 0; sv_listen_qw 0; sv_port_rtc \"\"\n");
 	current_menu = MENU_SOLO;
 };
 

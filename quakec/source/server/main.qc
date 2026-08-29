@@ -423,6 +423,16 @@ void() worldspawn =
 
 	autocvar(sv_spoofmonth, 0);
 
+	// Koop-Lobby: solange sie steht, faengt Runde 1 nicht an. Gesetzt wird sie
+	// von der Web-Shell, sobald der Gastgeber eine Karte startet, und wieder
+	// geloescht, wenn er LOS GEHT'S drueckt.
+	autocvar(ts_lobby, 0);
+
+	// Bis einschliesslich dieser Runde steigt ein Beitretender als SPIELER ein
+	// statt als Zuschauer. 0 schaltet das Fenster ab (nur Runde 0, also die
+	// Lobby); 3 ist die Vorgabe.
+	autocvar(ts_joinround, 3);
+
 	current_month_of_year = nzp_getmonthofyear();
 
 #endif // FTE

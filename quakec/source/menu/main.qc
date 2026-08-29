@@ -194,6 +194,7 @@ void() m_init =
 {
 	registercommand("togglemenu2");
 	registercommand("ts_maps");   // Web-Shell: direkt in die Solo-Kartenwahl (Post-Death-Overlay)
+	registercommand("ts_koop");   // Web-Shell: Raumcode gesetzt -> in die Koop-Kartenwahl
 	setcursormode(TRUE,"gfx/xhair", [16, 16], cvar("vid_conautoscale"));
 	current_menu = last_menu = MENU_MAIN;
 	ts_ui_state = -1;   // erzwingt beim ersten m_draw einen frischen Menue/Spiel-Marker an die Web-Shell
@@ -257,12 +258,47 @@ void() m_init =
 
 	autocvar(sv_spoofmonth, 0);
 
+	// Der Raumcode fuer Koop. Er gehoert der Web-Shell -- sie erzeugt ihn,
+	// zeigt ihn an und teilt ihn; aus JS lassen sich Cvars nicht LESEN, wer
+	// ihn also anzeigen muss, muss ihn auch besitzen.
+	//
+	// Registrieren ist Pflicht, nicht Kosmetik: eine unbekannte Cvar ist fuer
+	// die Konsole ein unbekannter BEFEHL, und `ts_raum ABC234` waere lautlos
+	// wirkungslos (derselbe Fehler wie einst bei ts_hudright).
+	registercvar("ts_raum", "", 0);
+
 	music_duration_time = 0;
 	menu_changetime = 0;
 };
 
+// Vorwaertsdeklaration: QuakeC kennt nur, was VOR der Benutzung steht, und
+// m_close() steht weiter unten in dieser Datei. Ohne diese Zeile bricht der
+// Compiler mit "Unknown value m_close" ab.
+void() m_close;
+
 void(vector screensize) m_draw =
 {
+	// Wer einem Spiel BEITRITT, hat das Menue vorher offen -- und niemand
+	// schliesst es. Beim eigenen `map` tut es die Engine, bei `connect` nicht:
+	// das Hauptmenue blieb ueber der laufenden Partie stehen.
+	//
+	// Das war nicht bloss haesslich. Ohne den Wechsel bleibt der Marker auf
+	// TSUI:menu stehen, und die Shell wendet ihren GANZEN Spielzustand nie an
+	// -- Sprache, Empfindlichkeit, Y-Achse, Zielhilfe, HUD-Groesse und vor
+	// allem die gemeldeten Bildschirmraender (ts_hudright/ts_hudtop). Ein
+	// Beitretender spielte damit ohne jede seiner Einstellungen, und auf dem
+	// Handy lagen Munition und Runde wieder unter den Knoepfen.
+	//
+	// clientstate() == 2 heisst "in einer Partie". Das Pausemenue im Spiel ist
+	// NICHT dieses hier: ESC im laufenden Spiel meldet TSUI:pause: aus CSQC
+	// (am 24.08. gemessen), menu_active bleibt dabei falsch. Diese Bedingung
+	// kann die Pause also nicht wegschalten.
+	if (menu_active && clientstate() == 2) {
+		map_name_override = "";
+		m_close();
+		setcursormode(FALSE);
+	}
+
 	// QuakeC->JS-Bruecke: bei jedem Menue<->Spiel-Wechsel einen Marker auf stdout
 	// drucken. Die Web-Shell (Module.print) blendet das Touch-HUD nur im Spiel ein.
 	if (menu_active != ts_ui_state) {
@@ -386,6 +422,18 @@ float(string cmd) m_consolecommand =
 			setcursormode(TRUE, "gfx/xhair", [16, 16], cvar("vid_conautoscale"));
 		}
 		Menu_StartSolo();
+		return TRUE;
+	case "ts_koop":
+		// Die Web-Shell hat einen Raumcode erzeugt (ts_raum) und schickt uns
+		// in die Koop-Kartenwahl. Warum die Shell und nicht das Menue: der
+		// Code muss angezeigt, geteilt und spaeter fuer den Beitritt wieder
+		// gelesen werden -- und aus JS lassen sich Cvars nicht lesen. Wer
+		// ihn erzeugt, muss ihn also besitzen.
+		if (!menu_active) {
+			m_open();
+			setcursormode(TRUE, "gfx/xhair", [16, 16], cvar("vid_conautoscale"));
+		}
+		Menu_StartCoop();
 		return TRUE;
 	default: break;
 	}

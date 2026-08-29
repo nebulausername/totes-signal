@@ -193,3 +193,9 @@ Phase 2 ist ein Deploy also entweder wirkungslos oder teuer.**
 4. Schnappschuss ist frisch (siehe oben).
 5. Nach dem Deploy: in einem **frischen Inkognito-Profil** prüfen — die
    Service-Worker-Caches täuschen sonst.
+6. **Zwischen `rsync` und der Prüfung ein paar Sekunden warten.** Der Harness
+   ist am 2026-08-29 zweimal an einer Seite gescheitert, die er mitten im
+   `rsync` geladen hatte: `index.html` war schon neu, eine andere Datei noch
+   alt. Beide Male war die Software in Ordnung und der Testaufbau schuld —
+   ein rot gemeldeter Deploy, der keiner war, kostet mehr Zeit als die
+   Wartesekunden.

@@ -32,6 +32,17 @@ string(string current_tune) Gamemode_GetStartSpecialRoundTune;
 string(string current_taunt) Gamemode_GetHellhoundTaunt;
 float(float current_delay) Gamemode_GetRoundDelay;
 
+// Hat der Lobby-Riegel im letzten Frame gegriffen? Ohne diese Notiz wuesste
+// Round_Core beim Loslassen nicht, dass es jetzt losgehen soll.
+float ts_lobby_hielt;
+
+// Hat in diesem Lauf schon eine Runde BEGONNEN? Der Riegel darf sich nicht an
+// `rounds == 0` festmachen: `sv_startround 5` setzt rounds vorab auf 4, und
+// die Lobby haette dann nie gegriffen -- der Gastgeber waere sofort
+// losgezogen, ohne auf irgendwen zu warten. Gemessen am 2026-08-29, als ein
+// Test genau daran haengenblieb.
+float ts_runde_begonnen;
+
 void() SUB_UseTargets;
 float() spawn_a_dogA;
 void() zapper_cooldown;
@@ -217,6 +228,10 @@ void() EndRound =
 void(entity players) Zoning_SetFog;
 void() NewRound =
 {
+	// Ab hier ist der Lauf wirklich unterwegs -- der Lobby-Riegel darf nie
+	// wieder greifen, egal was jemand spaeter in ts_lobby schreibt.
+	ts_runde_begonnen = TRUE;
+
 	string new_round_tune = "";
 
 	entity tempe;
@@ -405,6 +420,39 @@ void() Round_Core =
 	if (in_endgame_sequence)
 		return;
 
+	// KOOP-LOBBY. Solange die Shell ts_lobby haelt und noch keine Runde
+	// gelaufen ist, beginnt Runde 1 nicht.
+	//
+	// Warum das noetig ist: PutClientInServer spawnt einen Beitretenden nur
+	// dann als SPIELER, wenn `rounds` noch 0 ist -- danach wird er Zuschauer
+	// bis zum Rundenende (player_core.qc:1186). Ohne Riegel bleiben einem
+	// Freund rund elf Sekunden (Delay_Time 1s + round_changetime 10s), um den
+	// Code einzutippen, die Karte zu laden und sich zu verbinden. Das schafft
+	// niemand -- er waere zuverlaessig Zuschauer in seiner eigenen Runde.
+	//
+	// round_changetime wird dabei WEIT nach vorn geschoben statt genullt: 0
+	// heisst in der Bedingung unten "kein Rundenwechsel geplant", und dann
+	// riefe nie jemand NewRound(). Ein grosser Wert haelt zusaetzlich die
+	// Rundenwechsel-Blinkanzeige still (die greift ab time+2).
+	if (!ts_runde_begonnen && cvar("ts_lobby")) {
+		if (!ts_lobby_hielt) {
+			ts_lobby_hielt = TRUE;
+			// Der Zustand muss zu ALLEN Clients, nicht nur zum Gastgeber:
+			// ts_lobby ist eine Cvar auf DESSEN Maschine, ein Beitretender
+			// kann sie nicht lesen. serverinfo -> serverkey() ist derselbe
+			// Weg, den ts_runseq und ts_map schon nehmen.
+			localcmd("serverinfo ts_lobby 1\n");
+		}
+		round_changetime = time + 3600;
+		Delay_Time = 0;
+		return;
+	}
+	if (ts_lobby_hielt) {
+		ts_lobby_hielt = FALSE;
+		localcmd("serverinfo ts_lobby 0\n");
+		round_changetime = time + 1;   // Riegel gefallen -- jetzt geht es los
+	}
+
 	if (round_changetime) {
 		if (round_changetime <= (time + 2)) {
 			if (!rounds)
@@ -446,6 +494,12 @@ void() Round_Core =
 
 void() InitRounds =
 {
+	// Zuruecksetzen, weil InitRounds auch den WEICHEN Neustart abdeckt: dort
+	// wird die Karte nicht neu geladen, und ein stehengebliebenes Flag haette
+	// die Lobby beim naechsten Lauf tot gemacht.
+	ts_runde_begonnen = FALSE;
+	ts_lobby_hielt = FALSE;
+
 	// EINZIGER Startpunkt eines Laufs: wird sowohl beim frischen Spielstart
 	// (server/main.qc) als auch beim weichen Neustart (game_restart.qc)
 	// gerufen. Der weiche Neustart laedt die Karte NICHT neu, CSQC_Init
@@ -456,6 +510,11 @@ void() InitRounds =
 	// Nur FTE: der Vril-Build kennt weder sprintf noch serverinfo, und er
 	// wird ohnehin nie ausgeliefert (build-progs.sh zippt nur build/fte/).
 	localcmd(sprintf("serverinfo ts_runseq %d\n", ts_runseq));
+
+	// Das Einstiegsfenster muss zu ALLEN Clients: ts_joinround ist eine Cvar
+	// auf der Maschine des Gastgebers, ein Beitretender kann sie nicht lesen
+	// -- braucht sie aber, um "Beitritt bis Runde N" anzeigen zu koennen.
+	localcmd(sprintf("serverinfo ts_joinround %d\n", cvar("ts_joinround")));
 #endif
 
 	roundtype = 1;
@@ -476,7 +535,12 @@ void() InitRounds =
 	if (!roundinit)
 		spawnAllZombEnts();
 	
-	if (cvar("sv_startround") == 0) {
+	// Mit gesetzter Startrunde faengt der Lauf hier SOFORT an -- NewRound()
+	// laeuft noch innerhalb von InitRounds. Solange die Koop-Lobby haelt, darf
+	// das nicht passieren: der Gastgeber waere allein losgezogen, bevor
+	// irgendjemand den Code eintippen konnte, und Round_Core kaeme zu spaet.
+	// Stattdessen der normale, verzoegerte Weg -- den haelt der Riegel dort an.
+	if (cvar("sv_startround") == 0 || cvar("ts_lobby")) {
 		round_changetime = time + 3.5;
 		rounds_change = 1;
 	} else {

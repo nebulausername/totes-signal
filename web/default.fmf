@@ -3,3 +3,8 @@ name "Totes Signal"
 basegame nzp
 mainconfig "nzportable.cfg"
 disablehomedir 1
+// Eigener WebRTC-Vermittler statt master.frag-net.com. Nur der Hostname --
+// die Engine haengt /<Protokollkennung>/<raum> selbst an. Die Shell setzt
+// denselben Wert bei jedem Menue-Eintritt; diese Zeile deckt den Kaltstart
+// und kuenftige native Clients ab, die dieses Manifest benutzen.
+set net_ice_broker "wss://totersignal.de"

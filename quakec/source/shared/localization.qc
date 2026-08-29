@@ -288,6 +288,10 @@ string(string english) T =
 	case "PLAYER NAME": return "SPIELERNAME";
 	case "Name that appears in-game and on the Scoreboard.": return "Name, der im Spiel und auf der Rangliste erscheint.";
 	case "JOIN GAME": return "SPIEL BEITRETEN";
+	case "Start a Match and invite friends with a code.": return "Eine Runde eroeffnen und Freunde mit einem Code einladen.";
+	case "Join a friend's Match using their code.": return "Der Runde eines Freundes mit seinem Code beitreten.";
+	case "BROWSE GAMES": return "RUNDEN SUCHEN";
+	case "See which Matches are open right now.": return "Sehen, welche Runden gerade offen sind.";
 	case "Join an in-progress Match.": return "Einem laufenden Match beitreten.";
 	case "CREATE GAME": return "SPIEL ERSTELLEN";
 	case "Create a new Match for others to join.": return "Ein neues Match zum Beitreten erstellen.";

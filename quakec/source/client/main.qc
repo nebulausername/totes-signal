@@ -977,6 +977,7 @@ float ts_fx_next;    // Drossel fuer Treffer-Rueckmeldung an die Shell
 // ("Redundant"). Eine Zahl zu vergleichen umgeht die Frage nach der
 // Lebensdauer vollstaendig.
 float ts_last_runseq;   // zuletzt gemeldeter Lauf (TSUI:rstart-Marker)
+string ts_last_mp;      // zuletzt gemeldeter Mehrspieler-Zustand (TSUI:mp)
 
 // Herzschlag fuer die Bestenliste: einmal je Runde. Der Server vergleicht die
 // Spur spaeter mit der Endwertung -- eine Endrunde, die von der Spur nicht
@@ -1077,6 +1078,27 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 	if (ts_use_now != ts_last_use) {
 		ts_last_use = ts_use_now;
 		print(ts_use_now ? "\nTSUI:use:1\n" : "\nTSUI:use:0\n");
+	}
+
+	// Mehrspieler-Zustand fuer die Shell. Nichts davon kann sie selbst wissen:
+	// player_count lebt in CSQC (EVENT_PLAYERUPDATE), ts_lobby und
+	// ts_joinround stehen als Cvars nur auf der Maschine des Gastgebers und
+	// reisen deshalb als serverinfo mit, und ob ICH gerade zuschaue, steht in
+	// einem Stat.
+	//
+	// Verglichen wird die fertige Zeichenkette, nicht eine Zahl: fuenf Felder
+	// in eine Zahl zu falten waere genau die Art von Trick, bei der spaeter
+	// zwei verschiedene Zustaende denselben Wert ergeben und der Marker
+	// stillschweigend ausbleibt.
+	string ts_mp_now = sprintf("%d|%d|%d|%d|%d",
+		player_count,
+		stof(serverkey("ts_lobby")) ? 1 : 0,
+		rounds,
+		stof(serverkey("ts_joinround")),
+		getstatf(STAT_SPECTATING) ? 1 : 0);
+	if (ts_mp_now != ts_last_mp) {
+		ts_last_mp = ts_mp_now;
+		print(sprintf("\nTSUI:mp:%s\n", ts_mp_now));
 	}
 
 	float ts_zoom = getstatf(STAT_WEAPONZOOM);

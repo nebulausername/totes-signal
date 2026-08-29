@@ -34,7 +34,7 @@
 	   multipliziert statt neu gesetzt -- so bleiben die clamp()-Grenzen und
 	   damit die Mindest-Tapziele erhalten. */
 	:root { --tscale: 1; --talpha: 1; }
-	#touchui { position:fixed; inset:0; pointer-events:none; display:none; z-index:10;
+	#touchui { position:fixed; inset:0; pointer-events:none; display:none; z-index:var(--z-touch);
 	           -webkit-user-select:none; user-select:none; font-family:monospace;
 	           --tb: calc(clamp(50px, 12vmin, 88px) * var(--tscale));   /* Grundbreite / Rund-Durchmesser */
 	           --th: calc(clamp(40px, 8.6vmin, 62px) * var(--tscale));  /* Pillen-Hoehe (Tap-Ziel >=40px) */
@@ -65,8 +65,17 @@
 	                  100% { box-shadow:0 0 0 22px rgba(255,60,30,0); transform:scale(1); } }
 	#touchui .tbtn.fx-h { animation:tsfxh 0.13s ease-out; }
 	#touchui .tbtn.fx-k { animation:tsfxk 0.22s ease-out; }
+	/* Wer weniger Bewegung angefordert hat, bekommt weniger Bewegung -- und
+	   zwar ueberall, nicht an einer Stelle. Die Bildroehren-Optik BLEIBT
+	   (sie traegt die Marke und bewegt sich nicht), abgeschaltet wird nur, was
+	   zappelt: Koernung, Flackern, Pulsieren, Suchlauf, Zeichenaufbau. */
 	@media (prefers-reduced-motion: reduce) {
-		#touchui .tbtn.fx-h, #touchui .tbtn.fx-k { animation:none; }
+		#touchui .tbtn.fx-h, #touchui .tbtn.fx-k,
+		.ts-ov::after, .ts-mark, .rp-scan, .raum-code span,
+		#raumchip::before, #updatepill, #rotate .rot { animation:none !important; }
+		.raum-code span { opacity:1; filter:none; transform:none; }
+		.rp-scan { display:none; }
+		.play { transition:none; }
 	}
 	#touchui .tbtn:active, #touchui .tbtn.held {
 		background:rgba(156,20,5,0.66); border-color:#e6431f; color:#fff;
@@ -87,7 +96,7 @@
 	/* Schnell-Einstellungen (Slide-in links) */
 	#gearsheet {
 		position:absolute; left:0; top:0; bottom:0; width:clamp(230px, 46vmin, 360px);
-		display:none; pointer-events:auto; touch-action:none; z-index:12; overflow-y:auto;
+		display:none; pointer-events:auto; touch-action:none; z-index:var(--z-gear); overflow-y:auto;
 		background:rgba(8,6,5,0.94); border-right:1px solid rgba(210,60,30,0.55);
 		padding:calc(3vmin + env(safe-area-inset-top)) 2vmin 3vmin calc(2vmin + env(safe-area-inset-left));
 		box-shadow:8px 0 30px rgba(0,0,0,0.6); }
@@ -107,7 +116,7 @@
 		box-shadow:inset 0 0 24px rgba(0,0,0,0.55), 0 0 26px rgba(230,52,20,0.6); }
 	#stick.sprint #stickthumb { box-shadow:0 0 22px rgba(255,74,32,0.85); }
 	/* Erste-Runde-Hinweise */
-	#hints { position:fixed; inset:0; z-index:40; display:none; align-items:center; justify-content:center;
+	#hints { position:fixed; inset:0; z-index:var(--z-hints); display:none; align-items:center; justify-content:center;
 		background:rgba(0,0,0,0.64); font-family:monospace; -webkit-user-select:none; user-select:none; }
 	#hints .hint-card { max-width:min(600px, 86vw); text-align:center; padding:20px 26px;
 		background:rgba(10,8,7,0.92); border:1px solid rgba(210,22,0,0.55); border-radius:14px;
@@ -134,19 +143,43 @@
 	   Elemente nicht, also lag der ganze Einstellungsschirm als normaler
 	   Block UNTER dem 100%-hohen Canvas: top 408 bei 390 px Viewport, und
 	   body hat overflow:hidden. Er war nie zu sehen. */
-	#mstart, #rotate, #loadscreen, #deathui, #accountui, #settingsui, #joinui {
-		position:fixed; inset:0; z-index:50; display:none;
+	/* Das Stapelregister. Vorher lagen diese Zahlen ueber acht Regeln
+	   verstreut, und genau deshalb blieb ein Jahr lang unbemerkt, dass
+	   #rotate (geerbte 50) UEBER dem Todesbildschirm (45) liegt: wer sein
+	   Handy nach dem Tod drehte, verlor seine Auswertung ersatzlos --
+	   Zurueckdrehen holte sie nicht wieder, weil TS_DEATH.show laengst
+	   gelaufen war. An einer Stelle ist so ein Fehler auf einen Blick zu
+	   sehen. NEUE OVERLAYS TRAGEN HIER IHRE ZAHL EIN. */
+	:root {
+		--z-touch:10; --z-gear:12; --z-hints:40;
+		--z-rotate:44;      /* UNTER allem, was Inhalt zeigt */
+		--z-death:45; --z-konto:47; --z-set:49;
+		--z-lobby:46;       /* reserviert: Koop-Lobby */
+		--z-gate:50; --z-join:51; --z-load:52;
+		--z-install:60; --z-build:65; --z-update:70;
+	}
+	/* An der KLASSE, nicht an einer ID-Liste. Jedes neue Overlay bekommt
+	   position:fixed, indem es die Klasse traegt -- es kann nicht mehr
+	   vergessen werden. Genau dieses Vergessen hat den Einstellungsschirm
+	   ueber seine gesamte Auslieferungszeit unsichtbar gemacht (er stand
+	   darunter mit z-index:49 und OHNE position; z-index wirkt auf statische
+	   Elemente nicht). */
+	.ts-ov {
+		position:fixed; inset:0; z-index:var(--z-gate); display:none;
 		background:radial-gradient(120% 90% at 50% 35%, #12100e 0%, #070605 55%, #000 100%);
 		color:#e6e1d2; font-family:monospace;
 		align-items:center; justify-content:center; text-align:center; padding:24px;
 		-webkit-user-select:none; user-select:none; overflow:hidden;
 	}
-	#loadscreen { z-index:52; }
+	#loadscreen { z-index:var(--z-load); }
+	/* Der Dreh-Hinweis ist eine BITTE, kein Inhalt -- er gehoert unter alles,
+	   was etwas zu sagen hat. Siehe Stapelregister oben. */
+	#rotate { z-index:var(--z-rotate); }
 	/* Death-Overlay: unter Gate/Ladescreen, ueber Touch-HUD; Spiel bleibt leicht sichtbar */
-	#deathui { z-index:45; background:radial-gradient(120% 90% at 50% 35%, rgba(18,10,8,0.93) 0%, rgba(7,4,3,0.95) 55%, rgba(0,0,0,0.97) 100%); }
+	#deathui { z-index:var(--z-death); background:radial-gradient(120% 90% at 50% 35%, rgba(18,10,8,0.93) 0%, rgba(7,4,3,0.95) 55%, rgba(0,0,0,0.97) 100%); }
 	/* Konto- und Fortschrittsansicht: erbt die Grundgestaltung oben, liegt
 	   ueber dem Todes-Overlay aber unter Gate und Ladescreen. */
-	#accountui { z-index:47; overflow-y:auto; align-items:flex-start; }
+	#accountui { z-index:var(--z-konto); overflow-y:auto; align-items:flex-start; }
 	#accountui .box { max-width:min(760px, 94vw); width:100%; padding:14px 0 28px; }
 	#accountui h3 { margin:16px 0 8px; font-size:min(2.4vh,13px); letter-spacing:2px;
 		color:#c9a06a; text-transform:uppercase; font-weight:normal; }
@@ -170,7 +203,7 @@
 	.acc-a b   { display:block; font-size:min(2.1vh,11px); color:#e6e1d2; letter-spacing:0.5px; }
 	.acc-a span{ font-size:min(1.8vh,10px); color:#a8a094; }
 	/* Einstellungen: erbt die Grundgestaltung der anderen Overlays. */
-	#settingsui { z-index:49; overflow-y:auto; align-items:flex-start; padding:12px; }
+	#settingsui { z-index:var(--z-set); overflow-y:auto; align-items:flex-start; padding:12px; }
 	#settingsui .box { max-width:min(560px,94vw); width:100%; padding:4px 0 16px; }
 	/* Im Querformat ist Hoehe knapp: die 60-px-Wortmarke frass ein Viertel des
 	   Bildschirms und schob die Regler unter die Kante. Titel klein halten,
@@ -180,7 +213,132 @@
 	/* Server beitreten: das einzige echte Eingabefeld der Anwendung. Die
 	   Engine kann auf dem Handy keine Texteingabe, ein HTML-input schon --
 	   mitsamt Systemtastatur, Einfuegen und Autokorrektur-Abschaltung. */
-	#joinui { z-index:51; }
+	#joinui { z-index:var(--z-join); }
+	/* Gastgeber-Bildschirm. Steht im Sammelselektor oben -- ohne das haette er
+	   kein position:fixed, und z-index wirkt auf statische Elemente nicht
+	   (genau so war der Einstellungsschirm ueber seine gesamte
+	   Auslieferungszeit unsichtbar). */
+	#lobbyui { z-index:var(--z-lobby); }
+	#lobbyui .ts-mark { font-size:min(5vh,28px); letter-spacing:3px; margin:0 0 4px; }
+	#lobbyui .death-actions { gap:14px; margin-top:6px; }
+	#lobbyui .play, #lobbyui .play.alt { margin-top:10px; }
+	#lobbyui .set-row { width:min(420px,86vw); margin:10px auto 0; border-bottom:0; }
+	/* Fester Kopf, fester Fuss, EIN nachgiebiger Teil. Ohne diese Struktur
+	   waechst die Karte mit ihrem Inhalt und schiebt ihre eigenen Knoepfe
+	   hinaus -- beim Hinzufuegen des Sichtbarkeits-Schalters sofort passiert:
+	   KARTE WAEHLEN sass im Querformat bei 397 px, der Schirm ist 390 hoch.
+	   Genau derselbe Fehler wie einst im Todesbildschirm (Footgun 20). */
+	#lobbyui .box { display:flex; flex-direction:column; max-height:100%; }
+	.lb-koerper { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+	/* Im Querformat auf dem Handy sind 390 px Hoehe alles, was es gibt. Der
+	   Koerper WUERDE rollen -- aber dann liegt der Schalter fuer die
+	   oeffentliche Sichtbarkeit unter der Kante, und ein Schalter, den niemand
+	   findet, ist so gut wie keiner. Also passt hier alles hinein: kleinerer
+	   Code, engere Abstaende. Dieselbe Schwelle wie bei der Wortmarke. */
+	@media (max-height: 520px) {
+		#lobbyui .raum-platte { padding:6px min(5vw,20px) 7px; margin:6px auto 0; }
+		#lobbyui .raum-code { font-size:min(9vw,40px); letter-spacing:5px; }
+		#lobbyui .hint { margin-top:6px; }
+		#lobbyui .set-row { margin-top:6px; padding:6px 12px; }
+		#lobbyui .raum-zeile { margin-top:6px; }
+		#lobbyui .play, #lobbyui .play.alt { margin-top:6px; }
+		#lobbyui .death-actions { margin-top:2px; }
+	}
+	/* Der Code ist das Einzige, was der Gastgeber weitergeben muss. Also ist er
+	   das Groesste auf dem Schirm, sitzt auf einer eigenen Platte und liest
+	   sich wie eine empfangene Frequenz -- die Handschrift des Spiels ist ein
+	   totes Funksignal, und genau hier wird eines gefunden. */
+	.raum-platte { position:relative; display:inline-block; margin:10px auto 2px;
+		padding:10px min(6vw,28px) 12px; border-radius:12px;
+		background:linear-gradient(180deg, rgba(28,16,12,0.92), rgba(12,7,6,0.92));
+		box-shadow:inset 0 0 30px rgba(194,21,0,0.18), 0 0 26px rgba(0,0,0,0.6);
+		overflow:hidden; }
+	/* Vier Eckmarken statt eines Rahmens: der Blick faellt auf den Inhalt,
+	   nicht auf die Kante. */
+	.rp-ecke { position:absolute; width:12px; height:12px; pointer-events:none;
+		border-color:#c21500; border-style:solid; border-width:0; opacity:0.9; }
+	.rp-lo { top:6px; left:6px;  border-top-width:2px; border-left-width:2px; }
+	.rp-ro { top:6px; right:6px; border-top-width:2px; border-right-width:2px; }
+	.rp-lu { bottom:6px; left:6px;  border-bottom-width:2px; border-left-width:2px; }
+	.rp-ru { bottom:6px; right:6px; border-bottom-width:2px; border-right-width:2px; }
+	/* Ein Suchlauf, der einmal alle paar Sekunden ueber die Platte streicht. */
+	.rp-scan { position:absolute; left:-30%; top:0; width:30%; height:100%;
+		pointer-events:none; animation:rpscan 5.5s ease-in-out infinite;
+		background:linear-gradient(90deg, transparent, rgba(255,120,90,0.13), transparent); }
+	@keyframes rpscan { 0%,72%{left:-30%} 100%{left:100%} }
+	.raum-code { font-family:monospace; font-size:min(13vw,64px); letter-spacing:8px;
+		color:#f2ede0; margin:0; line-height:1.15;
+		text-shadow:0 0 4px rgba(242,237,224,0.5), 0 0 22px rgba(224,52,26,0.6);
+		-webkit-user-select:all; user-select:all; }
+	/* Jedes Zeichen taucht einzeln auf -- der Code wird empfangen, nicht
+	   hingeschrieben. Reine Deko: der Text steht auch ohne die Animation da. */
+	.raum-code span { display:inline-block; animation:rpein 0.5s both; }
+	@keyframes rpein { from{opacity:0; transform:translateY(-6px); filter:blur(4px)}
+	                     to{opacity:1; transform:none;             filter:none} }
+	.raum-zeile { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:8px; }
+	.raum-zeile .play.alt { margin-top:0; font-size:min(3.6vw,15px); padding:9px 16px; }
+	/* Waehrend einer angebotenen Runde bleibt der Code sichtbar -- sonst muss
+	   der Gastgeber das Spiel verlassen, um ihn nachzusehen. */
+	#raumchip { position:fixed; z-index:var(--z-gear);
+		left:50%; transform:translateX(-50%);
+		top:calc(4px + env(safe-area-inset-top));
+		display:none; padding:4px 10px; border-radius:8px; cursor:pointer;
+		background:rgba(10,7,6,0.72); border:1px solid rgba(194,21,0,0.55);
+		color:#e6e1d2; font:600 min(3.4vw,13px)/1.5 monospace; letter-spacing:2px;
+		box-shadow:0 0 16px rgba(194,21,0,0.35); transition:box-shadow 200ms ease; }
+	#raumchip:hover { box-shadow:0 0 26px rgba(194,21,0,0.6); }
+	/* Die Wartezone liegt ueber dem Spiel, faengt aber KEINE Beruehrungen ab
+	   -- nur ihr Knopf tut das. Wer auf Freunde wartet, will sich umsehen
+	   koennen, nicht gegen eine Glasscheibe tippen. */
+	#browseui { z-index:var(--z-join); }
+	#browseui .ts-mark { font-size:min(5vh,28px); letter-spacing:3px; margin:0 0 4px; }
+	#browseui .death-actions { gap:12px; margin-top:6px; }
+	#browseui .play, #browseui .play.alt { margin-top:8px; font-size:min(3.6vw,15px); padding:10px 18px; }
+	/* Fester Kopf, fester Fuss, EIN nachgiebiger Teil -- sonst schiebt eine
+	   lange Liste ihre eigenen Knoepfe unter den Bildrand (Footgun 20). */
+	#browseui .box { display:flex; flex-direction:column; max-height:100%; width:min(680px,94vw); }
+	.br-liste { flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+		margin:10px 0 2px; text-align:left; }
+	.br-zeile { display:flex; align-items:center; gap:10px; width:100%;
+		padding:10px 12px; margin-bottom:6px; cursor:pointer;
+		border:1px solid rgba(194,21,0,0.35); border-radius:10px;
+		background:rgba(20,14,12,0.75); color:#e6e1d2;
+		font-family:monospace; font-size:min(3.4vw,14px); text-align:left;
+		transition:border-color 140ms ease, background 140ms ease; }
+	.br-zeile:hover { border-color:#c21500; background:rgba(40,18,12,0.85); }
+	.br-name { flex:1 1 auto; color:#f2ede0; letter-spacing:1px;
+		overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+	.br-karte { color:#9a9384; font-size:0.86em; }
+	.br-zahl { color:#c9a06a; white-space:nowrap; }
+	.br-runde { color:#9a9384; white-space:nowrap; font-size:0.86em; }
+	.br-leer { padding:22px 8px; color:#9a9384; line-height:1.6; }
+	#lobbybar { position:fixed; z-index:var(--z-gear); pointer-events:none;
+		left:50%; transform:translateX(-50%);
+		top:calc(4px + env(safe-area-inset-top));
+		display:none; align-items:center; gap:12px;
+		padding:6px 8px 6px 14px; border-radius:10px;
+		background:rgba(10,7,6,0.82); border:1px solid rgba(194,21,0,0.6);
+		box-shadow:0 0 22px rgba(194,21,0,0.35);
+		color:#e6e1d2; font:600 min(3.4vw,13px)/1.5 monospace; letter-spacing:2px;
+		max-width:min(92vw,560px); }
+	#lobbybar.an { display:flex; }
+	#lb-code { color:#f2ede0; text-shadow:0 0 12px rgba(224,52,26,0.6); }
+	#lb-code::before { content:'●'; color:#e0341a; margin-right:7px;
+		animation:tspulse 2.2s ease-in-out infinite; }
+	#lb-zahl { color:#c9a06a; }
+	#lobbybar .play.alt { pointer-events:auto; margin:0; padding:6px 14px;
+		font-size:min(3.2vw,13px); }
+	#lobbybar.gast .play.alt { display:none; }
+	/* Offenes Einstiegsfenster: warm statt signalrot. Rot heisst in diesem
+	   Spiel "Achtung"; hier geht es um eine Gelegenheit, die sich schliesst --
+	   das ist ein anderer Ton, und er soll sich auch anders anfuehlen. */
+	#lobbybar.einstieg { border-color:rgba(201,160,106,0.7);
+		box-shadow:0 0 20px rgba(201,160,106,0.28); }
+	#lobbybar.einstieg #lb-code::before { color:#c9a06a; }
+	#lobbybar.einstieg #lb-zahl { color:#e0c9a0; }
+	/* Der Punkt davor zeigt: hier laeuft etwas, es wird gesendet. */
+	#raumchip::before { content:'●'; color:#e0341a; margin-right:7px;
+		animation:tspulse 2.2s ease-in-out infinite; }
 	/* Wie beim Einstellungsschirm: im Querformat ist Hoehe knapp, die
 	   60-px-Wortmarke schoebe Feld und Knoepfe unter die Kante. */
 	#joinui .ts-mark { font-size:min(5vh,28px); letter-spacing:3px; margin:0 0 4px; }
@@ -206,19 +364,23 @@
 	   deutlich fehleranfaelliger. */
 	#touchui.lefty { transform:scaleX(-1); }
 	#touchui.lefty > * { transform:scaleX(-1); }
-	/* CRT scanlines */
-	#mstart::before, #rotate::before, #loadscreen::before, #deathui::before {
+	/* Der Bildroehren-Look ist die Handschrift des Spiels -- und er hing an
+	   einer ID-Liste. Gate, Dreh-Hinweis, Ladeschirm und Todesbildschirm
+	   hatten ihn, Beitritt, Konto, Einstellungen und der Gastgeber-Schirm
+	   nicht: dieselben vier Overlays sahen aus wie aus einem anderen Spiel.
+	   Jetzt an der Klasse (Footgun 14). */
+	.ts-ov::before {
 		content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
 		background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,0.30) 2px 3px);
 	}
 	/* rolling static grain + gentle flicker */
-	#mstart::after, #rotate::after, #loadscreen::after, #deathui::after {
+	.ts-ov::after {
 		content:''; position:absolute; inset:-60%; pointer-events:none; z-index:1; opacity:0.06;
 		background-image:radial-gradient(rgba(255,255,255,0.9) 0.5px, transparent 0.7px);
 		background-size:3px 3px; animation:tsnoise 0.9s steps(4) infinite;
 	}
 	@keyframes tsnoise { 0%{transform:translate(0,0)} 25%{transform:translate(-4%,3%)} 50%{transform:translate(3%,-2%)} 75%{transform:translate(-2%,-4%)} 100%{transform:translate(0,0)} }
-	#mstart .box, #rotate .box, #loadscreen .box, #deathui .box { position:relative; z-index:2; max-width:92%; }
+	.ts-ov .box { position:relative; z-index:2; max-width:92%; }
 	/* Gate-Backdrop (Still via poster, Loop lazy) — liegt UNTER Scanlines/Grain */
 	#mstart #gatevid { position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
 		z-index:0; opacity:0.5; filter:brightness(1.2) saturate(0.85); }
@@ -227,20 +389,44 @@
 		text-shadow:0 0 4px #c21500, 0 0 22px rgba(194,21,0,0.55); animation:tsflk 4.5s infinite; }
 	.ts-sub { color:#9a9384; font-size:min(3.2vw,14px); letter-spacing:5px; margin:3px 0 0; opacity:0.85; }
 	@keyframes tsflk { 0%,92%,100%{opacity:1} 93%{opacity:0.35} 94%{opacity:1} 96%{opacity:0.55} 97%{opacity:1} }
-	#mstart p.hint, #rotate p, #loadscreen p.hint { font-size:min(4.2vw,17px); line-height:1.55; opacity:0.82; margin:12px 0 0; }
+	.ts-ov p.hint, #rotate p { font-size:min(4.2vw,17px); line-height:1.55; opacity:0.82; margin:12px 0 0; }
 	/* Die Knopfregel galt urspruenglich nur fuer #mstart und #deathui. Jedes
 	   neue Overlay musste einzeln nachgetragen werden -- und dreimal wurde es
 	   vergessen: im Konto standen ENABLE und CLOSE als nackter Text da, im
 	   Beitritts-Dialog CONNECT und CANCEL. Deshalb jetzt an der KLASSE, nicht
 	   am Overlay: .play wird ausschliesslich fuer diese Knoepfe benutzt. */
+	/* .play ist seit 08/2026 ein echtes <button>. Vorher war es ein <span> mit
+	   click-Zuhoerer -- damit war NICHTS im Start-Gate fokussierbar, und an
+	   einem Rechner ohne Maus liess sich das Spiel ueberhaupt nicht starten
+	   (WCAG 2.1.1, und zwar auf dem allerersten Bildschirm). Ein <button>
+	   loest bei Enter und Leertaste von selbst ein click-Ereignis aus, also
+	   brauchte kein einziger Handler geaendert zu werden.
+	   font/appearance muessen zurueckgesetzt werden: ein Knopf erbt weder die
+	   Schrift noch verzichtet er von allein auf die Systemdarstellung. */
 	.play {
 		margin-top:26px; display:inline-block; padding:16px 32px; cursor:pointer;
+		font-family:inherit; text-align:center; line-height:normal;
+		-webkit-appearance:none; appearance:none;
 		border:2px solid #c21500; border-radius:12px; color:#f2ede0;
 		font-size:min(6vw,24px); font-weight:bold; letter-spacing:1px;
 		background:rgba(138,18,0,0.28); box-shadow:0 0 26px rgba(194,21,0,0.4);
 		vertical-align:middle;
 	}
-	.play:active { background:rgba(194,21,0,0.55); }
+	/* Ein Knopf, der auf Beruehrung nicht antwortet, fuehlt sich kaputt an.
+	   transform statt Farbe allein: die Bewegung ist auch dann zu sehen, wenn
+	   der Finger die Flaeche verdeckt. */
+	.play { transition:background 120ms ease, box-shadow 160ms ease, transform 90ms ease; }
+	.play:hover { background:rgba(178,24,4,0.42); box-shadow:0 0 34px rgba(194,21,0,0.55); }
+	.play:active { background:rgba(194,21,0,0.55); transform:translateY(1px) scale(0.985); }
+	.play.alt:hover { background:rgba(60,36,28,0.7); box-shadow:0 0 18px rgba(0,0,0,0.5); }
+	/* Sieht aus wie ein Link, ist ein Knopf -- damit erreichbar per Tab. */
+	.linkbtn { background:none; border:0; padding:0; margin:0; cursor:pointer;
+		font:inherit; color:inherit; text-decoration:underline; }
+	/* Es gab bis 08/2026 NIRGENDS eine Fokusanzeige. Signalrot als Kontur,
+	   knochenweisser Innenring -- damit sie auf der dunklen Karte UND auf dem
+	   roten Hauptknopf sichtbar bleibt. */
+	:focus-visible { outline:3px solid #e0341a; outline-offset:2px;
+		box-shadow:0 0 0 2px rgba(242,237,224,0.85); border-radius:6px; }
 	/* Zweitknopf im Gate: gleiche Groesse, ruhiger -- er ist ein Angebot,
 	   nicht der Hauptweg. */
 	.play.alt { margin-top:14px; border-color:#6b3a2a; color:#e6e1d2;
@@ -345,7 +531,7 @@
 	   Dead-Signal-Look: pulsierender roter Glow, passt zum TIPPEN-ZUM-SPIELEN-Panel. */
 	#installbtn {
 		position:fixed; left:50%; transform:translateX(-50%);
-		bottom:calc(18px + env(safe-area-inset-bottom)); z-index:60; display:none;
+		bottom:calc(18px + env(safe-area-inset-bottom)); z-index:var(--z-install); display:none;
 		padding:12px 22px; cursor:pointer;
 		border:1.5px solid #c21500; border-radius:11px;
 		background:rgba(20,6,2,0.74); color:#f2ede0;
@@ -358,12 +544,12 @@
 	}
 	#installbtn:active { background:rgba(194,21,0,0.5); }
 	/* Build-Tag: winzig, unaufdringlich, aber immer ablesbar */
-	#buildtag { position:fixed; right:6px; bottom:3px; z-index:65; pointer-events:none;
+	#buildtag { position:fixed; right:6px; bottom:3px; z-index:var(--z-build); pointer-events:none;
 		font:10px monospace; letter-spacing:0.5px; color:rgba(205,195,175,0.42);
 		text-shadow:0 1px 2px rgba(0,0,0,0.8); }
 	/* Update-Pille: gleiche Sprache wie der Install-Button, oben mittig */
 	#updatepill { position:fixed; left:50%; transform:translateX(-50%);
-		top:calc(14px + env(safe-area-inset-top)); z-index:70; display:none; cursor:pointer;
+		top:calc(14px + env(safe-area-inset-top)); z-index:var(--z-update); display:none; cursor:pointer;
 		padding:11px 20px; border:1.5px solid #c21500; border-radius:11px;
 		background:rgba(20,6,2,0.85); color:#f2ede0; font-family:monospace;
 		font-size:13px; font-weight:bold; letter-spacing:1.4px; text-transform:uppercase;
@@ -433,7 +619,7 @@
 		<p data-i18n="hint3"></p>
 		<p class="hint-ok" data-i18n="hintOk"></p>
 	</div></div>
-	<div id="mstart">
+	<div id="mstart" class="ts-ov">
 		<!-- Atmosphaerischer Loop hinterm Gate: poster zeigt sofort das Still,
 		     das eigentliche Video laedt lazy in startGate() (nie bei
 		     prefers-reduced-motion); beim Start wird es pausiert+entladen. -->
@@ -443,12 +629,12 @@
 		<p class="ts-mark">TOTES SIGNAL</p>
 		<p class="ts-sub" data-i18n="sub"></p>
 		<p class="hint" data-i18n="tap"></p>
-		<span class="play" data-i18n="play"></span>
-		<span class="play alt" id="gate-weiter" style="display:none"></span>
+		<button type="button" class="play" data-i18n="play"></button>
+		<button type="button" class="play alt" id="gate-weiter" style="display:none"></button>
 		<p class="hint" id="gate-groesse" style="color:#c9a06a"></p>
-		<p class="hint" style="margin-top:14px"><span id="gate-konto" style="cursor:pointer;text-decoration:underline" data-i18n="accTitle"></span></p>
+		<p class="hint" style="margin-top:14px"><button type="button" id="gate-konto" class="linkbtn" data-i18n="accTitle"></button></p>
 	</div></div>
-	<div id="rotate"><div class="box">
+	<div id="rotate" class="ts-ov"><div class="box">
 		<span class="rot">⟳</span>
 		<p data-i18n="rotate"></p>
 	</div></div>
@@ -457,7 +643,7 @@
 	<!-- Update-Pille: erscheint, wenn der Server eine neuere Shell hat als diese Seite -->
 	<div id="updatepill" data-i18n="update"></div>
 	<!-- Post-Death: SIGNAL VERLOREN + Auswahl (Marker TSUI:dead:<runden> aus CSQC) -->
-	<div id="deathui">
+	<div id="deathui" class="ts-ov">
 		<img id="deathart" alt="" hidden>
 		<div class="box">
 		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
@@ -490,36 +676,84 @@
 		</div>
 		<div id="dpage-rank" hidden></div>
 		<div class="death-actions">
-			<span class="play" id="deathagain" data-i18n="again"></span>
-			<span class="play alt" id="deathlobby" data-i18n="lobby"></span>
+			<button type="button" class="play" id="deathagain" data-i18n="again"></button>
+			<button type="button" class="play alt" id="deathlobby" data-i18n="lobby"></button>
 		</div>
 	</div></div>
-	<div id="joinui"><div class="box">
+	<div id="joinui" class="ts-ov"><div class="box">
 		<p class="ts-mark" data-i18n="joinTitle"></p>
 		<p class="hint" data-i18n="joinHint"></p>
 		<input id="join-adr" type="text" inputmode="text" autocapitalize="characters"
 		       autocomplete="off" spellcheck="false" maxlength="40" placeholder="ABC-234">
 		<p class="hint" id="join-fehler" style="color:#e0603a; min-height:1.2em"></p>
 		<div class="death-actions">
-			<span class="play" id="join-los" data-i18n="joinGo"></span>
-			<span class="play alt" id="join-zu" data-i18n="close"></span>
+			<button type="button" class="play" id="join-los" data-i18n="joinGo"></button>
+			<button type="button" class="play alt" id="join-zu" data-i18n="close"></button>
 		</div>
 	</div></div>
-	<div id="settingsui"><div class="box">
+	<!-- Gastgeber: Raumcode zeigen, teilen, Karte waehlen -->
+	<div id="lobbyui" class="ts-ov"><div class="box">
+		<p class="ts-mark" data-i18n="hostTitle"></p>
+		<p class="hint" data-i18n="hostHint"></p>
+		<div class="lb-koerper">
+		<div class="raum-platte">
+			<span class="rp-ecke rp-lo"></span><span class="rp-ecke rp-ro"></span>
+			<span class="rp-ecke rp-lu"></span><span class="rp-ecke rp-ru"></span>
+			<p class="raum-code" id="raum-code">------</p>
+			<span class="rp-scan"></span>
+		</div>
+		<div class="raum-zeile">
+			<button type="button" class="play alt" id="raum-kopieren" data-i18n="hostCopy"></button>
+			<button type="button" class="play alt" id="raum-teilen" data-i18n="hostShare"></button>
+		</div>
+		<div class="set-row" id="raum-oeff-zeile">
+			<label id="raum-oeff-label" for="raum-oeff"></label>
+			<button type="button" class="set-schalter" id="raum-oeff"></button>
+		</div>
+		<p class="hint" id="raum-meldung" style="min-height:1.2em;color:#c9a06a"></p>
+		</div>
+		<div class="death-actions">
+			<button type="button" class="play" id="raum-los" data-i18n="hostGo"></button>
+			<button type="button" class="play alt" id="raum-zu" data-i18n="close"></button>
+		</div>
+	</div></div>
+	<!-- Oeffentliche Runden. Zeigt ausschliesslich ECHTE, offene Raeume mit
+	     freiem Platz: ein erfundener Eintrag waere ein Beitritt, der nie
+	     zustande kommt. Ist nichts da, sagt der Leerzustand das und bietet
+	     den einzigen Weg an, der dann hilft -- selbst anbieten. -->
+	<div id="browseui" class="ts-ov"><div class="box">
+		<p class="ts-mark" data-i18n="browseTitle"></p>
+		<p class="hint" data-i18n="browseHint"></p>
+		<div id="browse-liste" class="br-liste"></div>
+		<div class="death-actions">
+			<button type="button" class="play" id="browse-neu" data-i18n="browseRefresh"></button>
+			<button type="button" class="play alt" id="browse-host" data-i18n="browseHost"></button>
+			<button type="button" class="play alt" id="browse-zu" data-i18n="close"></button>
+		</div>
+	</div></div>
+	<div id="raumchip"></div>
+	<!-- Wartezone waehrend der Lobby. BEWUSST kein Overlay: wer wartet, soll
+	     sich umsehen koennen. Nur der Knopf nimmt Beruehrungen an. -->
+	<div id="lobbybar">
+		<span id="lb-code"></span>
+		<span id="lb-zahl"></span>
+		<button type="button" class="play alt" id="lb-los"></button>
+	</div>
+	<div id="settingsui" class="ts-ov"><div class="box">
 		<p class="ts-mark" data-i18n="setTitle"></p>
 		<div id="set-inhalt"></div>
 		<div class="death-actions">
-			<span class="play alt" id="set-zu" data-i18n="accClose"></span>
+			<button type="button" class="play alt" id="set-zu" data-i18n="accClose"></button>
 		</div>
 	</div></div>
-	<div id="accountui"><div class="box">
+	<div id="accountui" class="ts-ov"><div class="box">
 		<p class="ts-mark" data-i18n="accTitle"></p>
 		<div id="acc-inhalt"></div>
 		<div class="death-actions">
-			<span class="play alt" id="acc-zu" data-i18n="accClose"></span>
+			<button type="button" class="play alt" id="acc-zu" data-i18n="accClose"></button>
 		</div>
 	</div></div>
-	<div id="loadscreen"><div class="box">
+	<div id="loadscreen" class="ts-ov"><div class="box">
 		<svg class="ts-skull" viewBox="0 0 512 512" aria-hidden="true"><path d="M256 92C166 92 116 156 116 234c0 58 32 94 60 114v44c0 15 13 26 29 26h102c16 0 29-11 29-26v-44c28-20 60-56 60-114 0-78-50-142-140-142z" fill="#d8d2be"/><ellipse cx="204" cy="252" rx="42" ry="48" fill="#0a0604"/><ellipse cx="308" cy="252" rx="42" ry="48" fill="#0a0604"/><circle cx="204" cy="258" r="13" fill="#d31600"/><circle cx="308" cy="258" r="13" fill="#d31600"/><path d="M256 288l-20 46h40z" fill="#0a0604"/></svg>
 		<p class="ts-mark">TOTES SIGNAL</p>
 		<p class="ts-sub" data-i18n="sub"></p>
@@ -535,11 +769,26 @@
 // console.log wird hier (vor dem Engine-Script, das erst in begin() injiziert
 // wird) gewrappt, damit die Engine unseren Wrapper bindet. Module.print bleibt
 // als zweiter Kanal angeschlossen (schadet nicht, setInGame dedupliziert).
+// Der eigene WebRTC-Vermittler. Nur der Hostname -- die Engine baut daraus
+// wss://<host>/NZP-REBOOT-WEB/<raum> und wirft jeden Pfad weg, den man hier
+// mitgibt.
+var TS_VERMITTLER = 'wss://totersignal.de';
+
 function tsMarker(msg)
 {
 	if (typeof msg !== 'string' || msg.indexOf('TSUI:') === -1)
 		return;
 	var stateChange = msg.indexOf('TSUI:game') !== -1 || msg.indexOf('TSUI:menu') !== -1;
+	// Der Raumcode-Streifen haengt am Spielzustand: im Menue hat er nichts zu
+	// suchen, im Spiel ist er die einzige Stelle, an der der Gastgeber seinen
+	// Code nachsehen kann.
+	if (stateChange && window.TS_LOBBY) TS_LOBBY.chip();
+	if (msg.indexOf('TSUI:mp:') !== -1 && window.TS_RUN){
+		// Hoechststand, nicht Momentaufnahme: wer zum Schluss allein uebrig
+		// ist, hat trotzdem zu viert gespielt.
+		var mz = +String(msg.split('TSUI:mp:')[1] || '').split('|')[0];
+		if (mz > (TS_RUN.maxSpieler || 1)) TS_RUN.maxSpieler = mz;
+	}
 	if (window.TS_CTRL && stateChange)                       // Touch-HUD (nur Touch-Geraete)
 		TS_CTRL.setInGame(msg.indexOf('TSUI:game') !== -1);
 	if (msg.indexOf('TSUI:game') !== -1){                     // Presets idempotent re-anwenden
@@ -579,12 +828,47 @@ function tsMarker(msg)
 		// TSUI:game, sonst laeuft das erste Menue nach dem Kaltstart in
 		// Desktop-Metrik.
 		if (window.tsCmd)
-			tsCmd('vid_conheight 480\n' + (IS_TOUCH ? 'ts_touchui 1\n' : ''));
+			tsCmd('vid_conheight 480\n' +
+				(IS_TOUCH ? 'ts_touchui 1\n' : '') +
+				// Der Vermittler fuer Koop. Ab Werk zeigt net_ice_broker auf
+				// master.frag-net.com -- einen FREMDEN Dienst. Wir betreiben
+				// einen eigenen (systemd ts-broker, nginx-Route
+				// /NZP-REBOOT-WEB/ auf totersignal.de).
+				//
+				// Nur der HOSTNAME gehoert hier hin: die Engine haengt
+				// "/<Protokollkennung>/<raum>" selbst an und SCHNEIDET einen
+				// mitgegebenen Pfad ab. "wss://totersignal.de/broker" wuerde
+				// also stillschweigend zu "wss://totersignal.de/…" -- der
+				// Zusatz verschwindet spurlos.
+				//
+				// Geschrieben wird bei JEDEM Menue-Eintritt, nicht einmalig:
+				// Cvars sind aus JS nicht lesbar, also gibt es kein "ist schon
+				// gesetzt?" -- dieselbe Regel wie bei Sprache und HUD-Raendern.
+				'net_ice_broker "' + TS_VERMITTLER + '"\n');
 		// Die Sprache gehoert hierher und nicht nur zu TSUI:game -- das Menue
 		// ist die Flaeche, auf der sie am meisten zaehlt, und vor dem ersten
 		// TSUI:menu nimmt die Engine keine Konsolenbefehle an.
 		if (window.TS_LANG) TS_LANG.anwenden();
 		if (window.__ts_renderMode) __ts_renderMode('menu');
+		// Zurueck im Hauptmenue heisst: die Koop-Runde ist vorbei. Ohne das
+		// haengt der Raumcode in der Shell weiter, und ein anschliessendes
+		// SOLO-Spiel zeigte "Beitritt bis Runde 3" -- fuer einen Raum, den
+		// es nicht mehr gibt. Nicht raeumen, solange der Gastgeber-Schirm
+		// offen ist: dort ist der Code gerade erst entstanden.
+		if (window.TS_LOBBY){
+			var lu = document.getElementById('lobbyui');
+			if (!lu || lu.style.display !== 'flex') TS_LOBBY.beenden();
+		}
+		// Einladungslink: einmal, beim ersten Menue nach dem Start. Wer mit
+		// ?raum=ABC-234 ankommt, will genau eines -- beitreten. Danach ist
+		// die Einladung verbraucht, sonst poppt sie bei jeder Rueckkehr ins
+		// Menue wieder auf.
+		if (window.__ts_raumEinladung && window.TS_JOIN){
+			var einl = window.__ts_raumEinladung;
+			window.__ts_raumEinladung = null;
+			setTimeout(function(){ TS_JOIN.zeigen();
+				var f = document.getElementById('join-adr'); if (f) f.value = einl; }, 500);
+		}
 		// Die Karte beschreibt die Bedienung IM SPIEL.
 		if (!IS_TOUCH && window.__ts_hintsWeg) __ts_hintsWeg();
 		if (window.TS_WEITER) TS_WEITER.einloesen();
@@ -614,6 +898,12 @@ function tsMarker(msg)
 		TS_SET.zeigen();
 	if (msg.indexOf('TSUI:open:join') !== -1 && window.TS_JOIN)
 		TS_JOIN.zeigen();
+	if (msg.indexOf('TSUI:open:host') !== -1 && window.TS_LOBBY)
+		TS_LOBBY.zeigen();
+	if (msg.indexOf('TSUI:open:browse') !== -1 && window.TS_BROWSE)
+		TS_BROWSE.zeigen();
+	if (msg.indexOf('TSUI:mp:') !== -1 && window.TS_LOBBY)
+		TS_LOBBY.mp(msg.split('TSUI:mp:')[1].split('\n')[0].trim());
 	if (window.TS_DEATH){                                    // Death-Overlay (auch Desktop)
 		var m = msg.match(/TSUI:dead:(-?\d+)/);
 		if (m) TS_DEATH.show(parseInt(m[1], 10));
@@ -657,7 +947,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-24a';
+var TS_BUILD = '2026-08-29j';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -860,13 +1150,46 @@ var I18N = {
 		joinNoNet: 'Nachschlagen fehlgeschlagen — keine Verbindung.',
 		joinNoCode: 'Diesen Code kennt niemand (oder er ist abgelaufen).',
 		joinLook: 'Code wird nachgeschlagen …',
-		joinTitle: 'SERVER BEITRETEN',
-		joinHint: 'Code des Hosts eingeben — oder eine vollstaendige Serveradresse.',
+		joinTitle: 'SPIEL BEITRETEN',
+		joinHint: 'Code des Gastgebers eingeben — oder eine vollständige Serveradresse.',
+		hostTitle: 'SPIEL ANBIETEN',
+		hostHint: 'Gib diesen Code weiter. Wer ihn eingibt, landet in deiner Runde.',
+		hostCopy: 'CODE KOPIEREN',
+		hostShare: 'EINLADUNG TEILEN',
+		hostGo: 'KARTE WÄHLEN',
+		hostCopied: 'Kopiert.',
+		hostLinkCopied: 'Einladungslink kopiert.',
+		hostNoCopy: 'Kopieren ging nicht — Code von Hand abtippen.',
+		hostChip: 'CODE',
+		lobbyGo: 'LOS GEHT\'S',
+		lobbyOne: '1 Spieler',
+		lobbyN: '{n} Spieler',
+		lobbyWait: 'Warte auf den Gastgeber …',
+		joinOpen: 'Beitritt bis Runde {n}',
+		joinLast: 'Letzte Runde zum Beitreten',
+		specWait: 'Du schaust zu — bei der naechsten Runde bist du dabei.',
+		joinedLate: 'In Runde {n} eingestiegen.',
+		browseTitle: 'OFFENE RUNDEN',
+		browseHint: 'Runden, denen du gerade beitreten kannst.',
+		browseRefresh: 'NEU LADEN',
+		browseHost: 'SELBST ANBIETEN',
+		browseLoad: 'Wird gesucht …',
+		browseEmpty: 'Gerade bietet niemand eine Runde an.\nEröffne selbst eine — dein Code lässt sich als Link teilen.',
+		browseErr: 'Die Liste ist nicht erreichbar. Mit einem Code geht es trotzdem.',
+		browseRound: 'Runde {n}',
+		browseWaiting: 'wartet',
+		hostPublic: 'ÖFFENTLICH SICHTBAR',
+		hostPublicOn: 'AN',
+		hostPublicOff: 'AUS',
+		hostPublicNeedsAcc: 'Dafür wird ein Konto angelegt.',
+		hostLeft: 'Der Gastgeber hat das Spiel beendet.',
+		joinLost: 'Verbindung zum Gastgeber verloren.',
+		joinWatch: 'Du schaust zu, bis die Runde endet.',
 		joinGo: 'VERBINDEN',
 		joinBad: 'Das sieht nicht nach einer Serveradresse aus.',
 		close: 'ABBRECHEN',
 		resume: 'WEITERSPIELEN',
-		gateGroesse:'Erster Start: rund 90 MB werden geladen. Danach laeuft das Spiel offline.',
+		gateGroesse:'Erster Start: rund 90 MB werden geladen. Danach läuft das Spiel offline.',
 		rotate:'Bitte Gerät ins Querformat drehen.',
 		install:'⇩ Als App installieren',
 		ldRest:'noch', ldRecv:'Signal wird empfangen', ldPrep:'Daten werden entschlüsselt',
@@ -875,7 +1198,7 @@ var I18N = {
 		gsTitle:'▚ SCHNELL-EINSTELLUNGEN ▚', gsAuto:'AUTO-FEUER', gsDuck:'HALTUNG WECHSELN',
 		gsNade:'GRANATE WECHSELN', gsFs:'VOLLBILD', gsHelp:'HILFE ANZEIGEN', gsClose:'SCHLIESSEN',
 		gsBright:'HELLIGKEIT', bright0:'NORMAL', bright1:'HELL', bright2:'SEHR HELL',
-		gsHud:'HUD-GROESSE', hud0:'STANDARD', hud1:'GROSS', hud2:'SEHR GROSS',
+		gsHud:'HUD-GRÖSSE', hud0:'STANDARD', hud1:'GROSS', hud2:'SEHR GROSS',
 		on:'AN', off:'AUS',
 		pchint1:'WASD Bewegen · UMSCHALT Sprint · ALT Haltung · LEERTASTE Springen',
 		pchint2:'Maus Umsehen · Linksklick FEUER · Rechtsklick Zielen',
@@ -889,23 +1212,23 @@ var I18N = {
 		again:'▶ NOCHMAL', lobby:'⌂ ZUR LOBBY',
 		statTab:'STATISTIK', boardTab:'SCOREBOARD',
 		rankTab:'BESTENLISTE', colRound:'RUNDE', rankAus:'Bestenliste und Fortschritt sind aus.',
-		rankAnBtn:'AKTIVIEREN', rankLaedt:'Laedt ...', rankLeer:'Noch keine Eintraege.',
+		rankAnBtn:'AKTIVIEREN', rankLaedt:'Lädt …', rankLeer:'Noch keine Einträge.',
 		rankFehler:'Nicht erreichbar.', rankNochmal:'ERNEUT VERSUCHEN', rankPlatz:'Platz',
 		rankWeitere:'weitere',
-		rankPruefung:'Lauf wird geprueft.', rankAbgelehnt:'Lauf nicht gewertet.',
+		rankPruefung:'Lauf wird geprüft.', rankAbgelehnt:'Lauf nicht gewertet.',
 		rankFremd:'Konto und Bestenliste: auf totersignal.de spielen.',
 		gsKonto:'KONTO & ERFOLGE', gsSet:'STEUERUNG & BILD',
 		setTitle:'EINSTELLUNGEN', set_sens:'EMPFINDLICHKEIT', set_invy:'Y-ACHSE UMKEHREN',
-		set_aim:'ZIELHILFE', set_btnsize:'KNOPFGROESSE', set_btnalpha:'KNOPF-DECKKRAFT',
-		set_lefty:'LINKSHAENDER', set_qualitaet:'SPARSAM (FLUESSIGER)',
-		set_hud:'HUD-GROESSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
+		set_aim:'ZIELHILFE', set_btnsize:'KNOPFGRÖSSE', set_btnalpha:'KNOPF-DECKKRAFT',
+		set_lefty:'LINKSHÄNDER', set_qualitaet:'SPARSAM (FLÜSSIGER)',
+		set_hud:'HUD-GRÖSSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
-		accLevel:'Stufe', accBisLevel:'XP bis zur naechsten Stufe',
-		accStats:'Zahlen', accRuns:'Laeufe', accBestRound:'Beste Runde',
+		accLevel:'Stufe', accBisLevel:'XP bis zur nächsten Stufe',
+		accStats:'Zahlen', accRuns:'Läufe', accBestRound:'Beste Runde',
 		accBestScore:'Bester Punktestand', accAch:'Erfolge',
 		accGesperrt:'noch nicht erreichbar',
-		waves1:'RUNDE UEBERLEBT', wavesN:'RUNDEN UEBERLEBT',
-		stKills:'KILLS', stHeads:'KOPFSCHUESSE', stQuota:'KOPF-QUOTE',
+		waves1:'RUNDE ÜBERLEBT', wavesN:'RUNDEN ÜBERLEBT',
+		stKills:'KILLS', stHeads:'KOPFSCHÜSSE', stQuota:'KOPF-QUOTE',
 		stPoints:'PUNKTE', stDowns:'DOWNS', stRevs:'WIEDERBELEBT',
 		colName:'NAME', colHeads:'KOPF', timeLbl:'ZEIT',
 		update:'⟳ Neue Version — tippen zum Laden',
@@ -928,8 +1251,41 @@ var I18N = {
 		joinNoNet: 'Lookup failed — no connection.',
 		joinNoCode: 'Nobody knows that code (or it expired).',
 		joinLook: 'Looking up code …',
-		joinTitle: 'JOIN SERVER',
-		joinHint: 'Enter the host code — or a full server address.',
+		joinTitle: 'JOIN GAME',
+		joinHint: 'Enter the host\'s code — or a full server address.',
+		hostTitle: 'HOST GAME',
+		hostHint: 'Share this code. Whoever enters it lands in your match.',
+		hostCopy: 'COPY CODE',
+		hostShare: 'SHARE INVITE',
+		hostGo: 'CHOOSE MAP',
+		hostCopied: 'Copied.',
+		hostLinkCopied: 'Invite link copied.',
+		hostNoCopy: 'Copy failed — type the code by hand.',
+		hostChip: 'CODE',
+		lobbyGo: 'LOS GEHT\'S',
+		lobbyOne: '1 Spieler',
+		lobbyN: '{n} Spieler',
+		lobbyWait: 'Warte auf den Gastgeber …',
+		joinOpen: 'Beitritt bis Runde {n}',
+		joinLast: 'Letzte Runde zum Beitreten',
+		specWait: 'Du schaust zu — bei der naechsten Runde bist du dabei.',
+		joinedLate: 'In Runde {n} eingestiegen.',
+		browseTitle: 'OFFENE RUNDEN',
+		browseHint: 'Runden, denen du gerade beitreten kannst.',
+		browseRefresh: 'NEU LADEN',
+		browseHost: 'SELBST ANBIETEN',
+		browseLoad: 'Wird gesucht …',
+		browseEmpty: 'Gerade bietet niemand eine Runde an.\nEröffne selbst eine — dein Code lässt sich als Link teilen.',
+		browseErr: 'Die Liste ist nicht erreichbar. Mit einem Code geht es trotzdem.',
+		browseRound: 'Runde {n}',
+		browseWaiting: 'wartet',
+		hostPublic: 'ÖFFENTLICH SICHTBAR',
+		hostPublicOn: 'AN',
+		hostPublicOff: 'AUS',
+		hostPublicNeedsAcc: 'Dafür wird ein Konto angelegt.',
+		hostLeft: 'The host ended the match.',
+		joinLost: 'Lost connection to the host.',
+		joinWatch: 'You are spectating until the round ends.',
 		joinGo: 'CONNECT',
 		joinBad: 'That does not look like a server address.',
 		close: 'CANCEL',
@@ -1303,7 +1659,14 @@ var TS_API = {
 
 	async call(pfad, opt){
 		opt = opt || {};
-		var kopf = Object.assign({ 'Content-Type': 'application/json' }, opt.headers || {});
+		// Content-Type NUR mit Rumpf. Fastify weist eine Anfrage ab, die
+		// application/json ankuendigt und nichts mitschickt ("Body cannot be
+		// empty when content-type is set") -- ein DELETE ohne Rumpf waere
+		// damit zuverlaessig 400 geworden. Am 2026-08-29 an der Live-API
+		// nachgemessen, bevor es hier landete.
+		var kopf = Object.assign({}, opt.headers || {});
+		if (opt.body !== undefined && kopf['Content-Type'] === undefined)
+			kopf['Content-Type'] = 'application/json';
 		if (opt.auth !== false) kopf.Authorization = 'Bearer ' + await this.token();
 		var r = await fetch(this.base + pfad, {
 			method: opt.method || 'GET', credentials: 'same-origin', headers: kopf,
@@ -1409,6 +1772,7 @@ var TS_RUN = {
 	beats: [],           // gepuffert, bis der Server eine Kennung geliefert hat
 	gesendet: 0,
 	meta: null,          // aus dmeta
+	maxSpieler: 1,       // hoechste Spielerzahl waehrend des Laufs (aus TSUI:mp)
 	letztesErgebnis: null,
 
 	onStart: function(roh){
@@ -1418,6 +1782,7 @@ var TS_RUN = {
 		if (seq === this.seq) return;          // derselbe Lauf, nichts zu tun
 		this.seq = seq;
 		this.lauf = null; this.beats = []; this.gesendet = 0; this.meta = null;
+		this.maxSpieler = 1;
 		this.cfg = {
 			map_key: p[0] || 'unbekannt',
 			difficulty: +p[1] || 0, gamemode: +p[2] || 0,
@@ -1426,7 +1791,8 @@ var TS_RUN = {
 		if (!TS_ORIGIN_OK || !TS_API.hatKonto()) return;   // ohne Konto kein Server-Lauf
 		var self = this;
 		TS_API.call('/runs/start', { method: 'POST', body: Object.assign({
-			map_pretty: '', player_count: 1, aim_assist: 1, shell_build: TS_BUILD
+			map_pretty: '', player_count: Math.max(1, this.maxSpieler || 1),
+			aim_assist: 1, shell_build: TS_BUILD
 		}, this.cfg) }).then(function(j){
 			self.lauf = j;
 			self.flushBeats();
@@ -1480,10 +1846,19 @@ var TS_RUN = {
 	},
 
 	onMeta: function(roh){
-		// <cheat>|<diff|mode|startround|flags>|<mapkey>
+		// <cheat>|<diff>|<mode>|<startround>|<flags>|<mapkey>
+		//
+		// flags wurde bis 2026-08-29 NICHT gelesen -- und darin steckt Bit 3,
+		// das der SERVER setzt, sobald mehr als ein Spieler dabei ist
+		// (ts_flag_bits, server/main.qc). Ohne dieses Feld erreichte die
+		// Koop-Kennung die API nie, und ein Vierer-Lauf konnte auf der
+		// SOLO-Bestenliste landen. Der Wert kommt aus dem Spiel, nicht aus
+		// der Shell -- er ist damit die vertrauenswuerdigere Quelle.
 		var p = String(roh).split('|');
 		this.meta = { cheat: p[0] === '1' ? 1 : 0,
-			difficulty: +p[1] || 0, gamemode: +p[2] || 0, map_key: p[5] || (this.cfg && this.cfg.map_key) };
+			difficulty: +p[1] || 0, gamemode: +p[2] || 0,
+			start_round: +p[3] || 0, flags: +p[4] || 0,
+			map_key: p[5] || (this.cfg && this.cfg.map_key) };
 	},
 
 	// Wird aus TS_DEATH.setStats gerufen -- dort liegen alle Endwerte vor.
@@ -1495,7 +1870,13 @@ var TS_RUN = {
 			difficulty: this.meta ? this.meta.difficulty : (this.cfg ? this.cfg.difficulty : 0),
 			gamemode:   this.meta ? this.meta.gamemode   : (this.cfg ? this.cfg.gamemode : 0),
 			map_key:    this.meta ? this.meta.map_key    : (this.cfg ? this.cfg.map_key : 'unbekannt'),
-			cheat:      this.meta ? this.meta.cheat : 0
+			cheat:      this.meta ? this.meta.cheat : 0,
+			// Beides ENTSCHEIDET ueber die Wertung und wurde bisher nicht
+			// gemeldet: die Shell schickte hart player_count 1, und flags kam
+			// gar nicht an. Ein Koop-Lauf war damit von einem Solo-Lauf nicht
+			// zu unterscheiden.
+			flags:        this.meta ? this.meta.flags : (this.cfg ? this.cfg.flags : 0),
+			player_count: Math.max(1, this.maxSpieler || 1)
 		};
 		var self = this;
 		// Gemeldete Erfolge mitschicken. Der Server nimmt davon NUR die Art
@@ -1572,7 +1953,7 @@ var TS_BOARD = {
 		}
 		if (!TS_API.hatKonto()){
 			ziel.innerHTML = '<div class="dfoot">' + T('rankAus') + '</div>' +
-				'<div class="death-actions"><span class="play" id="rankAn">' + T('rankAnBtn') + '</span></div>';
+				'<div class="death-actions"><button type="button" class="play" id="rankAn">' + T('rankAnBtn') + '</button></div>';
 			var b = document.getElementById('rankAn');
 			if (b) b.addEventListener('click', async function(){
 				b.textContent = '...';
@@ -1601,7 +1982,7 @@ var TS_BOARD = {
 			ziel.innerHTML = '<div class="dfoot">' + T('rankFehler') + '</div>' +
 				// .alt, nicht der rote Hauptknopf: sonst stehen drei leuchtende
 				// Knoepfe untereinander und der Blick findet NOCHMAL nicht mehr.
-				'<div class="death-actions"><span class="play alt" id="rankNeu">' + T('rankNochmal') + '</span></div>';
+				'<div class="death-actions"><button type="button" class="play alt" id="rankNeu">' + T('rankNochmal') + '</button></div>';
 			var w = document.getElementById('rankNeu');
 			if (w) w.addEventListener('click', function(){ TS_BOARD.laden(); });
 		}
@@ -1773,7 +2154,7 @@ var TS_KONTO = {
 		if (!TS_ORIGIN_OK){ ziel.innerHTML = '<p class="ts-sub">' + T('rankFremd') + '</p>'; return; }
 		if (!TS_API.hatKonto()){
 			ziel.innerHTML = '<p class="ts-sub">' + T('accAus') + '</p>' +
-				'<div class="death-actions"><span class="play" id="acc-an">' + T('rankAnBtn') + '</span></div>';
+				'<div class="death-actions"><button type="button" class="play" id="acc-an">' + T('rankAnBtn') + '</button></div>';
 			var b = document.getElementById('acc-an');
 			if (b) b.addEventListener('click', async function(){
 				b.textContent = '...';
@@ -2116,12 +2497,28 @@ function enterImmersive()
 	if (screen.orientation && screen.orientation.lock)
 		screen.orientation.lock('landscape').catch(function(){});
 }
+// Liegt gerade ein Overlay vor dem Spiel? EINE Wahrheit dafuer -- vorher
+// leitete sich jede Stelle das aus dem Inline-Stil eines einzelnen Overlays
+// ab. Wird von Phase U-A (TS_OVL) uebernommen, sobald es sie gibt.
+var TS_OVERLAYS = ['mstart','loadscreen','deathui','accountui','settingsui','joinui','lobbyui','browseui'];
+function overlayOffen(){
+	for (var i = 0; i < TS_OVERLAYS.length; i++){
+		var e = document.getElementById(TS_OVERLAYS[i]);
+		if (e && e.style.display && e.style.display !== 'none') return true;
+	}
+	return false;
+}
 function updateOrient()
 {	if (!IS_TOUCH) return;
 	var portrait = window.matchMedia('(orientation: portrait)').matches;
 	var r = document.getElementById('rotate');
 	var tui = document.getElementById('touchui');
-	r.style.display = (portrait && Module.began) ? 'flex' : 'none';   // only nag once playing
+	// Der Dreh-Hinweis gilt dem SPIELEN. Wer eine Auswertung, sein Konto oder
+	// die Einstellungen offen hat, liest die auch hochkant -- und der Hinweis
+	// hat dort nichts zu suchen. Frueher lag er ausserdem UEBER dem
+	// Todesbildschirm (geerbte z-index 50 gegen dessen 45): das Drehen des
+	// Handys nach dem Tod loeschte die Auswertung ersatzlos.
+	r.style.display = (portrait && Module.began && !overlayOffen()) ? 'flex' : 'none';
 	if (window.TS_CTRL) TS_CTRL.applyVisibility();                    // HUD nur im Spiel + Querformat
 }
 window.addEventListener('resize', updateOrient);
@@ -2156,13 +2553,27 @@ var TS_JOIN = {
 	// Erlaubt ist nur, was eine Serveradresse sein kann -- kein Leerzeichen,
 	// kein Semikolon, kein Zeilenumbruch.
 	gueltig: function(a){
-		return /^(wss?:\/\/)?[A-Za-z0-9.\-]{1,253}(:\d{1,5})?(\/[A-Za-z0-9._~\-\/]*)?$/.test(String(a || ''));
+		a = String(a || '');
+		// Raum am eigenen Vermittler: fuehrender Schraegstrich, sonst nichts.
+		// Die RELATIVE Form ist Pflicht. `connect rtc://host/raum` erzeugt in
+		// der Engine einen ANDEREN Raumnamen als der Gastgeber registriert
+		// (sie haengt den Pfad ein zweites Mal an) -- am 2026-08-24 aus dem
+		// Quelltext gelesen und mit der relativen Form gegengeprueft.
+		//
+		// Das alte Muster hat genau diese Form ABGEWIESEN: es verlangte
+		// mindestens ein Zeichen vor jedem Schraegstrich. Der einzige Weg,
+		// der nachweislich funktioniert, war also gesperrt.
+		if (/^\/[A-Za-z0-9_\-]{1,32}$/.test(a)) return true;
+		return /^(wss?:\/\/)?[A-Za-z0-9.\-]{1,253}(:\d{1,5})?(\/[A-Za-z0-9._~\-\/]*)?$/.test(a);
 	},
 
 	zeigen: function(){
 		var el = document.getElementById('joinui'); if (!el) return;
 		var f  = document.getElementById('join-adr');
 		try { f.value = localStorage.getItem(this.SCHLUESSEL) || ''; } catch(e){}
+		// Wer ueber einen Einladungslink kam, soll den Code nicht suchen
+		// muessen -- er schlaegt die zuletzt getippte Adresse.
+		if (window.__ts_raumEinladung) f.value = window.__ts_raumEinladung;
 		document.getElementById('join-fehler').textContent = '';
 		el.style.display = 'flex';
 		setTimeout(function(){ try { f.focus(); } catch(e){} }, 60);
@@ -2184,19 +2595,31 @@ var TS_JOIN = {
 
 		var adresse = e;
 
-		// Kurzer Code -> beim Backend nachschlagen. Eine vollstaendige Adresse
-		// bleibt weiterhin erlaubt: wer einen Server direkt kennt, tippt ihn.
+		// Ein kurzer Code kann ZWEIERLEI sein:
+		//
+		//  1. Der Raum eines Freundes, der gerade im Browser anbietet. Dann
+		//     IST der Code die Adresse -- der Gastgeber hat ihn als
+		//     sv_public "/<code>" beim Vermittler angemeldet, und `connect
+		//     /<code>` trifft genau diesen Raum. Dafuer braucht es kein
+		//     Backend, und das ist der haeufige Fall.
+		//  2. Ein eingetragener Dauer-Server. Den kennt nur die API.
+		//
+		// Deshalb erst nachschlagen, dann direkt verbinden. Kennt die API den
+		// Code nicht (404) oder ist gar keine Verbindung da, ist das KEIN
+		// Fehler mehr, sondern der Normalfall -- frueher endete der Beitritt
+		// hier mit "Diesen Code kennt niemand".
 		if (this.istCode(e)) {
+			var code = e.toUpperCase().replace(/[^A-Z2-9]/g, '');
+			adresse = '/' + code;              // Rueckfall: der Raum selbst
 			fe.textContent = T('joinLook');
 			try {
-				var code = e.toUpperCase().replace(/[^A-Z2-9]/g, '');
-				var r = await fetch('/api/spiel/' + encodeURIComponent(code), { credentials: 'omit' });
-				if (!r.ok) { fe.textContent = T('joinNoCode'); return; }
-				var d = await r.json();
-				adresse = d.adresse;
-			} catch (err) {
-				fe.textContent = T('joinNoNet'); return;
-			}
+				var r = await fetch('/api/spiel/' + encodeURIComponent(code),
+					{ credentials: 'omit', signal: AbortSignal.timeout(2500) });
+				if (r.ok) {
+					var d = await r.json();
+					if (d && d.adresse) adresse = d.adresse;
+				}
+			} catch (err) { /* offline oder unbekannt -> Raum direkt versuchen */ }
 		}
 
 		// Auch die vom Server gelieferte Adresse wird geprueft: sie wandert in
@@ -2206,6 +2629,11 @@ var TS_JOIN = {
 		try { localStorage.setItem(this.SCHLUESSEL, e); } catch(e2){}
 		fe.textContent = '';        // "wird nachgeschlagen" nicht stehen lassen
 		this.schliessen();
+		// Auch der Gast merkt sich den Raumcode: solange das Einstiegsfenster
+		// offen ist, kann er selbst noch jemanden nachholen. Nur bei einem
+		// echten Raum (/CODE), nicht bei einer Serveradresse.
+		if (window.TS_LOBBY && /^\/[A-Z2-9]{4,12}$/.test(adresse))
+			TS_LOBBY.code = adresse.slice(1);
 		if (window.tsCmd) tsCmd('connect ' + adresse + '\n');
 	},
 
@@ -2219,7 +2647,432 @@ var TS_JOIN = {
 		if (f)   f.addEventListener('keydown', function(e){ if (e.key === 'Enter') self.verbinden(); });
 	}
 };
+
+// ---- Offene Runden --------------------------------------------------------
+// Die Liste zeigt AUSSCHLIESSLICH echte Raeume: offen, kuerzlich gesehen, mit
+// freiem Platz. Erfundene Eintraege gaebe es hier nie -- wer darauf tippt,
+// liefe in eine Verbindung, die nicht zustande kommt, und das ist kein
+// belebtes Spiel, sondern ein kaputtes. Ist nichts da, sagt der Leerzustand
+// genau das und bietet den einzigen Weg an, der dann hilft: selbst anbieten.
+var TS_BROWSE = {
+	zeigen: function(){
+		var el = document.getElementById('browseui'); if (!el) return;
+		el.style.display = 'flex';
+		this.laden();
+	},
+	schliessen: function(){
+		var el = document.getElementById('browseui'); if (el) el.style.display = 'none';
+	},
+
+	laden: async function(){
+		var box = document.getElementById('browse-liste'); if (!box) return;
+		box.innerHTML = '<p class="br-leer">' + T('browseLoad') + '</p>';
+		// Der iframe-Spiegel spricht bewusst nie mit der API (TS_ORIGIN_OK).
+		if (!TS_ORIGIN_OK){ this.leer(T('browseErr')); return; }
+		try {
+			var r = await fetch('/api/raeume', { credentials: 'omit',
+				signal: AbortSignal.timeout(6000) });
+			if (!r.ok) throw new Error('http ' + r.status);
+			var d = await r.json();
+			this.zeichnen((d && d.raeume) || []);
+		} catch(e){ this.leer(T('browseErr')); }
+	},
+
+	leer: function(text){
+		var box = document.getElementById('browse-liste');
+		if (box) box.innerHTML = '<p class="br-leer">' +
+			String(text).split('\n').map(function(z){
+				return z.replace(/[&<>]/g, function(c){
+					return { '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]; }); }).join('<br>') + '</p>';
+	},
+
+	zeichnen: function(raeume){
+		var box = document.getElementById('browse-liste'); if (!box) return;
+		if (!raeume.length){ this.leer(T('browseEmpty')); return; }
+		box.innerHTML = '';
+		var self = this;
+		raeume.forEach(function(r){
+			// Jede Zeile ist ein echter <button>: sonst waere die Liste per
+			// Tastatur unerreichbar -- derselbe Fehler wie einst im Start-Gate.
+			var b = document.createElement('button');
+			b.type = 'button'; b.className = 'br-zeile';
+			var name = document.createElement('span');
+			name.className = 'br-name';
+			// textContent, nicht innerHTML: Name und Gastgeber kommen von
+			// einem fremden Spieler und sind Daten, kein Markup.
+			//
+			// `name` traegt den deutschen KARTENNAMEN -- der Gastgeber schickt
+			// ihn beim Eintragen mit (TS_WEITER.name aus TSUI:rname). Eine
+			// eigene Zuordnung bsp -> Anzeigename in der Shell waere die
+			// vierte Kopie derselben Liste; die Doppelung von wip_maps ist
+			// schon eine zu viel.
+			name.textContent = r.name || ('RAUM ' + r.code);
+			var karte = document.createElement('span');
+			karte.className = 'br-karte';
+			karte.textContent = r.host_name || '';
+			var runde = document.createElement('span');
+			runde.className = 'br-runde';
+			runde.textContent = (r.status === 'laeuft' && r.runde)
+				? T('browseRound').replace('{n}', r.runde) : T('browseWaiting');
+			var zahl = document.createElement('span');
+			zahl.className = 'br-zahl';
+			zahl.textContent = r.spieler + '/' + r.max_spieler;
+			b.appendChild(name); b.appendChild(karte); b.appendChild(runde); b.appendChild(zahl);
+			b.addEventListener('click', function(){ self.beitreten(r.code); });
+			box.appendChild(b);
+		});
+	},
+
+	beitreten: function(code){
+		if (!/^[A-Z2-9]{4,12}$/.test(String(code))) return;   // landet in einer Konsolenzeile
+		this.schliessen();
+		if (window.TS_LOBBY) TS_LOBBY.code = code;
+		if (window.tsCmd)
+			tsCmd('net_ice_broker "' + TS_VERMITTLER + '"\nconnect /' + code + '\n');
+	},
+
+	start: function(){
+		var self = this;
+		var an = function(id, fn){ var e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
+		an('browse-neu',  function(){ self.laden(); });
+		an('browse-zu',   function(){ self.schliessen(); });
+		an('browse-host', function(){ self.schliessen(); if (window.TS_LOBBY) TS_LOBBY.zeigen(); });
+	}
+};
+
+// ---- Spiel anbieten -------------------------------------------------------
+// Der Browser KANN Gastgeber sein -- am 2026-08-24 am gepinnten Build
+// gemessen. Die Engine meldet den Raum bei unserem Vermittler an
+// (systemd ts-broker hinter nginx), ein zweiter Browser verbindet sich mit
+// `connect /<code>`, und danach laeuft das Spiel DIREKT zwischen den beiden.
+//
+// Warum der Code hier entsteht und nicht im Menue: er muss angezeigt,
+// kopiert, geteilt und beim Beitritt wieder gelesen werden. Cvars sind aus
+// JS nicht LESBAR -- wer ihn anzeigen soll, muss ihn also besitzen. Die Shell
+// erzeugt ihn, schiebt ihn als `ts_raum` in die Engine und ruft `ts_koop`;
+// Menu_StartCoop baut daraus sv_public "/<code>".
+var TS_LOBBY = {
+	// Dasselbe Alphabet wie server/scripts/spielserver-anmelden.mjs: ohne
+	// O, I, L, S, 0 und 1 -- von jedem am Telefon verwechselbaren Paar bleibt
+	// genau einer uebrig. Die 5 darf deshalb bleiben, das S ist ja fort.
+	// 30^6 = 729 Millionen Codes; fuer einen Raum, der eine Partie lang lebt,
+	// reichlich.
+	ALPHABET: 'ABCDEFGHJKMNPQRTUVWXYZ23456789',
+	code: null,
+	aktiv: false,          // wir bieten gerade an
+	oeffentlich: false,    // in der oeffentlichen Liste sichtbar?
+	raumToken: null,       // fuer Herzschlag und Schliessen
+	nameGemeldet: false,   // Kartenname schon nachgetragen?
+
+	erzeugen: function(){
+		var a = this.ALPHABET, c = '', i;
+		// crypto statt Math.random: der Code ist zwar kein Geheimnis, aber ein
+		// vorhersagbarer waere ein Weg in fremde Runden.
+		var r = new Uint32Array(6);
+		(window.crypto || window.msCrypto).getRandomValues(r);
+		for (i = 0; i < 6; i++) c += a.charAt(r[i] % a.length);
+		return c;
+	},
+
+	// ABC-234 liest sich am Telefon besser als ABC234.
+	huebsch: function(c){ return c ? c.slice(0, 3) + '-' + c.slice(3) : ''; },
+	link: function(){
+		return location.origin + location.pathname + '?raum=' + this.huebsch(this.code);
+	},
+
+	zeigen: function(){
+		var el = document.getElementById('lobbyui'); if (!el) return;
+		if (!this.code) this.code = this.erzeugen();
+		this.codeZeichnen();
+		document.getElementById('raum-meldung').textContent = '';
+		this.schalterZeichnen();
+		el.style.display = 'flex';
+		var b = document.getElementById('raum-los');
+		setTimeout(function(){ try { b.focus(); } catch(e){} }, 60);
+	},
+
+	// Jedes Zeichen einzeln, leicht versetzt: der Code wird empfangen, nicht
+	// hingeschrieben. Reine Deko -- ohne die Animation steht derselbe Text da,
+	// und bei prefers-reduced-motion ist sie per CSS abgeschaltet.
+	codeZeichnen: function(){
+		var el = document.getElementById('raum-code'); if (!el) return;
+		var t = this.huebsch(this.code);
+		el.textContent = '';
+		// Fuer Vorlesewerkzeuge bleibt der Code EIN Wort -- 7 einzelne
+		// Buchstaben-Elemente wuerden sie ihn buchstabieren lassen.
+		el.setAttribute('aria-label', t.split('').join(' '));
+		for (var i = 0; i < t.length; i++){
+			var sp = document.createElement('span');
+			sp.textContent = t.charAt(i);
+			sp.style.animationDelay = (i * 55) + 'ms';
+			el.appendChild(sp);
+		}
+	},
+
+	schliessen: function(){
+		var el = document.getElementById('lobbyui'); if (el) el.style.display = 'none';
+	},
+
+	melden: function(k){
+		var m = document.getElementById('raum-meldung'); if (m) m.textContent = T(k);
+	},
+
+	// --- Oeffentliche Sichtbarkeit ------------------------------------------
+	// Vorgabe AUS. Wer mit Freunden spielt, will nicht, dass Fremde
+	// hereinschneien -- und der Code allein reicht dafuer voellig. Eintragen
+	// braucht ein Konto, weil sonst niemand fuer den Eintrag geradesteht;
+	// angelegt wird es genau hier, aus einer ausdruecklichen Handlung heraus.
+	schalterZeichnen: function(){
+		var l = document.getElementById('raum-oeff-label');
+		var b = document.getElementById('raum-oeff');
+		if (!l || !b) return;
+		l.textContent = T('hostPublic');
+		b.textContent = this.oeffentlich ? T('hostPublicOn') : T('hostPublicOff');
+		b.classList.toggle('an', this.oeffentlich);
+		b.setAttribute('aria-pressed', this.oeffentlich ? 'true' : 'false');
+		// Im iframe-Spiegel gibt es keine API -- dann ist der Schalter eine
+		// Zusage, die niemand halten kann.
+		var z = document.getElementById('raum-oeff-zeile');
+		if (z) z.style.display = TS_ORIGIN_OK ? 'flex' : 'none';
+	},
+
+	oeffentlichSchalten: async function(){
+		if (!TS_ORIGIN_OK) return;
+		if (this.oeffentlich){                       // ausschalten: Eintrag zurueckziehen
+			this.oeffentlich = false; this.schalterZeichnen();
+			await this.listeSchliessen();
+			return;
+		}
+		this.melden('browseLoad');
+		try {
+			if (!TS_API.hatKonto()) { this.melden('hostPublicNeedsAcc'); await TS_API.kontoAnlegen(); }
+			await this.eintragen();
+			this.oeffentlich = true;
+			var m = document.getElementById('raum-meldung'); if (m) m.textContent = '';
+		} catch(e){
+			this.oeffentlich = false;
+			this.melden('browseErr');
+		}
+		this.schalterZeichnen();
+	},
+
+	// Eintragen und auffrischen sind derselbe Aufruf -- der Server macht
+	// daraus ein Einfuegen oder eine Aktualisierung.
+	eintragen: async function(spieler, runde){
+		var j = await TS_API.call('/raum', { method: 'POST', body: {
+			code: this.code,
+			// Der deutsche Kartenname kommt aus TSUI:rname -- eine eigene
+			// bsp->Name-Zuordnung in der Shell waere die vierte Kopie
+			// derselben Liste.
+			name: (window.TS_WEITER && TS_WEITER.name) || null,
+			map_key: (window.TS_RUN && TS_RUN.cfg && TS_RUN.cfg.map_key) || null,
+			max_spieler: 4,
+			spieler: spieler || 1,
+			runde: runde || 0
+		}});
+		// Nur beim ERSTEN Eintragen liefert der Server ein Token; beim
+		// Auffrischen behalten wir unseres. Ein Ueberschreiben mit undefined
+		// haette genau das Schliessen kaputtgemacht.
+		if (j && j.raum_token) this.raumToken = j.raum_token;
+		return j;
+	},
+
+	// Herzschlag: ohne ihn faellt der Raum nach zwei Minuten aus der Liste --
+	// das ist Absicht, damit dort keine Runden stehen, die es nicht mehr gibt.
+	stand: async function(spieler, runde, laeuft){
+		if (!this.oeffentlich || !this.raumToken || !this.code) return;
+		try {
+			await TS_API.call('/raum/' + this.code, { method: 'PATCH',
+				headers: { 'X-Raum-Token': this.raumToken },
+				body: { spieler: spieler, runde: runde, status: laeuft ? 'laeuft' : 'offen' } });
+		} catch(e){ /* eine verpasste Meldung ist kein Grund, das Spiel zu stoeren */ }
+	},
+
+	listeSchliessen: async function(){
+		if (!this.raumToken || !this.code) return;
+		var c = this.code, t = this.raumToken;
+		this.raumToken = null;
+		try { await TS_API.call('/raum/' + c, { method: 'DELETE', headers: { 'X-Raum-Token': t } }); }
+		catch(e){ /* laeuft ohnehin ab */ }
+	},
+
+	kopieren: async function(was, meldung){
+		try {
+			await navigator.clipboard.writeText(was);
+			this.melden(meldung);
+		} catch(e){
+			// Zwischenablage scheitert ohne sicheren Kontext oder ohne Geste.
+			// Dann bleibt der Code trotzdem lesbar auf dem Schirm stehen --
+			// ein Fehler, der nichts kaputtmacht, muss auch so klingen.
+			this.melden('hostNoCopy');
+		}
+	},
+
+	teilen: async function(){
+		var l = this.link();
+		if (navigator.share) {
+			try { await navigator.share({ title: 'TOTES SIGNAL', text: T('hostHint'), url: l }); return; }
+			catch(e){ /* abgebrochen ist kein Fehler */ if (e && e.name === 'AbortError') return; }
+		}
+		this.kopieren(l, 'hostLinkCopied');
+	},
+
+	// Karte waehlen: Code in die Engine, dann in die Koop-Kartenwahl.
+	// ALLES in EINEM tsCmd -- jeder cbufadd-Aufruf loest window.focus() aus,
+	// und eine Salve davon reisst auf dem Handy den Finger vom Joystick.
+	starten: function(){
+		if (!this.code) this.code = this.erzeugen();
+		this.aktiv = true;
+		this.schliessen();
+		// ts_lobby haelt Runde 1 an, bis der Gastgeber LOS GEHT'S drueckt.
+		// Ohne das haetten Freunde rund elf Sekunden Zeit, den Code
+		// einzutippen und die Karte zu laden -- danach waeren sie Zuschauer
+		// in ihrer eigenen Runde (PutClientInServer spawnt nur als Spieler,
+		// solange `rounds` 0 ist).
+		// `set` statt `ts_lobby 1`: die Cvar wird erst vom SERVER-QuakeC
+		// registriert, existiert im Menue also noch gar nicht -- und eine
+		// unbekannte Cvar ist fuer die Konsole ein unbekannter BEFEHL,
+		// lautlos wirkungslos. `set` legt sie an. Derselbe Grund wie bei
+		// ts_raum.
+		if (window.tsCmd) tsCmd('set ts_raum "' + this.code + '"\nset ts_lobby 1\nts_koop\n');
+		this.chip();
+	},
+
+	// Der Code bleibt waehrend der angebotenen Runde sichtbar -- sonst muesste
+	// der Gastgeber das Spiel verlassen, um ihn nachzusehen.
+	chip: function(){
+		var c = document.getElementById('raumchip'); if (!c) return;
+		var imSpiel = document.getElementById('mstart').style.display === 'none';
+		c.textContent = T('hostChip') + ' ' + this.huebsch(this.code);
+		c.style.display = (this.aktiv && this.code && imSpiel) ? 'block' : 'none';
+	},
+
+	// Zustand aus TSUI:mp:<anzahl>|<lobby>. Die Shell kann beides nicht selbst
+	// wissen: player_count lebt in CSQC, und ts_lobby steht als Cvar nur auf
+	// der Maschine des Gastgebers -- deshalb reist es als serverinfo mit.
+	// TSUI:mp:<anzahl>|<lobby>|<runde>|<fenster>|<ichZuschauer>
+	//
+	// Vier Zustaende, eine Leiste:
+	//   1. Lobby        -- Code, Spielerzahl, LOS GEHT'S (nur Gastgeber)
+	//   2. Einstieg auf -- Code, Spielerzahl, "Beitritt bis Runde N"
+	//   3. Ich schaue zu-- Hinweis, dass es zur naechsten Runde weitergeht
+	//   4. sonst        -- Leiste weg, nur der Code-Streifen bleibt
+	mp: function(roh){
+		var p = String(roh).split('|');
+		var n         = +p[0] || 0;
+		var inLobby   = (+p[1] === 1);
+		var runde     = +p[2] || 0;
+		var fenster   = +p[3] || 0;
+		var zuschauer = (+p[4] === 1);
+		this.spieler = n; this.runde = runde;
+		// Stand melden, solange wir selbst anbieten und sichtbar sein wollen.
+		if (this.aktiv) {
+			// Beim Eintragen war die Karte noch nicht gewaehlt -- der Eintrag
+			// hiess deshalb "RAUM WFNYKK" statt "Nacht der Untoten". Sobald
+			// der Kartenname da ist, EINMAL neu eintragen (der Endpunkt
+			// aktualisiert denselben Code) und danach nur noch Herzschlaege.
+			if (this.oeffentlich && !this.nameGemeldet &&
+			    window.TS_WEITER && TS_WEITER.name) {
+				this.nameGemeldet = true;
+				this.eintragen(n, runde).catch(function(){});
+			} else {
+				this.stand(n, runde, !inLobby);
+			}
+		}
+
+		var bar  = document.getElementById('lobbybar'); if (!bar) return;
+		var chip = document.getElementById('raumchip');
+		var code = document.getElementById('lb-code');
+		var zahl = document.getElementById('lb-zahl');
+		var los  = document.getElementById('lb-los');
+		var zeig = function(){ if (chip) chip.style.display = 'none'; bar.classList.add('an'); };
+
+		// 3. Zuschauer: das Wichtigste ist, dass es NICHT kaputt ist. Ohne
+		//    diesen Satz sieht der Beitretende eine Kamera, die sich nicht
+		//    steuern laesst, und haelt das fuer einen Fehler.
+		if (zuschauer) {
+			bar.classList.add('gast'); bar.classList.remove('einstieg');
+			code.textContent = T('specWait');
+			zahl.textContent = n === 1 ? T('lobbyOne') : T('lobbyN').replace('{n}', n);
+			zeig(); return;
+		}
+
+		// 1. Lobby
+		if (inLobby) {
+			bar.classList.remove('einstieg');
+			code.textContent = this.code ? T('hostChip') + ' ' + this.huebsch(this.code)
+			                             : T('lobbyWait');
+			zahl.textContent = n === 1 ? T('lobbyOne') : T('lobbyN').replace('{n}', n);
+			los.textContent  = T('lobbyGo');
+			// Nur der Gastgeber darf starten -- ein Gast, der den Knopf saehe,
+			// wuerde ihn druecken, und nichts geschaehe.
+			bar.classList.toggle('gast', !this.aktiv);
+			zeig(); return;
+		}
+
+		// 2. Einstiegsfenster: solange es offen ist, lohnt es sich, den Code
+		//    noch zu verschicken. Danach waere die Leiste nur noch Deko.
+		if (this.code && runde >= 1 && fenster >= 1 && runde <= fenster) {
+			bar.classList.add('gast');        // kein Startknopf mehr
+			bar.classList.add('einstieg');
+			code.textContent = T('hostChip') + ' ' + this.huebsch(this.code);
+			zahl.textContent = (runde === fenster) ? T('joinLast')
+			                 : T('joinOpen').replace('{n}', fenster);
+			zeig(); return;
+		}
+
+		// 4. Alles vorbei -- zurueck zum schmalen Streifen.
+		bar.classList.remove('an', 'einstieg');
+		this.chip();
+	},
+
+	losgehts: function(){
+		var bar = document.getElementById('lobbybar');
+		if (bar) bar.classList.remove('an');
+		if (window.tsCmd) tsCmd('set ts_lobby 0\n');
+		this.chip();
+	},
+
+	beenden: function(){
+		// Erst aus der Liste nehmen, dann vergessen -- sonst steht dort eine
+		// Runde, der niemand mehr beitreten kann.
+		this.listeSchliessen();
+		this.oeffentlich = false; this.nameGemeldet = false;
+		this.aktiv = false; this.code = null;
+		var c = document.getElementById('raumchip'); if (c) c.style.display = 'none';
+		var bar = document.getElementById('lobbybar'); if (bar) bar.classList.remove('an');
+		if (window.tsCmd) tsCmd('set ts_raum ""\nset ts_lobby 0\n');
+	},
+
+	start: function(){
+		var self = this;
+		var an = function(id, fn){ var e = document.getElementById(id); if (e) e.addEventListener('click', fn); };
+		an('raum-los',      function(){ self.starten(); });
+		an('raum-zu',       function(){ self.schliessen(); });
+		an('raum-kopieren', function(){ self.kopieren(self.huebsch(self.code), 'hostCopied'); });
+		an('raum-teilen',   function(){ self.teilen(); });
+		an('raumchip',      function(){ self.teilen(); });
+		an('lb-los',        function(){ self.losgehts(); });
+		an('raum-oeff',     function(){ self.oeffentlichSchalten(); });
+		an('lb-code',       function(){ if (self.code) self.teilen(); });
+
+		// Einladungslink: ?raum=ABC-234 fuellt das Beitrittsfeld vor. Ein Code,
+		// den man verschicken kann, ist mehr wert als einer, den man abtippt.
+		// Geprueft wird er mit demselben Muster wie eine Eingabe von Hand --
+		// er wandert am Ende in eine Konsolenzeile.
+		try {
+			var q = new URLSearchParams(location.search).get('raum');
+			if (q && window.TS_JOIN && TS_JOIN.istCode(q)){
+				var f = document.getElementById('join-adr');
+				if (f) f.value = q;
+				window.__ts_raumEinladung = q;
+			}
+		} catch(e){}
+	}
+};
 TS_JOIN.start();
+TS_LOBBY.start();
+TS_BROWSE.start();
 
 // ---- Weiterspielen: der letzte Lauf als Ein-Tipp-Angebot im Start-Gate ----
 // Ein Wiederkehrer brauchte bisher fuenf Interaktionen und zwei Wartezeiten bis

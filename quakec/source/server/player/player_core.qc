@@ -1199,7 +1199,20 @@ void() PutClientInServer =
 		bprint(PRINT_HIGH, " has joined the game.\n");
 	}
 	
-	if (spawn_time > time || !rounds)
+	// EINSTIEGSFENSTER. Wer beitritt, waehrend die Runde schon laeuft, wurde
+	// bisher Zuschauer -- bis zum Rundenende, und in spaeten Runden sind das
+	// Minuten. Fuer ein Spiel, zu dem man Freunde per Code einlaedt, ist das
+	// die falsche Voreinstellung: der Eingeladene sitzt daneben und sieht zu.
+	//
+	// Bis einschliesslich Runde ts_joinround (Vorgabe 3) steigt er als
+	// SPIELER ein. Danach greift wieder der Zuschauermodus -- ab da haetten
+	// Waffen, Perks und Punkte der anderen einen so grossen Vorsprung, dass
+	// ein Neuzugang die Runde eher stoert als bereichert.
+	//
+	// spawn_time deckt zusaetzlich die ersten fuenf Sekunden JEDER Runde ab
+	// (gesetzt in NewRound) -- das bleibt unangetastet.
+	float ts_fenster = cvar("ts_joinround");
+	if (spawn_time > time || !rounds || rounds <= ts_fenster)
 		PlayerSpawn();
 
 #ifdef FTE
