@@ -2619,6 +2619,31 @@ void() HUD_ReviveIcons =
 		if (player_origin == '0 0 32')
 			continue;
 
+		// Liegt der Mitspieler HINTER der Kamera, liefert project() nichts
+		// Brauchbares, und bisher wurde schlicht nichts gezeichnet. Genau das
+		// ist aber der Fall, der zaehlt: wer am Boden liegt, liegt meistens
+		// nicht dort, wohin man gerade schaut. Ohne Zeichen dreht sich niemand
+		// um -- und nach dreissig Sekunden ist er endgueltig unten.
+		//
+		// Dann gehoert das Symbol an den Bildrand, auf die Seite, in die man
+		// sich drehen muss. Dieselbe Rechnung wie HUD_HurtDirection: Weltwinkel
+		// gegen die aktuelle Blickrichtung.
+		//
+		// BEWUSST nur hier und nicht bei den Namensschildern: ein Name am Rand
+		// eines Mitspielers, dem es gutgeht, ist Unruhe. Ein Hilferuf nicht.
+		vector ts_sr0 = HUD_SafeRect();
+		float ts_hinten = (screen_position_z <= 0);
+		if (ts_hinten) {
+			vector ts_blick = getproperty(VF_ANGLES);
+			vector ts_nach  = plr.origin - getproperty(VF_ORIGIN);
+			float ts_rel = vectoyaw(ts_nach) - ts_blick[1];
+			while (ts_rel > 180)   ts_rel -= 360;
+			while (ts_rel <= -180) ts_rel += 360;
+			screen_position_x = (ts_rel > 0) ? ts_sr0_x + 2 : ts_sr0_z - 34;
+			screen_position_y = ts_sr0_y + (HUD_SafeBottom() - ts_sr0_y) * 0.5 - 16;
+			screen_position_z = 1;      // ab hier wie ein sichtbares Ziel behandeln
+		}
+
 		if (screen_position_z > 0) {
 			// DAS hier ist das lebenswichtige Symbol. Lag es hinter FEUER oder
 			// LADEN, wusste niemand, dass ein Mitspieler am Boden liegt -- und
@@ -2627,11 +2652,11 @@ void() HUD_ReviveIcons =
 			// Deshalb wird es in das sichere Rechteck geklemmt statt verdeckt
 			// zu werden, und an der Klemmkante steht ein Pfeil: das Symbol
 			// sagt "jemand braucht Hilfe", der Pfeil sagt "dort drueben".
-			vector ts_sr = HUD_SafeRect();
+			vector ts_sr = ts_sr0;
 			float ts_lo = ts_sr_x + 2, ts_ro = ts_sr_z - 34;
 			float ts_pf = 0;                      // -1 links, +1 rechts
-			if (screen_position_x < ts_lo) { screen_position_x = ts_lo; ts_pf = -1; }
-			else if (screen_position_x > ts_ro) { screen_position_x = ts_ro; ts_pf = 1; }
+			if (screen_position_x <= ts_lo) { screen_position_x = ts_lo; ts_pf = -1; }
+			else if (screen_position_x >= ts_ro) { screen_position_x = ts_ro; ts_pf = 1; }
 			if (screen_position_y < ts_sr_y + 2) screen_position_y = ts_sr_y + 2;
 			if (screen_position_y > HUD_SafeBottom() - 34)
 				screen_position_y = HUD_SafeBottom() - 34;
