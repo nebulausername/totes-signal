@@ -116,6 +116,57 @@
 		box-shadow:inset 0 0 24px rgba(0,0,0,0.55), 0 0 26px rgba(230,52,20,0.6); }
 	#stick.sprint #stickthumb { box-shadow:0 0 22px rgba(255,74,32,0.85); }
 	/* Erste-Runde-Hinweise */
+	/* --- Schnellrufe und Chat (Koop) ------------------------------------
+	   Der RUF-Knopf erscheint NUR im Koop: im Alleingang waere er ein Knopf,
+	   der niemanden erreicht. Er ist ein normaler .tbtn und wird dadurch von
+	   meldeRandbreite() automatisch mitgemessen -- der obere linke Streifen
+	   (ts_hudtop) waechst von selbst, und die Perk-Zeichen ruecken darunter. */
+	#touchui #rufbtn { display:none; }
+	#touchui.koop #rufbtn { display:flex; }
+	/* Zwei Spalten, nicht sieben Zeilen: als Liste reichte das Blatt bis zum
+	   Joystick hinunter, und wer um Hilfe ruft, will sich meist noch bewegen
+	   koennen. Zwei Spalten halbieren die Hoehe und verkuerzen den Weg des
+	   Daumens. */
+	#rufmenu {
+		position:absolute; display:none; pointer-events:auto; touch-action:none;
+		/* Waagerecht mittig, nicht oben links: links unten liegt der Joystick,
+		   rechts die Knopfspalte. Ein Blatt am linken Rand streifte die
+		   Oberkante des Sticks -- ein neuer Finger dort haette das Blatt
+		   getroffen statt die Bewegung. In der Mitte bleiben beide Daumen frei,
+		   und das Blatt ist ohnehin nur einen Tipp lang da. */
+		z-index:var(--z-ruf); left:50%; transform:translateX(-50%);
+		top:calc(3vmin + env(safe-area-inset-top));
+		width:clamp(240px, 52vmin, 380px);
+		display:none; grid-template-columns:1fr 1fr; gap:4px;
+		background:rgba(6,5,4,0.97); border:1px solid rgba(210,60,30,0.55);
+		border-radius:10px; padding:8px; box-shadow:0 8px 30px rgba(0,0,0,0.7); }
+	#rufmenu.auf { display:grid; }
+	#rufmenu .ruf-row {
+		padding:8px 9px; min-height:44px; display:flex; align-items:center;
+		background:rgba(24,20,18,0.9); border:1px solid rgba(255,255,255,0.09);
+		border-radius:6px;
+		color:#ece5d7; letter-spacing:1px; font-size:clamp(11px,2.1vmin,15px);
+		cursor:pointer; }
+	#rufmenu .ruf-row.zu {
+		grid-column:1 / -1; color:#e2361a; justify-content:center;
+		background:transparent; border-color:transparent; min-height:34px; }
+	/* Der Chat gehoert der Shell, nicht der Engine: dort ist er in der
+	   Konsolenschrift gesetzt (~8 CSS-Pixel auf dem Handy) und nicht
+	   umbruchfaehig. Hier nimmt er keine Beruehrungen an -- wer liest, will
+	   weiterspielen. */
+	#chatlog {
+		position:fixed; display:none; pointer-events:none; z-index:var(--z-ruf);
+		left:calc(3vmin + env(safe-area-inset-left)); top:32%;
+		width:min(52vw, 460px); max-height:26vh; overflow:hidden;
+		display:flex; flex-direction:column; gap:3px;
+		transition:opacity .5s ease; }
+	#chatlog .cl-zeile {
+		background:rgba(6,5,4,0.72); border-left:2px solid #e2361a;
+		padding:3px 7px; border-radius:0 4px 4px 0;
+		color:#ece5d7; font-size:clamp(11px,2.2vmin,16px); line-height:1.25;
+		word-break:break-word; }
+	#chatlog .cl-zeile b { color:#ff7a55; font-weight:normal; }
+
 	#hints { position:fixed; inset:0; z-index:var(--z-hints); display:none; align-items:center; justify-content:center;
 		background:rgba(0,0,0,0.64); font-family:monospace; -webkit-user-select:none; user-select:none; }
 	#hints .hint-card { max-width:min(600px, 86vw); text-align:center; padding:20px 26px;
@@ -151,7 +202,7 @@
 	   gelaufen war. An einer Stelle ist so ein Fehler auf einen Blick zu
 	   sehen. NEUE OVERLAYS TRAGEN HIER IHRE ZAHL EIN. */
 	:root {
-		--z-touch:10; --z-gear:12; --z-hints:40;
+		--z-touch:10; --z-gear:12; --z-ruf:13; --z-hints:40;
 		--z-rotate:44;      /* UNTER allem, was Inhalt zeigt */
 		--z-death:45; --z-konto:47; --z-set:49;
 		--z-lobby:46;       /* Koop: Gastgeber-Schirm */
@@ -655,6 +706,9 @@
 		<!-- Ecken: Menue oben rechts, Schnell-Einstellungen (Zahnrad) oben links. -->
 		<div class="tbtn" data-key="27" data-code="Escape" data-tap="1" style="right:calc(4vmin + env(safe-area-inset-right)); top:calc(4vmin + env(safe-area-inset-top));">MENÜ</div>
 		<div class="tbtn round" id="gearbtn"                  style="left:calc(4vmin + env(safe-area-inset-left)); top:calc(4vmin + env(safe-area-inset-top));">⚙</div>
+		<!-- Schnellruf: nur im Koop sichtbar (#touchui.koop). -->
+		<div class="tbtn" id="rufbtn" data-i18n="rufBtn"      style="left:calc(4vmin + env(safe-area-inset-left)); top:calc(17vmin + env(safe-area-inset-top));"></div>
+		<div id="rufmenu"></div>
 		<!-- Schnell-Einstellungen: alles, was keinen eigenen HUD-Button mehr braucht. -->
 		<div id="gearsheet">
 			<div class="gs-title" data-i18n="gsTitle"></div>
@@ -813,6 +867,10 @@
 	     und ein Rausgeworfener sah nur die Engine-Meldung "oh noes! something
 	     bad happened!". -->
 	<div id="toast" role="status" aria-live="polite"></div>
+	<!-- Chat. Bewusst NICHT in #touchui: das ist am Rechner ausgeblendet, und
+	     mit ts_shell_chat 1 zeichnet die Engine ihn nicht mehr -- der Chat waere
+	     dort sonst ersatzlos verschwunden. -->
+	<div id="chatlog"></div>
 	<div id="raumchip"></div>
 	<!-- Wartezone waehrend der Lobby. BEWUSST kein Overlay: wer wartet, soll
 	     sich umsehen koennen. Nur der Knopf nimmt Beruehrungen an. -->
@@ -895,6 +953,10 @@ function tsMarker(msg)
 	// suchen, im Spiel ist er die einzige Stelle, an der der Gastgeber seinen
 	// Code nachsehen kann.
 	if (stateChange && window.TS_LOBBY) TS_LOBBY.chip();
+	if (msg.indexOf('TSUI:chat:') !== -1 && window.TS_CHAT)
+		TS_CHAT.empfangen(String(msg.split('TSUI:chat:')[1] || '').split('\n')[0]);
+	if (msg.indexOf('TSUI:mp:') !== -1 && window.TS_RUF)
+		TS_RUF.koop(+String(msg.split('TSUI:mp:')[1] || '').split('|')[0] > 1);
 	if (msg.indexOf('TSUI:mp:') !== -1 && window.TS_RUN){
 		// Hoechststand, nicht Momentaufnahme: wer zum Schluss allein uebrig
 		// ist, hat trotzdem zu viert gespielt.
@@ -908,7 +970,12 @@ function tsMarker(msg)
 		// sonst zeichnet sie ihre eigene Fassung darunter und es stehen zwei
 		// SIGNAL-VERLOREN uebereinander. Gilt auch auf dem Desktop, deshalb
 		// hier und nicht im touch-gebundenen Block.
-		if (window.tsCmd) tsCmd('ts_shell_death 1\n');
+		// ... und dass sie den Chat uebernimmt. Die Engine setzt ihn in der
+		// Konsolenschrift (auf dem Handy rund 8 CSS-Pixel) und bricht nicht um;
+		// die Shell kann beides. Gilt auf BEIDEN Plattformen -- deshalb liegt
+		// #chatlog auch nicht in #touchui.
+		if (window.tsCmd) tsCmd('ts_shell_death 1\nset ts_shell_chat 1\n');
+		if (window.TS_CHAT) TS_CHAT.anzeigen(true);
 		if (window.__ts_applyBright) __ts_applyBright();
 		if (window.__ts_applyHud)    __ts_applyHud();
 		// Der Name gehoert NICHT hinter TS_ORIGIN_OK: ihn zu setzen ist eine
@@ -977,6 +1044,8 @@ function tsMarker(msg)
 		// Und wir sind wieder unser eigener Server: die KI-Mitspieler-Zeile
 		// gehoert zurueck in die Einstellungen.
 		if (window.TS_JOIN) TS_JOIN.alsGast = false;
+		if (window.TS_CHAT){ TS_CHAT.leeren(); TS_CHAT.anzeigen(false); }
+		if (window.TS_RUF) TS_RUF.koop(false);
 		// Einladungslink: einmal, beim ersten Menue nach dem Start. Wer mit
 		// ?raum=ABC-234 ankommt, will genau eines -- beitreten. Danach ist
 		// die Einladung verbraucht, sonst poppt sie bei jeder Rueckkehr ins
@@ -1071,7 +1140,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-30d';
+var TS_BUILD = '2026-08-30e';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1367,6 +1436,9 @@ var I18N = {
 		set_bots:'KI-MITSPIELER',
 		hpBots:'KI-MITSPIELER',
 		hpBotsHint:'Ein Platz bleibt fuer Freunde frei, solange man noch beitreten kann.',
+		rufBtn:'RUF',
+		ruf1:'HILFE!', ruf2:'Mir nach', ruf3:'Hier lang',
+		ruf4:'Kiste!', ruf5:'Danke!', ruf6:'Kein Geld',
 		set_lefty:'LINKSHÄNDER', set_qualitaet:'SPARSAM (FLÜSSIGER)',
 		set_hud:'HUD-GRÖSSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
@@ -1490,6 +1562,9 @@ var I18N = {
 		set_bots:'AI TEAMMATES',
 		hpBots:'AI TEAMMATES',
 		hpBotsHint:'One slot stays free for friends while joining is still open.',
+		rufBtn:'CALL',
+		ruf1:'HELP!', ruf2:'Follow me', ruf3:'This way',
+		ruf4:'Box!', ruf5:'Thanks!', ruf6:'No points',
 		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE',
 		set_hud:'HUD SIZE', set_hell:'BRIGHTNESS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
 		accAus:'No account yet. Enable leaderboard and progress.',
@@ -3885,6 +3960,133 @@ if (window.location.hash != "" || Object.keys(Module.files).length) {
 // Die MESSUNG der Knopfspalte bleibt in der Touch-Klammer (`__ts_randMessen`):
 // sie misst ein Layout, das es nur dort gibt. TS_VIEW ruft sie auf, wenn es sie
 // gibt -- das ist die einzige Naht zwischen beiden.
+// --- Schnellrufe und Chat (Koop) -----------------------------------------
+//
+// `say` ist ein echtes Kommando dieser Engine -- am 2026-08-30 am gepinnten
+// Build gemessen: `say <text>` UND `cmd say <text>` erreichen den Server und
+// erscheinen bei allen. Es braucht dafuer KEIN QuakeC.
+//
+// Der Ring erscheint nur im Koop. Im Alleingang waere er ein Knopf, der
+// niemanden erreicht -- und auf dem Handy ist jeder Knopf, der nichts tut,
+// ein Knopf zu viel.
+var TS_RUF = {
+	// ASCII 33-126, ausnahmslos. Der Satz geht durch die Engine und wird bei
+	// einem nativen Mitspieler mit der Spielschrift gezeichnet -- die kann
+	// keine Umlaute (Footgun 3). "HILFE!" geht, "Munition?" auch; ein "ae"
+	// waere haesslicher als die Wortwahl daneben.
+	RUFE: ['ruf1', 'ruf2', 'ruf3', 'ruf4', 'ruf5', 'ruf6'],
+	offen: false,
+
+	koop: function(an){
+		var ui = document.getElementById('touchui');
+		if (ui) ui.classList.toggle('koop', !!an);
+		if (!an) this.schliessen();
+	},
+
+	zeichnen: function(){
+		var m = document.getElementById('rufmenu'); if (!m) return;
+		var self = this;
+		m.innerHTML = '';
+		this.RUFE.forEach(function(k){
+			var z = document.createElement('div');
+			z.className = 'ruf-row'; z.textContent = T(k);
+			z.addEventListener('click', function(e){ e.preventDefault(); self.senden(T(k)); });
+			m.appendChild(z);
+		});
+		var zu = document.createElement('div');
+		zu.className = 'ruf-row zu'; zu.textContent = T('gsClose');
+		zu.addEventListener('click', function(e){ e.preventDefault(); self.schliessen(); });
+		m.appendChild(zu);
+	},
+
+	// Ueber eine KLASSE auf/zu, nicht ueber style.display: das Blatt ist ein
+	// Grid, und ein 'block' im Inline-Stil haette das Zweispaltige wieder
+	// aufgehoben.
+	oeffnen: function(){
+		this.zeichnen();
+		var m = document.getElementById('rufmenu');
+		if (m) m.classList.add('auf');
+		this.offen = true;
+	},
+	schliessen: function(){
+		var m = document.getElementById('rufmenu');
+		if (m) m.classList.remove('auf');
+		this.offen = false;
+	},
+	umschalten: function(){ this.offen ? this.schliessen() : this.oeffnen(); },
+
+	senden: function(text){
+		this.schliessen();
+		// Streng saeubern: die Zeichenkette landet in einer Konsolenzeile, und
+		// tsCmd fuehrt JEDE Zeile aus. Ein Zeilenumbruch oder ein Semikolon
+		// darin waere ein zweiter Befehl. Die Rufe sind zwar fest verdrahtet --
+		// aber eine Uebersetzung ist Text, den irgendwann jemand anfasst.
+		// Steuerzeichen werden durch ein LEERZEICHEN ersetzt, nicht geloescht:
+		// aus "Hilfe\nquit" wuerde sonst "Hilfequit" -- harmlos, aber ein Wort,
+		// das niemand geschrieben hat. Semikolon und Anfuehrungszeichen fliegen
+		// ganz raus, sie trennen bzw. klammern Befehle.
+		var sicher = String(text || '').replace(/[^\x20-\x7E]/g, ' ')
+		                               .replace(/[;"\\]/g, '')
+		                               .replace(/\s+/g, ' ').trim().slice(0, 48);
+		if (!sicher) return;
+		if (window.tsCmd) tsCmd('cmd say ' + sicher + '\n');
+	}
+};
+
+// Der Chat gehoert der Shell (Marker TSUI:chat:, ts_shell_chat 1). Die Engine
+// setzt ihn in der Konsolenschrift und bricht nicht um; auf dem Handy sind das
+// rund 8 CSS-Pixel auf genau der Flaeche, auf der "ich brauche Hilfe" steht.
+var TS_CHAT = {
+	MAX: 4,          // mehr verdeckt das Spiel, weniger verschluckt Antworten
+	DAUER: 9000,
+	zeilen: [],
+	timer: 0,
+
+	anzeigen: function(an){
+		var el = document.getElementById('chatlog');
+		if (el) el.style.display = an ? 'flex' : 'none';
+	},
+	leeren: function(){
+		this.zeilen = [];
+		var el = document.getElementById('chatlog');
+		if (el) el.innerHTML = '';
+	},
+
+	// "<id>|<name>|<text>" -- der TEXT steht ganz hinten, weil er ein '|'
+	// enthalten darf; alles dahinter wieder zusammensetzen.
+	empfangen: function(roh){
+		var t = String(roh || '').split('|');
+		if (t.length < 3) return;
+		var name = t[1], text = t.slice(2).join('|');
+		// Farbcodes der Engine (^xRGB, ^1..^9) entfernen -- die Shell faerbt selbst.
+		text = text.replace(/\^x[0-9A-Fa-f]{3}/g, '').replace(/\^[0-9]/g, '');
+		if (!text.trim()) return;
+		this.zeilen.push({ name: name, text: text });
+		while (this.zeilen.length > this.MAX) this.zeilen.shift();
+		this.render();
+
+		var self = this;
+		if (this.timer) clearTimeout(this.timer);
+		this.timer = setTimeout(function(){ self.timer = 0; self.leeren(); }, this.DAUER);
+	},
+
+	render: function(){
+		var el = document.getElementById('chatlog'); if (!el) return;
+		el.innerHTML = '';
+		this.zeilen.forEach(function(z){
+			var d = document.createElement('div');
+			d.className = 'cl-zeile';
+			var b = document.createElement('b');
+			b.textContent = z.name + ': ';
+			d.appendChild(b);
+			// textContent, nicht innerHTML: der Text kommt von einem fremden
+			// Mitspieler und darf kein Markup in diese Seite tragen.
+			d.appendChild(document.createTextNode(z.text));
+			el.appendChild(d);
+		});
+	}
+};
+
 var TS_VIEW = (function(){
 	// gamma + v_contrastboost via Konsole. vid_hardwaregamma=1 ist gesetzt ->
 	// wirkt sofort. Persistenz primaer ueber localStorage (saveconfig ist im
@@ -4217,6 +4419,15 @@ var TS_VIEW = (function(){
 		TS_VIEW.staendeZeigen();
 		gear.addEventListener('pointerdown', function(e){
 			e.preventDefault(); sheetShow(sheet.style.display !== 'block');
+			if (window.TS_RUF) TS_RUF.schliessen();   // nie beide Blaetter zugleich
+		});
+		// Schnellrufe. pointerdown wie beim Zahnrad -- ein 'click' auf dem
+		// Canvas daneben wuerde die Engine als Blickeingabe verarbeiten.
+		var ruf = document.getElementById('rufbtn');
+		if (ruf) ruf.addEventListener('pointerdown', function(e){
+			e.preventDefault(); e.stopPropagation();
+			sheetShow(false);
+			if (window.TS_RUF) TS_RUF.umschalten();
 		});
 		function row(id, fn){
 			var el = document.getElementById(id);

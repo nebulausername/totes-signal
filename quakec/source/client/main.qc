@@ -174,6 +174,12 @@ noref void(float apiver, string enginename, float enginever) CSQC_Init =
 	// Solange sie es nicht tut, zeichnet die Engine ihre eigene Fassung --
 	// das ist die Rueckfallebene, wenn der Marker mal ausbleibt.
 	autocvar(ts_shell_death, 0);
+	// Dasselbe fuer den Chat: die Shell zeichnet ihn lesbar und umbruchfaehig
+	// (Marker TSUI:chat:), die Engine setzt ihn in der Konsolenschrift. Ohne
+	// DIESE Zeile ist die Cvar in CSQC unregistriert, cvar() liefert 0, und
+	// Chat_Draw zeichnet lautlos weiter -- am Bild als zweiter dunkler Balken
+	// neben der Shell-Zeile gesehen.
+	autocvar(ts_shell_chat, 0);
 	// Seitlicher HUD-Versatz in virtuellen Pixeln. Die Shell setzt ihn im
 	// Linkshaender-Modus, wo die Aktionsknoepfe nach links wandern.
 	autocvar(ts_hudx, 0);

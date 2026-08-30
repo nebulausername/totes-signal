@@ -47,8 +47,32 @@ void Chat_Draw()
 	if (autocvar_cg_chatEnabled == false)
 	 	return;
 
-	g_chatpos[0] = GetUltraWideOffset() + 5;
+	// Der Chat lag auf festen Zahlen: x = Ultrawide-Versatz + 5, y = 170, und
+	// die Konsolenschrift in ihrer Grundgroesse 8. Bei der Touch-Vorgabe
+	// (conheight 380) sind das rund 8 CSS-Pixel -- unlesbar auf genau der
+	// Flaeche, auf der im Koop steht "ich brauche Hilfe". Und x=5 liegt auf
+	// dem Handy unter dem Zahnrad bzw. der Perk-Spalte.
+	//
+	// GROESSER wurde hier bewusst NICHT versucht: drawfontscale skaliert zwar
+	// die Glyphen, drawtextfield rechnet seinen Umbruch aber in ungespreizten
+	// Einheiten -- am Bild geprueft, der Satz wurde nach dem zweiten Wort
+	// abgeschnitten. Lesbar wird der Chat stattdessen in der SHELL (Marker
+	// TSUI:chat:, siehe Chat_Register); die hier bleibt der Rueckfall fuer
+	// den Fall, dass die Shell ihn nicht uebernimmt.
+	if (cvar("ts_shell_chat"))
+		return;
+
+	vector ts_sr = HUD_SafeRect();
+	float ts_zeile = 8;
+
+	g_chatpos[0] = ts_sr_x + 5;
 	g_chatpos[1] = 170;
+	if (g_chatpos[1] < ts_sr_y + 6)
+		g_chatpos[1] = ts_sr_y + 6;
+
+	float ts_breite = (ts_sr_z - ts_sr_x) - 10;
+	if (ts_breite > 290) ts_breite = 290;
+	if (ts_breite < 120) ts_breite = 120;
 
 	if (g_chatlines < 0) {
 		return;
@@ -83,8 +107,10 @@ void Chat_Draw()
         }
     }
 
-    drawfill ([g_chatpos[0] - 2, g_chatpos[1] - 2], [290, (barlines) * 8 + 4], [0, 0, 0], 0.65, 0);
-    drawtextfield([g_chatpos[0], g_chatpos[1]], [290, 280], 1 | 2, g_chatbuffer_final);
+    drawfill ([g_chatpos[0] - 2, g_chatpos[1] - 2],
+              [ts_breite + 4, barlines * ts_zeile + 4], [0, 0, 0], 0.72, 0);
+
+    drawtextfield([g_chatpos[0], g_chatpos[1]], [ts_breite, 280], 1 | 2, g_chatbuffer_final);
 }
 
 //
@@ -113,6 +139,11 @@ void Chat_Register(int sender, int player_id, string message)
     // Append name+color to the message
     string player_hex = Chat_GetHexCodeForPlayer(player_id);
     string player_name = getplayerkeyvalue(sender, "name");
+
+    // An die Shell, BEVOR Farbcodes angehaengt werden -- die will den rohen
+    // Text. Der TEXT steht ganz hinten: er kann ein '|' enthalten, und alles
+    // dahinter wuerde sonst verrutschen (dieselbe Regel wie bei TSUI:mprow).
+    print(sprintf("\nTSUI:chat:%i|%s|%s\n", player_id, player_name, message));
 
 	// Not a server message.
 	if (player_id != 255) {
