@@ -97,10 +97,20 @@ test('ein Bot spielt mit, kaempft und hilft wieder auf', async ({ page }) => {
     { message: 'niemand hat den Spieler aufgehoben', timeout: 60_000 }).toBe(0);
 
   // Gegenprobe an der Endwertung: revives zaehlt der AUFGEHOBENE.
+  //
+  // Erst darauf WARTEN, dass der Bot wirklich weg ist. Neun Sekunden zu zaehlen
+  // reichte im vollen Lauf nicht, und die Folge war irrefuehrend: solange der
+  // Bot noch steht, ist jemand auf den Beinen, PollPlayersAlive meldet 1, und
+  // es kommt gar keine Endwertung -- der Test schlug also an einer Stelle fehl,
+  // an der nichts kaputt war. Auf die VORAUSSETZUNG warten, nicht auf die Uhr.
   await botsSetzen(page, 0);
-  await page.waitForTimeout(9_000);
+  await expect.poll(() => {
+    const z = marker().filter((t) => t.startsWith('TSUI:mp:')).pop();
+    return z ? +z.split(':')[2].split('|')[0] : 9;
+  }, { message: 'der Bot ist nicht verschwunden', timeout: 45_000 }).toBe(1);
+
   await page.evaluate(() => window.tsCmd('kill\n'));
-  expect(await m.waitFor('TSUI:dstats:', 60_000), 'keine Endwertung').toBe(true);
+  expect(await m.waitFor('TSUI:dstats:', 90_000), 'keine Endwertung').toBe(true);
 
   const stats = marker().filter((z) => z.startsWith('TSUI:dstats:')).pop().slice(12).split('|');
   expect(+stats[4], 'der Sturz wurde nicht gezaehlt').toBeGreaterThanOrEqual(1);
