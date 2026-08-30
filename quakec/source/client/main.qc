@@ -1116,10 +1116,21 @@ noref void(float width, float height, float menushown) CSQC_UpdateView =
 			float pn = getplayerkeyfloat(i, "client_index");
 			entity cl = findfloat(world, playernum, pn);
 			if (cl == world || !cl.classname) continue;
-			// Bitfeld statt eigenem Feld: 1 = schaut zu, 2 = das bin ich.
-			// Ein weiteres Feld haette den Namen nur nach hinten geschoben.
+			// Bitfeld statt eigenem Feld: 1 = schaut zu, 2 = das bin ich,
+			// 4 = liegt am Boden. Ein weiteres Feld haette den Namen nur nach
+			// hinten geschoben.
+			//
+			// Bit 4 kommt aus revive_icons[] -- derselben Quelle, aus der das
+			// HUD sein Wiederbeleben-Zeichen speist. Die Spielerliste zeigte
+			// bis dahin Punkte und die ZAHL der Stuerze, aber nicht, wer
+			// GERADE Hilfe braucht -- und das ist die einzige Information in
+			// dieser Liste, die eine sofortige Handlung verlangt.
+			float ts_idx = pn - 1;
+			float ts_unten = (ts_idx >= 0 && ts_idx < MAX_REVIVE_ICONS)
+			               ? (revive_icons[ts_idx].state > 0) : 0;
 			float bits = (cl.is_spectator ? 1 : 0)
-			           + ((pn == getstatf(STAT_PLAYERNUM)) ? 2 : 0);
+			           + ((pn == getstatf(STAT_PLAYERNUM)) ? 2 : 0)
+			           + (ts_unten ? 4 : 0);
 			ts_zeilen = strcat(ts_zeilen, sprintf("%d|%d|%d|%d|%s\n",
 				i, cl.points, cl.downs, bits,
 				getplayerkeyvalue(i, "name")));

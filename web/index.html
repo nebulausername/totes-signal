@@ -127,6 +127,7 @@
 	   Joystick hinunter, und wer um Hilfe ruft, will sich meist noch bewegen
 	   koennen. Zwei Spalten halbieren die Hoehe und verkuerzen den Weg des
 	   Daumens. */
+	.pl-wert.pl-unten { color:#ff5a3c; font-weight:bold; }
 	#rufmenu {
 		position:absolute; display:none; pointer-events:auto; touch-action:none;
 		/* Waagerecht mittig, nicht oben links: links unten liegt der Joystick,
@@ -1140,7 +1141,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-30e';
+var TS_BUILD = '2026-08-30f';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1437,6 +1438,7 @@ var I18N = {
 		hpBots:'KI-MITSPIELER',
 		hpBotsHint:'Ein Platz bleibt fuer Freunde frei, solange man noch beitreten kann.',
 		rufBtn:'RUF',
+		plDown:'AM BODEN',
 		ruf1:'HILFE!', ruf2:'Mir nach', ruf3:'Hier lang',
 		ruf4:'Kiste!', ruf5:'Danke!', ruf6:'Kein Geld',
 		set_lefty:'LINKSHÄNDER', set_qualitaet:'SPARSAM (FLÜSSIGER)',
@@ -1563,6 +1565,7 @@ var I18N = {
 		hpBots:'AI TEAMMATES',
 		hpBotsHint:'One slot stays free for friends while joining is still open.',
 		rufBtn:'CALL',
+		plDown:'DOWN',
 		ruf1:'HELP!', ruf2:'Follow me', ruf3:'This way',
 		ruf4:'Box!', ruf5:'Thanks!', ruf6:'No points',
 		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE',
@@ -2940,13 +2943,14 @@ var TS_SPIELER = {
 		if (p.length < 5) return;
 		var slot = +p[0];
 		if (!(slot >= 0 && slot < 8)) return;
-		// Feld 4 ist ein Bitfeld: 1 = schaut zu, 2 = das bin ich. Ein eigenes
-		// Feld dafuer haette den Namen weiter nach hinten geschoben, ohne
-		// etwas zu gewinnen.
+		// Feld 4 ist ein Bitfeld: 1 = schaut zu, 2 = das bin ich, 4 = liegt am
+		// Boden. Ein eigenes Feld dafuer haette den Namen weiter nach hinten
+		// geschoben, ohne etwas zu gewinnen.
 		var f = +p[3] || 0;
 		this.zeilen[slot] = {
 			punkte: +p[1] || 0, downs: +p[2] || 0,
 			zuschauer: (f & 1) !== 0,
+			unten: (f & 4) !== 0,
 			name: p.slice(4).join('|').slice(0, 40)   // alles ab Feld 5 ist Name
 		};
 		if (f & 2) this.ich = slot;
@@ -2990,8 +2994,14 @@ var TS_SPIELER = {
 				i.textContent = T('plYou'); z.appendChild(i);
 			}
 			var w = document.createElement('span'); w.className = 'pl-wert';
-			w.textContent = d.zuschauer ? T('plSpec')
-				: (d.punkte + ' P' + (d.downs ? ' \u00b7 ' + d.downs + ' K.O.' : ''));
+			// Wer JETZT am Boden liegt, steht vor allem anderen: die Liste
+			// zeigte bisher Punkte und die ZAHL der Stuerze -- also Geschichte.
+			// Der einzige Eintrag, der eine sofortige Handlung verlangt, fehlte.
+			// Nach 30 Sekunden ist ein Gefallener endgueltig unten.
+			if (d.unten) w.classList.add('pl-unten');
+			w.textContent = d.unten ? T('plDown')
+				: (d.zuschauer ? T('plSpec')
+				: (d.punkte + ' P' + (d.downs ? ' \u00b7 ' + d.downs + ' K.O.' : '')));
 			z.appendChild(w);
 			// Entfernen darf nur der Gastgeber, und nie sich selbst.
 			if (window.TS_LOBBY && TS_LOBBY.aktiv && slot !== self.ich){

@@ -79,10 +79,24 @@ test('ein Bot spielt mit, kaempft und hilft wieder auf', async ({ page }) => {
   // Boden ging. Ein Umkehrschluss ueber einen Zustand, den auch etwas anderes
   // herstellen kann, ist kein Nachweis.
   await page.evaluate(() => window.tsCmd('kill\n'));
-  await page.waitForTimeout(22_000);
 
-  // Runde geordnet beenden: ohne Bot ist niemand mehr auf den Beinen, sobald
-  // der Spieler faellt -- dann kommt die Endwertung.
+  // Bit 4 in TSUI:mprow = liegt am Boden. Erst warten, BIS es steht -- sonst
+  // misst man den Zustand vor dem Sturz und haelt ihn fuer eine Rettung.
+  const meineBits = () => {
+    const z = marker().filter((t) => t.startsWith('TSUI:mprow:'))
+      .map((t) => t.slice(11).split('|')).filter((f) => (+f[3]) & 2).pop();
+    return z ? +z[3] : 0;
+  };
+  await expect.poll(meineBits, { message: 'der Sturz wurde nie gemeldet', timeout: 20_000 })
+    .toBeGreaterThanOrEqual(4);
+
+  // Und dann, BIS es wieder faellt. Ein Zeitfenster hatte hier zweimal
+  // getaeuscht: unter Last des vollen Laufs braucht der Bot laenger, und ein
+  // fester Wert misst dann die Uhr statt das Verhalten.
+  await expect.poll(() => meineBits() & 4,
+    { message: 'niemand hat den Spieler aufgehoben', timeout: 60_000 }).toBe(0);
+
+  // Gegenprobe an der Endwertung: revives zaehlt der AUFGEHOBENE.
   await botsSetzen(page, 0);
   await page.waitForTimeout(9_000);
   await page.evaluate(() => window.tsCmd('kill\n'));

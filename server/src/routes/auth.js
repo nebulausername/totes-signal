@@ -76,17 +76,30 @@ export default async function routes(app) {
 
       // Namenskollisionen sind bei 18 Woertern x 9000 Zahlen selten, aber
       // moeglich -- ein paar Versuche statt einer Fehlermeldung.
+      //
+      // JEDER Versuch braucht einen SAVEPOINT. In PostgreSQL bricht eine
+      // fehlgeschlagene Anweisung die GANZE Transaktion ab; jeder weitere
+      // Befehl antwortet dann mit 25P02 ("current transaction is aborted"),
+      // bis zurueckgerollt wird. Ohne Savepoint war die Schleife deshalb nicht
+      // nur nutzlos, sondern schaedlich: der zweite Versuch bekam 25P02, das
+      // ist nicht 23505, und flog als 500 heraus -- eine Kollision kostete den
+      // Spieler sein Konto statt eines zweiten Namens.
+      // Am 2026-08-30 in der Produktion aufgetreten (auth.js:83,
+      // POST /api/auth/anon -> 500).
       let name = null;
       for (let i = 0; i < 8 && !name; i++) {
         const cand = makeCodename();
+        await client.query('SAVEPOINT namensversuch');
         try {
           await client.query(
             `INSERT INTO ts.profiles (user_id, display_name, display_name_ascii)
              VALUES ($1, $2, $3)`,
             [userId, cand, toAscii(cand)],
           );
+          await client.query('RELEASE SAVEPOINT namensversuch');
           name = cand;
         } catch (e) {
+          await client.query('ROLLBACK TO SAVEPOINT namensversuch');
           if (e.code !== '23505') throw e;   // nur Unique-Verletzung erneut versuchen
         }
       }
