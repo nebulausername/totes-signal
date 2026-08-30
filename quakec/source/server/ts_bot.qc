@@ -233,7 +233,7 @@ void(entity bot) TS_Bot_Denken =
 
 	// button7 immer erst loslassen: gehalten bliebe er sonst ueber Situationen
 	// hinweg stehen und der Bot "benutzt" alles, woran er vorbeilaeuft.
-	bot.button7 = FALSE;
+	bot.button7 = bot.ts_bot_taste = FALSE;
 
 	entity gefallen = TS_Bot_NaechsterGefallener(bot);
 	entity zombie   = TS_Bot_NaechsterZombie(bot);
@@ -259,14 +259,25 @@ void(entity bot) TS_Bot_Denken =
 			bot.goalentity = gefallen;
 			movetogoal(TS_BOT_TEMPO * frametime);
 		} else {
-			bot.button7 = TRUE;       // halten, bis der Ausloeser fertig ist
-			// Weiter anschubsen. Die ganze Wiederbelebung -- Fortschritt,
-			// Abbruch, Abschluss -- steckt in LastStand_TouchReviveTrigger,
-			// einer BERUEHRUNGSfunktion. Ein stehender MOVETYPE_STEP-Koerper
-			// bewegt sich nicht, wird nicht neu verknuepft und beruehrt darum
+			bot.button7 = bot.ts_bot_taste = TRUE;   // halten, bis der Ausloeser fertig ist
+			// Jede Zehntelsekunde neu verknuepfen. Die ganze Wiederbelebung --
+			// Fortschritt, Abbruch, Abschluss -- steckt in
+			// LastStand_TouchReviveTrigger, einer BERUEHRUNGSfunktion. Ein
+			// stehender Koerper wird nicht neu verknuepft und beruehrt darum
 			// nichts mehr: der Bot stand daneben, hielt die Taste, und nach
 			// vier Sekunden passierte nichts, weil niemand mehr nachsah.
-			walkmove(bot.angles_y, 2, FALSE);
+			//
+			// Der erste Versuch war ein Schubs mit walkmove -- und der war
+			// WIRKUNGSLOS, nur nicht sichtbar: auf 34 Einheiten beruehren sich
+			// die beiden Boxen bereits (je 16 Radius), der Schritt schlaegt
+			// fehl, und ein fehlgeschlagener walkmove bewegt nichts. Gemessen:
+			// 58 Meldungen mit ab=34, taste=1, blick=1 -- alles richtig, und
+			// trotzdem keine Wiederbelebung.
+			//
+			// setorigin auf die EIGENE Stelle verknuepft neu und loest die
+			// Beruehrungen aus, ohne zu bewegen. Denselben Griff benutzt
+			// PlayerIsLooking, um den Gefallenen kurz antastbar zu machen.
+			setorigin(bot, bot.origin);
 		}
 
 		if (cvar("ts_bot_debug") && time > bot.ts_bot_meldung) {
@@ -382,9 +393,10 @@ void() TS_Bot_Abgleich =
 	if (gewuenscht > 3) gewuenscht = 3;
 	if (gewuenscht < 0) gewuenscht = 0;
 
-	float da = 0;
+	float da = 0, menschen = 0;
 	entity e = find(world, classname, "player");
 	while (e) {
+		if (!e.ts_ist_bot) menschen = menschen + 1;
 		if (e.ts_ist_bot) {
 			da = da + 1;
 			if (time >= e.ts_bot_denkzeit) {
@@ -404,11 +416,37 @@ void() TS_Bot_Abgleich =
 	// gar nicht gerufen.
 	if (cvar("ts_bot_debug") && time > ts_bot_letzte_meldung) {
 		ts_bot_letzte_meldung = time + 2;
-		bprint(PRINT_HIGH, sprintf("TSBOT gewuenscht=%d da=%d rounds=%d maxclients=%d\n",
-			gewuenscht, da, rounds, cvar("maxclients")));
+		bprint(PRINT_HIGH, sprintf("TSBOT gewuenscht=%d da=%d rounds=%d maxclients=%d raum=[%s]\n",
+			gewuenscht, da, rounds, cvar("maxclients"), cvar_string("ts_raum")));
 	}
 
 	ts_bot_da = da;
+
+	// Ein Platz bleibt frei, solange noch jemand beitreten KANN und es einen
+	// Raum gibt, in den er kommen koennte.
+	//
+	// Ohne das sperrt ein Gastgeber mit drei Bots seine eigenen Freunde aus:
+	// maxclients ist 4, und die Engine weist die Verbindung ab, bevor QuakeC
+	// ueberhaupt davon erfaehrt -- der Freund saehe nur, dass es nicht geht,
+	// und niemand koennte ihm sagen warum. Die Bots sind Ersatz fuer fehlende
+	// Mitspieler, nicht deren Konkurrenz.
+	//
+	// Der erste Anlauf haing das an ts_lobby allein und war damit WIRKUNGSLOS:
+	// waehrend der Wartezone ist rounds 0, und dann spawnt hier ohnehin kein
+	// Bot -- gemessen, nicht vermutet. Der Engpass liegt danach, im
+	// Einstiegsfenster. Deshalb zaehlt ts_joinround mit.
+	//
+	// `ts_raum` unterscheidet Koop von Solo: die Cvar setzt die Shell nur beim
+	// Anbieten und raeumt sie beim Rueckweg ins Menue wieder (`set ts_raum ""`).
+	// Am 2026-08-30 nachgemessen, dass SSQC sie ueberhaupt liest -- registriert
+	// wird sie im MENUE-Progs, und Cvars sind engineweit. Wer allein spielt und
+	// drei Bots einstellt, bekommt also drei.
+	if (cvar_string("ts_raum") != "" &&
+	    (cvar("ts_lobby") || rounds <= cvar("ts_joinround"))) {
+		float platz = cvar("maxclients") - menschen - 1;
+		if (gewuenscht > platz) gewuenscht = platz;
+		if (gewuenscht < 0) gewuenscht = 0;
+	}
 
 	// Erst spawnen, wenn die Runde laeuft: waehrend der Lobby wuerde ein Bot
 	// mitzaehlen, bevor der Gastgeber ueberhaupt gestartet hat.

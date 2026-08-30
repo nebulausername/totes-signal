@@ -566,6 +566,17 @@ void(float override) JumpCheck =
 
 void() PlayerPreThink =
 {
+	// KI-Mitspieler: den AKTION-Knopf HIER setzen, nicht in StartFrame.
+	//
+	// Die Engine schreibt die Knopffelder eines Clients aus dessen
+	// Eingabepaket -- ein Bot hat keines, also stand button7 im Moment der
+	// Beruehrung wieder auf 0, obwohl TS_Bot_Denken es kurz zuvor gesetzt
+	// hatte. Am 2026-08-30 im Auslöser selbst gemessen: look=1, aber b7=0.
+	// Der Bot stand 29 Sekunden lang richtig da und drueckte ins Leere.
+	// PlayerPreThink laeuft NACH der Eingabeuebernahme -- hier haelt es.
+	if (self.ts_ist_bot)
+		self.button7 = self.ts_bot_taste;
+
 	// "Worauf warten wir?" -- zwei Minuten am Stueck stillgestanden.
 	// Gemessen an der Geschwindigkeit und nicht an der Eingabe: wer gegen
 	// eine Wand laeuft, bewegt sich nicht, wartet aber auch nicht. Ein

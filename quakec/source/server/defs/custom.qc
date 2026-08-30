@@ -107,6 +107,9 @@ float player_count;
 // Markiert einen KI-Mitspieler (ts_bot.qc). Das FELD steht hier und nicht dort,
 // weil last_stand.qc es liest -- und ts_bot.qc hinter #ifdef FTE liegt.
 .float ts_ist_bot;
+// Gewuenschter Zustand des AKTION-Knopfes. Gesetzt von TS_Bot_Denken,
+// angewandt in PlayerPreThink -- siehe dort, warum es zwei Stellen sein muessen.
+.float ts_bot_taste;
 // Wie viele Bots gerade im Spiel sind. Steht hier, weil StartFrame danach
 // entscheidet, ob es TS_Bot_Abgleich ueberhaupt ruft.
 float ts_bot_da;

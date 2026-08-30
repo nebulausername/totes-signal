@@ -350,6 +350,17 @@ void() LastStand_TouchReviveTrigger =
     if (other.classname != "player" || other == self.owner)
         return;
 
+#ifdef FTE
+	// Diagnose fuer die KI-Mitspieler: DIESE Funktion ist der einzige Ort, an
+	// dem eine Wiederbelebung anfaengt, weiterlaeuft und endet -- von aussen
+	// sieht "der Bot steht daneben und drueckt" in jedem Fehlerfall gleich aus.
+	if (cvar("ts_bot_debug") && other.ts_ist_bot)
+		bprint(PRINT_HIGH, sprintf("TSREV down=%d look=%d buy=%d br=%d b7=%d llt=%d gleich=%d\n",
+			other.downed, PlayerIsLooking(other, self.owner), other.isBuying,
+			self.owner.beingrevived, other.button7,
+			other.last_looked_time >= time, other.last_looked_ent == self));
+#endif
+
 	// If the team mate is actively being revived, and we are not the one
     // reviving them, break out.
     if (self.owner.beingrevived == true && self.owner.firer != other)

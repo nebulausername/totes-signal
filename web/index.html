@@ -1071,7 +1071,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-30c';
+var TS_BUILD = '2026-08-30d';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1366,6 +1366,7 @@ var I18N = {
 		set_aim:'ZIELHILFE', set_btnsize:'KNOPFGRÖSSE', set_btnalpha:'KNOPF-DECKKRAFT',
 		set_bots:'KI-MITSPIELER',
 		hpBots:'KI-MITSPIELER',
+		hpBotsHint:'Ein Platz bleibt fuer Freunde frei, solange man noch beitreten kann.',
 		set_lefty:'LINKSHÄNDER', set_qualitaet:'SPARSAM (FLÜSSIGER)',
 		set_hud:'HUD-GRÖSSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
@@ -1488,6 +1489,7 @@ var I18N = {
 		set_aim:'AIM ASSIST', set_btnsize:'BUTTON SIZE', set_btnalpha:'BUTTON OPACITY',
 		set_bots:'AI TEAMMATES',
 		hpBots:'AI TEAMMATES',
+		hpBotsHint:'One slot stays free for friends while joining is still open.',
 		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE',
 		set_hud:'HUD SIZE', set_hell:'BRIGHTNESS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
 		accAus:'No account yet. Enable leaderboard and progress.',
@@ -3154,7 +3156,7 @@ var TS_LOBBY = {
 		// TSUI:game und gewaenne jedes Mal; die Lobby-Einstellung waere still
 		// wirkungslos. Genau diese Falle hat am 2026-08-30 einen gruenen Test
 		// ohne Codeaenderung rot gemacht (Footgun 40).
-		{ set: 'bots', label: 'hpBots', werte: [0,1,2,3],
+		{ set: 'bots', label: 'hpBots', hinweis: 'hpBotsHint', werte: [0,1,2,3],
 		  text: function(v){ return v ? String(v) : T('hpOff'); } }
 	],
 	// Cvars sind aus JS NICHT lesbar -- localStorage ist auch hier die
