@@ -226,8 +226,28 @@ void(entity client) LastStand_KillPlayer =
 	// If we are in the middle of the Game Over
 	// sequence, we should not allow a bleed
 	// out to override it.
-	if (in_endgame_sequence == false)
+	if (in_endgame_sequence == false) {
 		startspectate();
+
+		// Und wenn danach NIEMAND mehr auf den Beinen ist, ist die Runde
+		// vorbei. Ohne diese Zeile war das ein SOFT-LOCK:
+		//
+		// SpectatorSpawn setzt classname auf "spectator", und PollPlayersAlive
+		// sucht nach "player" -- nach dem letzten Ausbluten gibt es also
+		// niemanden mehr, der Zombies toeten koennte, und Round_Core wartet
+		// darauf, dass sie sterben. Die Runde konnte nie enden.
+		//
+		// Der Fall entsteht im Koop, sobald einer am Boden liegt und der
+		// andere die Runde verlaesst: der Liegende blutet aus, wird Zuschauer
+		// -- und sitzt fest, bis er selbst geht. Die einzige vorhandene
+		// Sicherung greift erst bei player_count == 0, und ein zuschauender
+		// Spieler zaehlt mit.
+		//
+		// Am 2026-08-30 am Bild gesehen ("SPECTATING -- Du schaust zu",
+		// 1 Spieler, 90 Sekunden lang keine Endwertung).
+		if (!PollPlayersAlive())
+			EndGameSetup();
+	}
 
     self = old_self;
 };

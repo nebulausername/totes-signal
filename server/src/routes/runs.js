@@ -233,6 +233,19 @@ export default async function routes(app) {
       ? zahl(req.query.difficulty, 0, 8) : null;
     const limit  = zahl(req.query.limit, 1, 100, 25);
 
+    // Koop-Liste. Bewusst DIESELBE Abfrage mit anderer Wertungsfunktion statt
+    // einer zweiten Route: Fenster, Karte, Schwierigkeit, Metrik, die eigene
+    // Zeile und die Sortierregeln sind identisch, und zwei Kopien davon waeren
+    // zwei Stellen, an denen eine Regelaenderung vergessen werden kann.
+    //
+    // Getrennt nach Spielerzahl, weil zwei und vier nicht dasselbe Spiel sind:
+    // die Zombiezahl skaliert mit der Spielerzahl, aber auch die Feuerkraft
+    // und die Chance, wieder aufgehoben zu werden. `spieler` fehlt oder ist
+    // '*' -> alle Koop-Groessen zusammen.
+    const koop = String(req.query.koop || '') === '1';
+    const spieler = koop && req.query.spieler && req.query.spieler !== '*'
+      ? zahl(req.query.spieler, 2, 4, 0) : 0;
+
     const seit = window === 'today' ? "now() - interval '1 day'"
               : window === 'week'  ? "now() - interval '7 days'" : null;
 
@@ -246,7 +259,8 @@ export default async function routes(app) {
       : 'r.rounds DESC, r.in_game_secs ASC NULLS LAST';
 
     const params = [];
-    const wo = ['ts.run_is_eligible(r.*)'];
+    const wo = [koop ? 'ts.run_is_eligible_coop(r.*)' : 'ts.run_is_eligible(r.*)'];
+    if (spieler) { params.push(spieler); wo.push(`r.player_count = $${params.length}`); }
     if (seit) wo.push(`r.submitted_at >= ${seit}`);
     if (map)  { params.push(map);  wo.push(`r.map_key = $${params.length}`); }
     if (diff !== null) { params.push(diff); wo.push(`r.difficulty = $${params.length}`); }
@@ -256,7 +270,8 @@ export default async function routes(app) {
       WITH best AS (
         SELECT DISTINCT ON (r.user_id)
                r.user_id, r.id AS run_id, r.score, r.rounds, r.kills, r.headshots,
-               r.in_game_secs, r.map_key, r.map_pretty, r.difficulty, r.submitted_at
+               r.in_game_secs, r.map_key, r.map_pretty, r.difficulty, r.submitted_at,
+               r.player_count
         FROM ts.runs r
         WHERE ${wo.join(' AND ')}
         ORDER BY r.user_id, ${bestesJeSpieler}
@@ -284,7 +299,7 @@ export default async function routes(app) {
           WITH best AS (
             SELECT DISTINCT ON (r.user_id)
                    r.user_id, r.score, r.rounds, r.kills, r.headshots, r.in_game_secs,
-                   r.map_key, r.map_pretty, r.difficulty, r.submitted_at
+                   r.map_key, r.map_pretty, r.difficulty, r.submitted_at, r.player_count
             FROM ts.runs r WHERE ${wo.join(' AND ')}
             ORDER BY r.user_id, ${bestesJeSpieler}
           ), gereiht AS (
@@ -300,7 +315,7 @@ export default async function routes(app) {
 
     const auf = (e) => ({
       rank: Number(e.rank), user_id: e.user_id, display_name: e.display_name,
-      level: e.level, title_id: e.title_id,
+      level: e.level, title_id: e.title_id, player_count: e.player_count,
       rounds: e.rounds, score: Number(e.score), kills: e.kills, headshots: e.headshots,
       in_game_secs: e.in_game_secs, map_key: e.map_key, map_pretty: e.map_pretty,
       difficulty: e.difficulty, submitted_at: e.submitted_at,
@@ -311,11 +326,23 @@ export default async function routes(app) {
     reply.header('Cache-Control', mich ? 'private, no-store' : 'public, max-age=30');
 
     return {
-      segment: { metric, window, map: map || '*', difficulty: diff === null ? -1 : diff },
+      // `koop` und `spieler` gehoeren in die Antwort: sonst sehen Solo- und
+      // Koop-Liste identisch aus, und ein Aufrufer kann nicht pruefen, was er
+      // bekommen hat. `spieler` wird auf 2..4 GEKLEMMT -- wer 99 anfragt,
+      // bekommt die Vierer-Liste, und genau das steht dann auch hier.
+      segment: { metric, window, map: map || '*', difficulty: diff === null ? -1 : diff,
+                 koop, spieler: koop ? (spieler || '*') : 1 },
       me: mich ? auf(mich) : null,
+      // `run_id` gehoert hierher. Es wird in der Abfrage schon ausgewaehlt
+      // (`r.id AS run_id`), kam aber nie in der Antwort an -- und die Pruefung
+      // "ein Koop-Lauf steht nicht auf der Solo-Liste" verglich deshalb
+      // `undefined` mit einer UUID. Sie war gruen, weil sie nicht fallen
+      // KONNTE. Am 2026-08-30 aufgefallen, als dieselbe Vergleichsform in der
+      // Gegenrichtung gebraucht wurde und dort natuerlich fehlschlug.
       entries: r.rows.map((e) => ({
-        rank: Number(e.rank), user_id: e.user_id, display_name: e.display_name,
-        level: e.level, title_id: e.title_id,
+        rank: Number(e.rank), run_id: e.run_id,
+        user_id: e.user_id, display_name: e.display_name,
+        level: e.level, title_id: e.title_id, player_count: e.player_count,
         rounds: e.rounds, score: Number(e.score), kills: e.kills, headshots: e.headshots,
         in_game_secs: e.in_game_secs, map_key: e.map_key, map_pretty: e.map_pretty,
         difficulty: e.difficulty, submitted_at: e.submitted_at,

@@ -127,6 +127,7 @@
 	   Joystick hinunter, und wer um Hilfe ruft, will sich meist noch bewegen
 	   koennen. Zwei Spalten halbieren die Hoehe und verkuerzen den Weg des
 	   Daumens. */
+	.rank-schalter { display:flex; gap:6px; justify-content:center; margin:4px 0 6px; flex-wrap:wrap; }
 	.pl-wert.pl-unten { color:#ff5a3c; font-weight:bold; }
 	#rufmenu {
 		position:absolute; display:none; pointer-events:auto; touch-action:none;
@@ -1141,7 +1142,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-30f';
+var TS_BUILD = '2026-08-30g';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1429,6 +1430,7 @@ var I18N = {
 		rankAnBtn:'AKTIVIEREN', rankLaedt:'Lädt …', rankLeer:'Noch keine Einträge.',
 		rankFehler:'Nicht erreichbar.', rankNochmal:'ERNEUT VERSUCHEN', rankPlatz:'Platz',
 		rankWeitere:'weitere',
+		rkSolo:'SOLO', rkK2:'2 SPIELER', rkK3:'3 SPIELER', rkK4:'4 SPIELER',
 		rankPruefung:'Lauf wird geprüft.', rankAbgelehnt:'Lauf nicht gewertet.',
 		rankFremd:'Konto und Bestenliste: auf totersignal.de spielen.',
 		gsKonto:'KONTO & ERFOLGE', gsSet:'STEUERUNG & BILD',
@@ -1556,6 +1558,7 @@ var I18N = {
 		rankAnBtn:'ENABLE', rankLaedt:'Loading ...', rankLeer:'No entries yet.',
 		rankFehler:'Unavailable.', rankNochmal:'TRY AGAIN', rankPlatz:'Rank',
 		rankWeitere:'more',
+		rkSolo:'SOLO', rkK2:'2 PLAYERS', rkK3:'3 PLAYERS', rkK4:'4 PLAYERS',
 		rankPruefung:'Run under review.', rankAbgelehnt:'Run not counted.',
 		rankFremd:'Account and leaderboard: play on totersignal.de.',
 		gsKonto:'ACCOUNT & ACHIEVEMENTS', gsSet:'CONTROLS & VIDEO',
@@ -1820,6 +1823,11 @@ var TS_DEATH = {
 	},
 	show: function(r){
 		var el = document.getElementById('deathui'); if (!el) return;
+		// Neue Runde, neue Vorgabe fuer die Bestenliste: nach einer Koop-Runde
+		// steht sie auf Koop. Ohne das Zuruecksetzen gilt die Wahl der VORIGEN
+		// Runde weiter -- und wer nach einer Vierer- eine Solo-Runde spielt,
+		// suchte seinen Platz auf der falschen Liste.
+		if (window.TS_BOARD) TS_BOARD.vorgabeGesetzt = false;
 		var da = document.getElementById('deathart');
 		if (da && !da.getAttribute('src')){ da.src = 'img/death-keyart.jpg'; da.hidden = false;
 			da.onerror = function(){ da.hidden = true; }; }
@@ -2199,6 +2207,13 @@ var TS_RUN = {
 // ein Spieler nach dem Sterben ohnehin hinschaut.
 var TS_BOARD = {
 	fenster: 'all',
+	// Solo oder Koop. Die Vorgabe kommt aus dem Lauf, der gerade zu Ende ging:
+	// wer zu viert gespielt hat, will wissen, wo DIESE Runde steht -- und nicht
+	// auf einer Liste suchen, auf der sie gar nicht stehen kann (0006). Der
+	// Umschalter bleibt trotzdem da, weil Vergleichen dazugehoert.
+	koop: false,
+	spielerzahl: 0,        // 0 = alle Koop-Groessen zusammen
+	vorgabeGesetzt: false,
 	async laden(){
 		var ziel = document.getElementById('dpage-rank');
 		if (!ziel) return;
@@ -2226,8 +2241,16 @@ var TS_BOARD = {
 			// MIT Anmeldung anfragen: nur dann liefert der Server den
 			// me-Block, also die eigene Zeile samt Platz -- auch wenn sie
 			// weit ausserhalb der ersten zehn liegt.
+			// Einmal je Todesbildschirm die Vorgabe aus dem Lauf uebernehmen.
+			if (!this.vorgabeGesetzt){
+				this.vorgabeGesetzt = true;
+				var n = (window.TS_RUN && TS_RUN.maxSpieler) || 1;
+				this.koop = n > 1;
+				this.spielerzahl = this.koop ? Math.min(4, Math.max(2, n)) : 0;
+			}
 			var d = await TS_API.call('/leaderboard?metric=rounds&window=' +
-				this.fenster + '&map=' + encodeURIComponent(karte) + '&limit=10');
+				this.fenster + '&map=' + encodeURIComponent(karte) + '&limit=10' +
+				(this.koop ? '&koop=1' + (this.spielerzahl ? '&spieler=' + this.spielerzahl : '') : ''));
 			this.zeichnen(d);
 		} catch(e){
 			// Frueher endete es hier bei zwei Woertern ohne jede Handhabe: wer
@@ -2276,8 +2299,18 @@ var TS_BOARD = {
 				// ist nicht verloren, er wird nur geprueft.
 				kopf = '<div class="dfoot">' + T(this.letztes.status === 'flagged' ? 'rankPruefung' : 'rankAbgelehnt') + '</div>';
 		}
+		// Der Umschalter gehoert AUCH in den leeren Fall: sonst landet man auf
+		// einer noch leeren Koop-Liste und kommt ohne Tab-Wechsel nicht zurueck.
+		var schalter = '<div class="rank-schalter">' +
+			'<span class="dtab' + (this.koop ? '' : ' active') + '" id="rk-solo">' + T('rkSolo') + '</span>' +
+			'<span class="dtab' + (this.koop && this.spielerzahl === 2 ? ' active' : '') + '" id="rk-k2">' + T('rkK2') + '</span>' +
+			'<span class="dtab' + (this.koop && this.spielerzahl === 3 ? ' active' : '') + '" id="rk-k3">' + T('rkK3') + '</span>' +
+			'<span class="dtab' + (this.koop && this.spielerzahl === 4 ? ' active' : '') + '" id="rk-k4">' + T('rkK4') + '</span>' +
+			'</div>';
+
 		if (!d.entries.length){
-			ziel.innerHTML = kopf + '<div class="dfoot">' + T('rankLeer') + '</div>';
+			ziel.innerHTML = kopf + schalter + '<div class="dfoot">' + T('rankLeer') + '</div>';
+			this.schalterBinden();
 			return;
 		}
 		// Der Server nennt die eigene Zeile ausdruecklich -- darauf verlassen
@@ -2297,16 +2330,32 @@ var TS_BOARD = {
 			return '<tr class="' + (eigen ? 'ich' : '') + luecke + '"><td>' + x.rank + '</td><td>' +
 				TS_DEATH.strip(x.display_name) + '</td><td>' + x.rounds + '</td><td>' + x.score + '</td></tr>';
 		}).join('');
-		ziel.innerHTML = kopf +
+		ziel.innerHTML = kopf + schalter +
 			'<div class="rank-wrap"><div id="rank-liste"><table><thead><tr><th>#</th><th>' + T('colName') + '</th><th>' +
 			T('colRound') + '</th><th>' + T('stPoints') + '</th></tr></thead><tbody>' +
 			zeilen + '</tbody></table></div></div>';
+
+		this.schalterBinden();
 
 		var box = document.getElementById('rank-liste');
 		if (!box) return;
 		this.hoeheEinrasten(box);
 		this.eigeneZeigen(box);
 		this.rollhinweis(box);
+	},
+
+	schalterBinden: function(){
+		var self = this;
+		var setze = function(id, koop, n){
+			var e = document.getElementById(id); if (!e) return;
+			e.addEventListener('click', function(){
+				self.koop = koop; self.spielerzahl = n; self.laden();
+			});
+		};
+		setze('rk-solo', false, 0);
+		setze('rk-k2', true, 2);
+		setze('rk-k3', true, 3);
+		setze('rk-k4', true, 4);
 	},
 
 	// Hoehe auf ganze Zeilen einrasten. Die frueher fest verdrahtete Deckelung

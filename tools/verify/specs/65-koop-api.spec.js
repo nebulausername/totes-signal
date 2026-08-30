@@ -156,4 +156,45 @@ test('ein Lauf mit Koop-Bit erscheint nicht auf der Solo-Liste', async () => {
   const meine = await (await ctx.get('/api/runs/mine', { headers: auth })).json();
   expect((meine.runs || []).some((r) => r.id === lauf.run_id || r.run_id === lauf.run_id),
     'der Lauf muss in der eigenen Historie stehen').toBe(true);
+
+  // ... und er steht auf der KOOP-Liste. Ohne diese Haelfte war der Ausschluss
+  // aus 0006 kein Gewinn, sondern ein Verlust: der Lauf stand danach auf gar
+  // keiner Liste. Getrennt nach Spielerzahl, weil zwei und vier nicht dasselbe
+  // Spiel sind.
+  // `Cache-Control: no-cache` ist hier PFLICHT: die Bestenliste antwortet ohne
+  // Anmeldung mit `public, max-age=30`, und ein dreissig Sekunden alter Stand
+  // kennt den eben abgeschlossenen Lauf nicht. Die Raum-Pruefung oben macht
+  // es aus demselben Grund -- und trotzdem bin ich hier hineingelaufen.
+  const frisch = { 'Cache-Control': 'no-cache' };
+  const koop = await (await ctx.get('/api/leaderboard?koop=1&spieler=2&limit=100&map=ndu',
+    { headers: frisch })).json();
+  expect(koop.segment.koop, 'die Antwort sagt nicht, welche Liste sie ist').toBe(true);
+  expect(koop.segment.spieler).toBe(2);
+  expect((koop.entries || []).every((e) => e.player_count === 2),
+    'auf der Zweier-Liste steht ein Lauf mit anderer Spielerzahl').toBe(true);
+  expect((koop.entries || []).some((e) => e.run_id === lauf.run_id),
+    'der Koop-Lauf steht auf gar keiner Liste').toBe(true);
+
+  // Die Vierer-Liste darf ihn NICHT enthalten.
+  const vier = await (await ctx.get('/api/leaderboard?koop=1&spieler=4&limit=100&map=ndu',
+    { headers: frisch })).json();
+  expect((vier.entries || []).some((e) => e.run_id === lauf.run_id),
+    'ein Zweier-Lauf steht auf der Vierer-Liste').toBe(false);
+});
+
+// Was die API meldet, muss zu dem passen, was sie geliefert hat. Solo- und
+// Koop-Antwort sahen vorher identisch aus -- ein Aufrufer konnte nicht
+// pruefen, was er bekommen hat.
+test('die Bestenliste sagt, welche Liste sie ist', async () => {
+  const kopf = { 'Cache-Control': 'no-cache' };
+  const solo = await (await ctx.get('/api/leaderboard?limit=5', { headers: kopf })).json();
+  expect(solo.segment.koop).toBe(false);
+  expect(solo.segment.spieler).toBe(1);
+  expect((solo.entries || []).every((e) => e.player_count === 1),
+    'auf der Solo-Liste steht ein Lauf mit mehreren Spielern').toBe(true);
+
+  // Eine unplausible Spielerzahl wird GEKLEMMT -- und das steht dann auch da,
+  // statt still eine andere Liste zu liefern als angefragt.
+  const wild = await (await ctx.get('/api/leaderboard?koop=1&spieler=99&limit=5', { headers: kopf })).json();
+  expect(wild.segment.spieler).toBe(4);
 });

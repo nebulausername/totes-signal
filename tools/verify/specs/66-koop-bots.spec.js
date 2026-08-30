@@ -96,26 +96,18 @@ test('ein Bot spielt mit, kaempft und hilft wieder auf', async ({ page }) => {
   await expect.poll(() => meineBits() & 4,
     { message: 'niemand hat den Spieler aufgehoben', timeout: 60_000 }).toBe(0);
 
-  // Gegenprobe an der Endwertung: revives zaehlt der AUFGEHOBENE.
+  // ABER: Bit 4 faellt auch, wenn man AUSBLUTET -- das Wiederbeleben-Zeichen
+  // verschwindet dann genauso. Erst zusammen mit "kein Zuschauer" ist es ein
+  // Nachweis. Wer ausblutet, wird Zuschauer bis zur naechsten Runde (Bit 1);
+  // wer aufgehoben wurde, spielt weiter.
   //
-  // Erst darauf WARTEN, dass der Bot wirklich weg ist. Neun Sekunden zu zaehlen
-  // reichte im vollen Lauf nicht, und die Folge war irrefuehrend: solange der
-  // Bot noch steht, ist jemand auf den Beinen, PollPlayersAlive meldet 1, und
-  // es kommt gar keine Endwertung -- der Test schlug also an einer Stelle fehl,
-  // an der nichts kaputt war. Auf die VORAUSSETZUNG warten, nicht auf die Uhr.
-  await botsSetzen(page, 0);
-  await expect.poll(() => {
-    const z = marker().filter((t) => t.startsWith('TSUI:mp:')).pop();
-    return z ? +z.split(':')[2].split('|')[0] : 9;
-  }, { message: 'der Bot ist nicht verschwunden', timeout: 45_000 }).toBe(1);
-
-  await page.evaluate(() => window.tsCmd('kill\n'));
-  expect(await m.waitFor('TSUI:dstats:', 90_000), 'keine Endwertung').toBe(true);
-
-  const stats = marker().filter((z) => z.startsWith('TSUI:dstats:')).pop().slice(12).split('|');
-  expect(+stats[4], 'der Sturz wurde nicht gezaehlt').toBeGreaterThanOrEqual(1);
-  expect(+stats[5], 'niemand hat den Spieler aufgehoben').toBeGreaterThanOrEqual(1);
+  // Genau daran ist die vorige Fassung dieses Tests vorbeigelaufen: sie hat
+  // stattdessen die Endwertung erzwungen (Bot entfernen, sich faellen lassen)
+  // -- und ist an einer Stelle gescheitert, an der nichts kaputt war.
+  expect(meineBits() & 1, 'der Spieler ist Zuschauer -- er ist ausgeblutet, nicht aufgehoben').toBe(0);
+  expect(marker().some((z) => z.startsWith('TSUI:dead:')), 'die Runde ist beendet').toBe(false);
 });
+
 
 
 test('ts_bots 0 entfernt den Bot wieder', async ({ page }) => {
@@ -138,6 +130,37 @@ test('ts_bots 0 entfernt den Bot wieder', async ({ page }) => {
 //
 // Unterschieden wird an `ts_raum`: die setzt die Shell nur beim Anbieten und
 // raeumt sie beim Rueckweg ins Menue. Wer allein spielt, bekommt seine drei.
+// Wer allein uebrigbleibt und ausblutet, darf nicht feststecken.
+//
+// SpectatorSpawn setzt classname auf "spectator", und PollPlayersAlive sucht
+// nach "player": nach dem letzten Ausbluten gab es niemanden mehr, der Zombies
+// toeten koennte, und Round_Core wartete darauf, dass sie sterben. Die Runde
+// konnte nie enden -- 90 Sekunden lang keine Endwertung, am Bild als
+// "SPECTATING -- Du schaust zu, 1 Spieler" gesehen.
+//
+// Im echten Koop entsteht das, sobald einer am Boden liegt und der andere die
+// Runde verlaesst. Die einzige vorhandene Sicherung greift erst bei
+// player_count == 0, und ein zuschauender Spieler zaehlt mit.
+test('bleibt niemand uebrig, endet die Runde -- statt festzustecken', async ({ page }) => {
+  const m = await booten(page);
+  const marker = () => m.all().map((x) => x.text.trim());
+  await botsSetzen(page, 1);
+  await page.evaluate((c) => window.tsCmd(c), START);
+  await page.waitForTimeout(40_000);
+
+  // Zu Boden gehen und den Helfer SOFORT wegnehmen: jetzt kann niemand mehr
+  // aufhelfen, und der Ausblut-Zaehler laeuft.
+  await page.evaluate(() => window.tsCmd('kill\n'));
+  await page.waitForTimeout(1_200);
+  await botsSetzen(page, 0);
+
+  // Ausbluten dauert rund 30 s, danach EndGame +4 s. 100 s sind reichlich --
+  // vorher kam hier NIE etwas.
+  expect(await m.waitFor('TSUI:dstats:', 100_000),
+    'die Runde steckt fest: niemand spielt mehr, und sie endet trotzdem nicht').toBe(true);
+  expect(marker().some((z) => z.startsWith('TSUI:dead:'))).toBe(true);
+});
+
 // Zwei Faelle, zwei frische Seiten -- ausdruecklich NICHT nacheinander auf
 // derselben. TSUI:mp: wird nur bei AENDERUNG gesendet; nach einem zweiten
 // `map` mit demselben Endstand kommt kein neuer Marker, und man liest den Wert
