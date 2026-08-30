@@ -1260,6 +1260,14 @@ void() ClientDisconnect =
 	self.nextthink = -1;
 	self.playernum = 0;
 	self.is_spectator = false;
+
+	// Die Bot-Kennung MUSS hier fallen. spawnclient() gibt Clientplaetze wieder
+	// aus; bliebe ts_ist_bot auf der Entitaet stehen, wuerde der naechste
+	// MENSCH in diesem Platz als Bot behandelt: PlayerPreThink ueberschriebe
+	// seinen AKTION-Knopf mit ts_bot_taste (also aus), und TS_Bot_Abgleich
+	// duerfte ihn per dropclient hinauswerfen. Beides waere fuer den
+	// Betroffenen voellig unerklaerlich.
+	self.ts_ist_bot = self.ts_bot_taste = FALSE;
 	setmodel(self, "models/sprites/null.spr");
 
 	GameRestart_ResetPerkaColas();

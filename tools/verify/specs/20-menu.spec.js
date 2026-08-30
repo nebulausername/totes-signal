@@ -54,8 +54,14 @@ test('Einstellungsschirm liegt im Bild -- nicht unter dem Canvas', async ({ page
 test('Start-Gate bietet den letzten Lauf an -- und nur gueltige Kartennamen', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  const touch = await page.evaluate(() => !!window.IS_TOUCH);
-  test.skip(!touch, 'Das Start-Gate gibt es nur auf Touch-Geraeten');
+  // KEIN Uebersprung auf Nicht-Touch mehr. Hier stand
+  // `test.skip(!touch, 'Das Start-Gate gibt es nur auf Touch-Geraeten')` --
+  // eine Annahme, die seit Footgun 30 falsch ist: Gate, WEITERSPIELEN,
+  // Konto-Zugang und Downloadhinweis lagen frueher in einer Touch-Klammer, die
+  // in ihrer ersten Zeile ausstieg, und wurden genau deshalb herausgeloest.
+  // Der Uebersprung blieb stehen -- und damit war ausgerechnet der Pfad
+  // ungeprueft, dessentwegen die Klammer aufgemacht wurde. Der Rumpf hier war
+  // die ganze Zeit plattformneutral.
 
   async function mitLauf(karte, name) {
     await page.evaluate(([k, n]) => localStorage.setItem('ts_letzter_lauf', JSON.stringify({

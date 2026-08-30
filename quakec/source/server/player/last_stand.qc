@@ -358,7 +358,8 @@ void() LastStand_TouchReviveTrigger =
 		bprint(PRINT_HIGH, sprintf("TSREV down=%d look=%d buy=%d br=%d b7=%d llt=%d gleich=%d\n",
 			other.downed, PlayerIsLooking(other, self.owner), other.isBuying,
 			self.owner.beingrevived, other.button7,
-			other.last_looked_time >= time, other.last_looked_ent == self));
+			(other.last_looked_time >= time) ? 1 : 0,
+			(other.last_looked_ent == self) ? 1 : 0));
 #endif
 
 	// If the team mate is actively being revived, and we are not the one
