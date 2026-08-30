@@ -104,6 +104,12 @@ float global_trace_damage_multiplier;
 string mappath;
 .float ads_toggle;
 float player_count;
+// Markiert einen KI-Mitspieler (ts_bot.qc). Das FELD steht hier und nicht dort,
+// weil last_stand.qc es liest -- und ts_bot.qc hinter #ifdef FTE liegt.
+.float ts_ist_bot;
+// Wie viele Bots gerade im Spiel sind. Steht hier, weil StartFrame danach
+// entscheidet, ob es TS_Bot_Abgleich ueberhaupt ruft.
+float ts_bot_da;
 .string fog;		// used for hacking in changing fog from world.fog for legacy maps
 
 entity local_client;

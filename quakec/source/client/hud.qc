@@ -2094,12 +2094,22 @@ void() HUD_Scores =
 	if (ts_hw < 120) ts_hw = 120;
 
 	// Passt nicht alles, faellt lieber eine Spalte weg als dass sich Text
-	// ueberlagert. Deutsche Kopfzeilen sind lang ("Kopfschuesse",
-	// "Wiederbelebt") -- eine abgeschnittene Tafel liest sich als Fehler,
-	// eine kuerzere nicht.
+	// ueberlagert.
+	//
+	// Diese Entscheidung hing bisher NUR an ts_hw -- also an der Breite der
+	// TAFEL, nie an der Breite der WOERTER, obwohl der Kommentar daneben genau
+	// das behauptete. Am 2026-08-30 an einer Viererrunde mit KI-Mitspielern
+	// gesehen: bei voller Breite standen im Englischen "Revives" und
+	// "Headshots" ineinander ("ReviveHeadshots"), waehrend die deutschen
+	// Kurzformen ("Hilfe", "Kopf") bequem passten. Eine Pruefung, die etwas
+	// anderes misst als das, worum es geht, meldet gruen und sieht daneben.
+	//
+	// Jetzt zaehlt die gemessene Wortbreite -- und die Spalten werden zuerst
+	// BREITER, bevor eine ganze wegfaellt. Rechts war ohnehin Platz: zwischen
+	// der letzten Spalte und der Ping-Anzeige lagen ungenutzte Einheiten.
 	float ts_spalten = 5;
-	if (ts_hw < 250) ts_spalten = 3;
-	else if (ts_hw < 265) ts_spalten = 4;
+	if (ts_hw < 200) ts_spalten = 3;
+	else if (ts_hw < 230) ts_spalten = 4;
 
 	// Senkrecht mittig statt auf y 177 festgenagelt -- und nie unter dem
 	// oberen Streifen (Zahnrad bzw. im Linkshaender-Modus MENUE).
@@ -2109,13 +2119,56 @@ void() HUD_Scores =
 	float ts_reihe = ts_oben + 18;
 
 	// Die Spalten teilen sich die Haelfte rechts vom Namen.
-	float header_x_increment = (ts_hw * 1.15) / (ts_spalten + 1);
 	float header_x_start = -ts_hw * 0.2767;
+	// Vorbelegt, damit der Compiler nicht ueber die Schleife hinweg raten muss.
+	float header_x_increment = (ts_hw * 1.15) / (ts_spalten + 1);
+	float ts_breit, ts_w, ts_kante, ts_fertig;
+
+	ts_fertig = FALSE;
+	while (!ts_fertig) {
+		// Das breiteste sichtbare Wort bestimmt die Mindestbreite einer Spalte.
+		ts_breit = getTextWidth(T("Score"), ts_kopfgroesse);
+		ts_w = getTextWidth(T("Kills"), ts_kopfgroesse);
+		if (ts_w > ts_breit) ts_breit = ts_w;
+		ts_w = getTextWidth(T("Downs"), ts_kopfgroesse);
+		if (ts_w > ts_breit) ts_breit = ts_w;
+		if (ts_spalten >= 4) {
+			ts_w = getTextWidth(T("Revives"), ts_kopfgroesse);
+			if (ts_w > ts_breit) ts_breit = ts_w;
+		}
+		if (ts_spalten >= 5) {
+			ts_w = getTextWidth(T("Headshots"), ts_kopfgroesse);
+			if (ts_w > ts_breit) ts_breit = ts_w;
+		}
+
+		header_x_increment = (ts_hw * 1.15) / (ts_spalten + 1);
+		if (header_x_increment < ts_breit + 6) header_x_increment = ts_breit + 6;
+
+		// Die rechte Kante ist nicht die letzte Zahlenspalte, sondern die
+		// Ping-Anzeige dahinter -- die wird relativ zur Spaltenbreite gesetzt
+		// (siehe unten: += 5 + increment/2, dann +28 fuer den Text).
+		ts_kante = header_x_start + (ts_spalten - 1) * header_x_increment
+		         + 5 + header_x_increment * 0.5 + 28 + 16;
+		if (ts_kante <= ts_hw - 6 || ts_spalten <= 3) ts_fertig = TRUE;
+		else ts_spalten = ts_spalten - 1;
+	}
+
 	float header_x_pos = header_x_start;
 	
 	if(serverkey("constate") != "disconnected")
 	{
-		Draw_String([5, g_height - scoreboard_text_size - 5], sprintf("%s %s", GAME_NAME, build_datetime), [scoreboard_text_size, scoreboard_text_size], TEXTCOLOR, 1, 0);
+		// Die Build-Kennung stand hart auf [5, ganz unten] -- also genau unter
+		// dem Joystick der Web-Shell (Footgun 23: die Engine zeichnet dorthin,
+		// wo die Shell ihre Bedienelemente hinstellt).
+		//
+		// Sie nur in das sichere Rechteck zu heben half NICHT: HUD_SafeBottom
+		// kennt den Punkteblock, nicht den Joystick, und danach lief die Zeile
+		// mitten durch den Ring -- schlechter als vorher. Am Bild gesehen. Die
+		// untere linke Ecke gehoert dem Daumen ganz; die Kennung steht jetzt
+		// UNTER DER TAFEL, wohin sie inhaltlich sowieso gehoert.
+		Draw_String([ts_mitte - ts_hw, ts_oben + ts_hoch + 5],
+			sprintf("%s %s", GAME_NAME, build_datetime),
+			[scoreboard_text_size - 2, scoreboard_text_size - 2], TEXTCOLOR, 0.65, 0);
 
 		// Scoreboard header
 		drawfill([ts_mitte - ts_hw, ts_oben], [ts_hw * 2, 1], [0.2, 0.2, 0.2], 1, 0);

@@ -974,6 +974,9 @@ function tsMarker(msg)
 			var lu = document.getElementById('lobbyui');
 			if (!lu || lu.style.display !== 'flex') TS_LOBBY.beenden();
 		}
+		// Und wir sind wieder unser eigener Server: die KI-Mitspieler-Zeile
+		// gehoert zurueck in die Einstellungen.
+		if (window.TS_JOIN) TS_JOIN.alsGast = false;
 		// Einladungslink: einmal, beim ersten Menue nach dem Start. Wer mit
 		// ?raum=ABC-234 ankommt, will genau eines -- beitreten. Danach ist
 		// die Einladung verbraucht, sonst poppt sie bei jeder Rueckkehr ins
@@ -1068,7 +1071,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-29m';
+var TS_BUILD = '2026-08-30b';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1361,6 +1364,7 @@ var I18N = {
 		gsKonto:'KONTO & ERFOLGE', gsSet:'STEUERUNG & BILD',
 		setTitle:'EINSTELLUNGEN', set_sens:'EMPFINDLICHKEIT', set_invy:'Y-ACHSE UMKEHREN',
 		set_aim:'ZIELHILFE', set_btnsize:'KNOPFGRÖSSE', set_btnalpha:'KNOPF-DECKKRAFT',
+		set_bots:'KI-MITSPIELER',
 		set_lefty:'LINKSHÄNDER', set_qualitaet:'SPARSAM (FLÜSSIGER)',
 		set_hud:'HUD-GRÖSSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
@@ -1481,6 +1485,7 @@ var I18N = {
 		gsKonto:'ACCOUNT & ACHIEVEMENTS', gsSet:'CONTROLS & VIDEO',
 		setTitle:'SETTINGS', set_sens:'SENSITIVITY', set_invy:'INVERT Y AXIS',
 		set_aim:'AIM ASSIST', set_btnsize:'BUTTON SIZE', set_btnalpha:'BUTTON OPACITY',
+		set_bots:'AI TEAMMATES',
 		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE',
 		set_hud:'HUD SIZE', set_hell:'BRIGHTNESS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
 		accAus:'No account yet. Enable leaderboard and progress.',
@@ -2443,6 +2448,14 @@ var TS_SET = {
 			// faellt dann von selbst auf 0.
 			if (window.__ts_hudRand) __ts_hudRand();
 		  } },
+		{ id:'bots', typ:'regler', min:0, max:3, schritt:1, std:0, nurGastgeber:true,
+		  // ts_bots liest das SERVER-QuakeC. In der eigenen Runde (solo wie
+		  // gastgebend) ist das derselbe Prozess; in einer FREMDEN Runde
+		  // schriebe man eine Cvar, die niemand liest -- deshalb blendet
+		  // sichtbar() die Zeile dort aus, statt einen Regler anzubieten,
+		  // der nichts tut.
+		  anwenden:function(v){ tsCmd('set ts_bots ' + Math.round(Number(v)) + '\n'); },
+		  zeigen:function(v){ return Number(v) ? String(Math.round(v)) : T('off'); } },
 		{ id:'qualitaet', typ:'schalter', std:0,
 		  // Sparsam-Modus. Die Cvars sind an DIESEM Build per Konsole geprueft.
 		  // fps_preset wird bewusst NICHT benutzt: ohne Argument oeffnet es ein
@@ -2479,7 +2492,12 @@ var TS_SET = {
 	// und Linkshaender-Modus beschreiben Bedienelemente, die es am Rechner
 	// nicht gibt -- sie stehen dort nicht als tote Regler herum.
 	sichtbar:function(){
-		return this.defs.filter(function(d){ return IS_TOUCH || !d.nurTouch; });
+		var gast = !!(window.TS_JOIN && TS_JOIN.alsGast);
+		return this.defs.filter(function(d){
+			if (d.nurTouch && !IS_TOUCH) return false;
+			if (d.nurGastgeber && gast)  return false;
+			return true;
+		});
 	},
 
 	// Bei jedem Spielstart erneut anwenden -- sonst gelten wieder die
@@ -2489,6 +2507,8 @@ var TS_SET = {
 		for (var i = 0; i < this.defs.length; i++){
 			var d = this.defs[i];
 			if (d.typ === 'stufe' || !d.anwenden) continue;
+			// In einer fremden Runde nichts schreiben, was nur der Server liest.
+			if (d.nurGastgeber && window.TS_JOIN && TS_JOIN.alsGast) continue;
 			try { d.anwenden(this.wert(d)); } catch(e){}
 		}
 	},
@@ -2802,6 +2822,7 @@ var TS_JOIN = {
 		// echten Raum (/CODE), nicht bei einer Serveradresse.
 		if (window.TS_LOBBY && /^\/[A-Z2-9]{4,12}$/.test(adresse))
 			TS_LOBBY.code = adresse.slice(1);
+		if (window.TS_JOIN) TS_JOIN.alsGast = true;   // wir sind hier nicht der Server
 		if (window.tsCmd) tsCmd('connect ' + adresse + '\n');
 	},
 
@@ -3011,6 +3032,7 @@ var TS_BROWSE = {
 		if (!/^[A-Z2-9]{4,12}$/.test(String(code))) return;   // landet in einer Konsolenzeile
 		this.schliessen();
 		if (window.TS_LOBBY) TS_LOBBY.code = code;
+		if (window.TS_JOIN) TS_JOIN.alsGast = true;   // fremde Runde
 		if (window.tsCmd)
 			tsCmd('net_ice_broker "' + TS_VERMITTLER + '"\nconnect /' + code + '\n');
 	},

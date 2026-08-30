@@ -118,10 +118,19 @@ test('Konto-Ansicht zeigt Stufe, Zahlen und Erfolge', async ({ page }) => {
     .toMatch(/noch nicht erreichbar|not yet obtainable/);
 });
 
-test('Treffer-Rueckmeldung: Haptik und sichtbarer Puls', async ({ page }) => {
+test('Treffer-Rueckmeldung: was ruettelt, was pulst, und was BEIDES nicht darf', async ({ page }) => {
   // navigator.vibrate gibt es auf iOS Safari NICHT -- deshalb MUSS parallel
   // immer ein sichtbarer Puls laufen, sonst bekommt ein iPhone-Spieler gar
-  // keine Rueckmeldung. Beide Kanaele haengen an demselben Marker.
+  // keine Rueckmeldung. Beide Kanaele haengen an denselben Markern.
+  //
+  // Der interessante Fall ist `r`. Dieser Test verlangte frueher DREI
+  // Vibrationen fuer h/k/r und hat damit einen echten Fehler festgeschrieben:
+  // TSUI:fx:r ist der GAMEPAD-Rumble der Engine, und von seinen neun Quellen
+  // sind sieben Waffenaktionen (Feuern, Ziehen, Werfen, Waffengeraeusch, Betty
+  // scharfmachen, Hechtrolle). Das Handy ruettelte also bei JEDEM SCHUSS mit
+  // dem Treffer-Muster. Schaden am Spieler kommt seit 08/2026 als eigenes
+  // Ereignis (CSQC_EVENT_HURTDIR -> TSUI:fx:d) aus DamageHandler -- dem
+  // einzigen Punkt, an dem ein Spieler wirklich Schaden nimmt.
   await page.addInitScript(() => {
     window.__vib = [];
     navigator.vibrate = (m) => { window.__vib.push(JSON.stringify(m)); return true; };
@@ -131,19 +140,30 @@ test('Treffer-Rueckmeldung: Haptik und sichtbarer Puls', async ({ page }) => {
 
   const r = await page.evaluate(async () => {
     const raus = [];
-    for (const art of ['h', 'k', 'r']) {
+    for (const art of ['h', 'k', 'd', 'r']) {
+      const vorher = window.__vib.length;
       console.log('\nTSUI:fx:' + art + '\n');          // genau der Weg der Engine
       await new Promise((res) => setTimeout(res, 90));
-      raus.push({ art, klasse: (document.getElementById('firebtn') || {}).className || '' });
+      raus.push({ art,
+        klasse: (document.getElementById('firebtn') || {}).className || '',
+        geruettelt: window.__vib.length - vorher });
       await new Promise((res) => setTimeout(res, 300));
     }
-    return { raus, vib: window.__vib };
+    return raus;
   });
+  const fall = (a) => r.find((x) => x.art === a);
 
-  expect(r.raus[0].klasse, 'Treffer pulst nicht').toContain('fx-h');
-  expect(r.raus[1].klasse, 'Abschuss pulst nicht anders als ein Treffer').toContain('fx-k');
+  expect(fall('h').klasse, 'Treffer pulst nicht').toContain('fx-h');
+  expect(fall('k').klasse, 'Abschuss pulst nicht anders als ein Treffer').toContain('fx-k');
+  expect(fall('h').geruettelt + fall('k').geruettelt, 'Treffer ohne Haptik').toBe(2);
+
   // Schaden AM Spieler darf den Feuerknopf NICHT pulsen -- das lese sich wie
-  // ein eigener Treffer, also genau falschherum.
-  expect(r.raus[2].klasse, 'Schaden pulst faelschlich den Feuerknopf').not.toMatch(/fx-[hk]/);
-  expect(r.vib.length, 'keine Haptik ausgeloest').toBe(3);
+  // ein eigener Treffer, also genau falschherum. Ruetteln soll er sehr wohl.
+  expect(fall('d').klasse, 'Schaden pulst faelschlich den Feuerknopf').not.toMatch(/fx-[hk]/);
+  expect(fall('d').geruettelt, 'Schaden am Spieler ruettelt nicht').toBe(1);
+
+  // Und der Waechter gegen die Rueckkehr des alten Fehlers.
+  expect(fall('r').geruettelt, 'fx:r ruettelt wieder -- das ist jeder Schuss').toBe(0);
+  expect(fall('r').klasse, 'fx:r pulst den Feuerknopf').not.toMatch(/fx-[hk]/);
 });
+

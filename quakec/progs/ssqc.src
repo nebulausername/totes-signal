@@ -87,6 +87,7 @@ gamemodes/wild_west.qc
 gamemodes/sticks_and_stones.qc
 gamemodes/festive.qc
 gamemodes/core.qc
+ts_bot.qc
 #ifdef QUAKEC_TEST
 tests/test_math.qc
 tests/test_perksacola.qc

@@ -486,6 +486,18 @@ void(entity client) LastStand_Begin =
 
     // End the game if no one else is alive.
 	float players_still_alive = PollPlayersAlive();
+#ifdef FTE
+	// Warum eine Diagnose ausgerechnet hier: DIES ist der Punkt, an dem eine
+	// Koop-Runde endet, und von aussen sieht das Ende immer gleich aus. Bei den
+	// KI-Mitspielern war zuerst unklar, ob ein gefallener Bot die Partie
+	// abbricht -- die Messung zeigte, dass er es nicht tut (bot=1 pc=2 alive=1,
+	// kein Ende) und der Abbruch erst kam, als AUCH der Mensch unten lag. Ohne
+	// die Zeile waere die Schuld beim Bot geblieben. Kostet nichts, solange
+	// ts_bot_debug nicht gesetzt ist.
+	if (cvar("ts_bot_debug"))
+		bprint(PRINT_HIGH, sprintf("TSBOT down: bot=%d pc=%d alive=%d perks=%d\n",
+			self.ts_ist_bot, player_count, players_still_alive, self.perks & P_REVIVE));
+#endif
 	if ((player_count > 1&& !players_still_alive) || (player_count == 1 && !(self.perks & P_REVIVE))) {
 		EndGameSetup();
 		return;

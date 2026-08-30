@@ -66,9 +66,21 @@ void(string ent_name) Way_SetBrushEntNonSolid =
 
 //called for each frame that QC runs
 float zombie_cleaned_w;
+void() TS_Bot_Abgleich;
+
 void() StartFrame =
 {
 	framecount = framecount + 1;
+
+	// KI-Mitspieler: Zahl angleichen und denken lassen. Solange ts_bots 0 ist
+	// -- die Vorgabe -- kostet das nichts.
+	//
+	// `ts_bot_da > 0` ist kein Beiwerk: ohne diesen Teil schaltete "ts_bots 0"
+	// den Abgleich ab, statt die Bots zu entfernen, und sie blieben bis zum
+	// Kartenwechsel im Spiel. Wer eine Aufraeumschleife an dieselbe Bedingung
+	// haengt, die das Aufzuraeumende abbestellt, raeumt nie auf.
+	if (cvar("ts_bots") > 0 || ts_bot_da > 0 || framecount < 2)
+		TS_Bot_Abgleich();
 
 	if (waypoint_mode) {
 		if (!zombie_cleaned_w) {
@@ -432,6 +444,11 @@ void() worldspawn =
 	// statt als Zuschauer. 0 schaltet das Fenster ab (nur Runde 0, also die
 	// Lobby); 3 ist die Vorgabe.
 	autocvar(ts_joinround, 3);
+
+	// KI-Mitspieler (0..3). Sie sind echte Clients und zaehlen in player_count
+	// -- daran haengt die Zombiezahl, weshalb sie auch wirklich kaempfen
+	// muessen (siehe ts_bot.qc).
+	autocvar(ts_bots, 0);
 
 	current_month_of_year = nzp_getmonthofyear();
 
