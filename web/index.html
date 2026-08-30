@@ -1071,7 +1071,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-30b';
+var TS_BUILD = '2026-08-30c';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1365,6 +1365,7 @@ var I18N = {
 		setTitle:'EINSTELLUNGEN', set_sens:'EMPFINDLICHKEIT', set_invy:'Y-ACHSE UMKEHREN',
 		set_aim:'ZIELHILFE', set_btnsize:'KNOPFGRÖSSE', set_btnalpha:'KNOPF-DECKKRAFT',
 		set_bots:'KI-MITSPIELER',
+		hpBots:'KI-MITSPIELER',
 		set_lefty:'LINKSHÄNDER', set_qualitaet:'SPARSAM (FLÜSSIGER)',
 		set_hud:'HUD-GRÖSSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
@@ -1486,6 +1487,7 @@ var I18N = {
 		setTitle:'SETTINGS', set_sens:'SENSITIVITY', set_invy:'INVERT Y AXIS',
 		set_aim:'AIM ASSIST', set_btnsize:'BUTTON SIZE', set_btnalpha:'BUTTON OPACITY',
 		set_bots:'AI TEAMMATES',
+		hpBots:'AI TEAMMATES',
 		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE',
 		set_hud:'HUD SIZE', set_hell:'BRIGHTNESS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
 		accAus:'No account yet. Enable leaderboard and progress.',
@@ -3144,11 +3146,21 @@ var TS_LOBBY = {
 		{ cvar: 'sv_magic',      label: 'hpMagic', hinweis: 'hpMagicHint', werte: [1,0],
 		  text: function(v){ return v ? T('hpOn') : T('hpOff'); } },
 		{ cvar: 'sv_fastrounds', label: 'hpFast', werte: [0,1],
-		  text: function(v){ return v ? T('hpOn') : T('hpOff'); } }
+		  text: function(v){ return v ? T('hpOn') : T('hpOff'); } },
+		// KI-Mitspieler gehoeren an diese Stelle, weil hier die Runde
+		// eingestellt wird. Der WERT gehoert aber weiterhin TS_SET, nicht der
+		// Lobby: `set` statt `cvar` sagt genau das. Zwei Speicher fuer dieselbe
+		// Cvar waeren kein Detail -- TS_SET.allesAnwenden schreibt bei JEDEM
+		// TSUI:game und gewaenne jedes Mal; die Lobby-Einstellung waere still
+		// wirkungslos. Genau diese Falle hat am 2026-08-30 einen gruenen Test
+		// ohne Codeaenderung rot gemacht (Footgun 40).
+		{ set: 'bots', label: 'hpBots', werte: [0,1,2,3],
+		  text: function(v){ return v ? String(v) : T('hpOff'); } }
 	],
 	// Cvars sind aus JS NICHT lesbar -- localStorage ist auch hier die
 	// Wahrheit, und alles wird beim Start der Runde erneut geschrieben.
 	einstLesen: function(e){
+		if (e.set) return Number(TS_SET.wert(TS_SET.defs.find(function(d){ return d.id === e.set; })));
 		try {
 			var v = localStorage.getItem('ts_h_' + e.cvar);
 			if (v !== null && e.werte.indexOf(+v) >= 0) return +v;
@@ -3156,6 +3168,10 @@ var TS_LOBBY = {
 		return e.werte[0];
 	},
 	einstSchreiben: function(e, v){
+		if (e.set){
+			TS_SET.setzen(TS_SET.defs.find(function(d){ return d.id === e.set; }), v);
+			return;
+		}
 		try { localStorage.setItem('ts_h_' + e.cvar, String(v)); } catch(x){}
 	},
 	einstZeichnen: function(){
@@ -3192,7 +3208,11 @@ var TS_LOBBY = {
 	// aus.
 	einstBefehl: function(){
 		var self = this, zeilen = '';
-		this.EINST.forEach(function(e){ zeilen += e.cvar + ' ' + self.einstLesen(e) + '\n'; });
+		// Nur echte Cvar-Zeilen. Ein `set`-Eintrag wird von TS_SET geschrieben --
+		// hier stuende sonst "undefined 2" in der Konsole.
+		this.EINST.forEach(function(e){
+			if (e.cvar) zeilen += e.cvar + ' ' + self.einstLesen(e) + '\n';
+		});
 		return zeilen;
 	},
 	reiter: function(welche){

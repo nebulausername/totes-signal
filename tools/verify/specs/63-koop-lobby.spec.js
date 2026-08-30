@@ -92,6 +92,66 @@ for (const [name, groesse] of [
   });
 }
 
+// Der Reiter RUNDE wurde von NICHTS geprueft -- die Messung oben oeffnet den
+// Schirm und misst, womit er aufgeht: CODE. Aufgefallen beim Nachtragen der
+// Zeile KI-MITSPIELER, also beim Hinzufuegen von Inhalt zu genau der Seite,
+// die niemand ansah. Dieselbe Lehre wie Footgun 22: eine Pruefung, die nur die
+// Kante misst, an der man den Fehler vermutet, findet ihn an der Kante daneben
+// nicht -- hier war es sogar eine ganze Seite daneben.
+for (const [name, groesse] of [
+  ['quer 844x390', { width: 844, height: 390 }],
+  ['hoch 390x844', { width: 390, height: 844 }],
+]) {
+  test(`Reiter RUNDE haelt sich im Bild -- ${name}`, async ({ page }) => {
+    await auf(page, groesse);
+    const r = await page.evaluate(() => {
+      TS_LOBBY.reiter('set');
+      const el = document.getElementById('lobbyui');
+      const akt = el.querySelector('.death-actions').getBoundingClientRect();
+      const k = el.querySelector('.lb-koerper');
+      const zeilen = [...document.querySelectorAll('#hp-set .set-row')];
+      return {
+        hoehe: window.innerHeight,
+        knopfUnten: Math.round(akt.bottom),
+        rollt: k ? k.scrollHeight > k.clientHeight + 1 : false,
+        letzteZeileUnten: zeilen.length
+          ? Math.round(zeilen[zeilen.length - 1].getBoundingClientRect().bottom) : 0,
+        anzahl: zeilen.length,
+        beschriftet: zeilen.every((z) => (z.textContent || '').trim().length > 2),
+      };
+    });
+
+    expect(r.anzahl, 'der Reiter RUNDE ist leer').toBeGreaterThanOrEqual(5);
+    expect(r.beschriftet, 'eine Einstellungszeile ohne Text').toBe(true);
+    // Footgun 20: der Inhalt darf die Knopfreihe nicht hinausschieben.
+    expect(r.knopfUnten, `Knopfreihe unter dem Bildrand (${r.knopfUnten} > ${r.hoehe})`)
+      .toBeLessThanOrEqual(r.hoehe);
+    expect(r.letzteZeileUnten, 'die letzte Einstellung liegt unter dem Bildrand')
+      .toBeLessThanOrEqual(r.hoehe);
+    expect(r.rollt, 'im Gastgeber-Schirm darf nichts weggerollt sein').toBe(false);
+  });
+}
+
+// Und der Wert der Bot-Zeile gehoert TS_SET, nicht der Lobby: zwei Speicher
+// fuer dieselbe Cvar waeren still wirkungslos, weil TS_SET.allesAnwenden bei
+// jedem TSUI:game gewinnt.
+test('Die Bot-Zeile der Lobby schreibt in denselben Speicher wie die Einstellungen', async ({ page }) => {
+  await auf(page, { width: 844, height: 390 });
+  const r = await page.evaluate(() => {
+    const e = TS_LOBBY.EINST.find((x) => x.set === 'bots');
+    TS_LOBBY.einstSchreiben(e, 2);
+    const d = TS_SET.defs.find((x) => x.id === 'bots');
+    return { ueberLobby: TS_LOBBY.einstLesen(e), ueberSet: Number(TS_SET.wert(d)),
+             befehl: TS_LOBBY.einstBefehl() };
+  });
+  expect(r.ueberLobby).toBe(2);
+  expect(r.ueberSet, 'Lobby und Einstellungen zeigen verschiedene Werte').toBe(2);
+  // Und die Zeile darf NICHT als Cvar mitgeschickt werden -- ohne den Filter
+  // stuende hier "undefined 2".
+  expect(r.befehl, 'eine set-Zeile ist als Cvar in die Konsole geraten').not.toContain('undefined');
+  expect(r.befehl, 'ts_bots gehoert TS_SET, nicht dem Rundenbefehl').not.toContain('ts_bots');
+});
+
 test('KARTE WAEHLEN schickt Code und Befehl in EINEM Aufruf', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await page.goto(frisch(), { waitUntil: 'domcontentloaded' });
