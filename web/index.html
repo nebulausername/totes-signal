@@ -127,7 +127,10 @@
 	   Joystick hinunter, und wer um Hilfe ruft, will sich meist noch bewegen
 	   koennen. Zwei Spalten halbieren die Hoehe und verkuerzen den Weg des
 	   Daumens. */
-	.rank-schalter { display:flex; gap:6px; justify-content:center; margin:4px 0 6px; flex-wrap:wrap; }
+	/* Kompakt: dieser Umschalter teilt sich rund 154 px Tab-Seite mit der
+	   Liste, um die es geht. Jeder Pixel hier ist eine halbe Zeile weniger. */
+	.rank-schalter { display:flex; gap:5px; justify-content:center; margin:2px 0 4px; flex-wrap:wrap; }
+	.rank-schalter .dtab { padding:2px 8px; font-size:clamp(9px,1.7vmin,12px); }
 	.pl-wert.pl-unten { color:#ff5a3c; font-weight:bold; }
 	#rufmenu {
 		position:absolute; display:none; pointer-events:auto; touch-action:none;
@@ -1142,7 +1145,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-30g';
+var TS_BUILD = '2026-08-30h';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -2392,7 +2395,16 @@ var TS_BOARD = {
 		var versatz = (box.getBoundingClientRect().top - seite.getBoundingClientRect().top) + seite.scrollTop;
 		var frei = seite.clientHeight - versatz - kh;
 		var n = Math.floor(frei / zh);
-		if (n < 2) n = 2;                                  // unter zwei Zeilen ist es keine Liste mehr
+		// Untergrenze EINS, nicht zwei. "Unter zwei Zeilen ist es keine Liste
+		// mehr" klang vernuenftig und war ein latenter Ueberlauf: passt nur
+		// eine Zeile, erzwang die Zwei eine Hoehe GROESSER als der Platz, und
+		// die Liste ragte unten aus der Tab-Seite -- abgeschnitten hat dann die
+		// Seitenkante, nicht die Liste (Footgun 22). Sichtbar wurde das erst,
+		// als der SOLO/KOOP-Umschalter 22 px vom Platz nahm; bei 390 px
+		// Querformat mit frischen Erfolgen bleiben fuer die Liste nur rund 50.
+		// Eine ganze Zeile mit Rollhinweis ist besser als zwei, von denen die
+		// zweite ueber die Kante haengt.
+		if (n < 1) n = 1;
 		if (n >= zeilen.length){ box.style.maxHeight = ''; return; }   // passt ohnehin ganz
 		// Die Kante an der ECHTEN Lage der ersten abgeschnittenen Zeile
 		// ausrichten, nicht an kopf + n * zeilenhoehe. Bei
