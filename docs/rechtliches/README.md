@@ -1,4 +1,8 @@
-# Impressum und Datenschutzerklärung — Entwurf
+# Datenschutzerklärung — Entwurf
+
+Das Impressum liegt zentral unter https://kaufmeinewebsite.de/legal#impressum;
+der frühere Impressums-Entwurf ist deshalb nicht mehr Teil dieses Repos.
+
 
 **Diese Dateien liegen bewusst NICHT in `web/`.** Der Deploy ist ein
 `rsync --delete` über den gesamten Ordner: läge der Entwurf dort, ginge er beim
