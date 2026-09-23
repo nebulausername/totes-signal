@@ -16,8 +16,8 @@ From the original in-game credits (`quakec/source/menu/menu_cred.qc` at upstream
 | Sound effects | blubs, Biodude, cypress |
 | Special thanks | Spike, eukara, Shpuld, Crow_Bar, st1x51, fgsfdsfgs, MasterFeizz, Rinnegatamante, Azenn |
 
-The in-game credits screen of the current build shows the TOTES SIGNAL additions and a line crediting NZ:P
-and the FTEQW engine. The full list above goes back into the game with the next release (see the roadmap).
+The in-game credits screen shows this list first, followed by the TOTES SIGNAL additions, the licence and a
+link to this repository. The start page names NZ:P and links the source code.
 
 ## Upstream projects
 

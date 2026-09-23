@@ -45,6 +45,17 @@ harness in `tools/verify`, and reading the code. Where a number appears, it was 
 
 </details>
 
+<details>
+<summary><b>Credits and legal</b> (September 2026)</summary>
+
+- Full NZ:P Team credits back on the in-game credits screen, with a link to this repository
+- Start page footer: NZ:P credit, GPL notice, source code, imprint and privacy policy
+- Privacy policy published, including co-op (WebRTC, room list, chat)
+- A real prompt (age and privacy) before an account is created
+- The account screen opens above the start screen again
+
+</details>
+
 ## Next
 
 ### 1. Controls 3.0 (phones)
@@ -109,9 +120,3 @@ The in-game HUD is inherited from NZ:P, not designed for this game.
 - A font atlas for accented characters, plural forms, a fallback for missing keys
 - Slovak, Polish and Turkish as the first new languages
 - Loading tips, bios and map texts are still hard-coded German
-
-### 8. Credits and legal
-
-- Put the full NZ:P Team credits back on the in-game credits screen
-- A footer on the start page: NZ:P credit, GPL notice, link to this repository, imprint and privacy policy
-- Replace the hard-coded age and privacy confirmation with a real prompt
