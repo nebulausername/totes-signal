@@ -6,7 +6,7 @@
 // Alles laeuft unter dem relativen Scope (./), damit /zombie/, GitHub Pages und
 // local dev denselben Code teilen.
 
-const SW_VERSION = 'v79';                // v13: Cache-Entkopplung + no-cache fuer progs.pk3
+const SW_VERSION = 'v80';                // v13: Cache-Entkopplung + no-cache fuer progs.pk3
 const SHELL = 'totes-shell-' + SW_VERSION;
 
 // EINGEFROREN auf v12 -- absichtlich noch die alte Nummer.
@@ -153,6 +153,11 @@ self.addEventListener('fetch', function (event) {
 
   // Navigation (./ bzw. index.html) -> network-first, damit Rebrand-Updates
   // ausgeliefert werden; Offline-Fallback auf die gecachte index.html.
+  // Eigene Unterseiten (datenschutz.html) NICHT anfassen: der Zweig darunter
+  // faellt nach 4 s auf die gecachte index.html zurueck -- wer bei schwachem
+  // Netz den Datenschutz oeffnete, bekaeme sonst das Spiel.
+  if (req.mode === 'navigate' && /\.html$/.test(url.pathname) && !/\/index\.html$/.test(url.pathname)) return;
+
   if (req.mode === 'navigate') {
     // network-first, aber mit Zeitlimit: ohne das wartet ein Spieler bei
     // wackligem Mobilfunk unbegrenzt auf das Netz, obwohl die Shell offline

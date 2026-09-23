@@ -507,6 +507,16 @@ string(string english) T =
 	case "Earn all 42 Achievements": return "Sammle alle 42 Erfolge";
 	// <<< ERFOLGE-ENDE (erzeugt) >>>
 
+	// === Abspann (23.09.2026: NZ:P-Team wieder vorn, Quelle verlinkt) ===
+	case "LICENSE & TECH": return "LIZENZ & TECHNIK";
+	case "THANKS": return "DANK";
+	case "Biodude - thanks to Spike, eukara, Shpuld and more": return "Biodude - Dank an Spike, eukara, Shpuld u. a.";
+	case "Mobile version, German, co-op, UI & design": return "Mobilversion, Deutsch, Koop, UI & Design";
+	case "Free software under GPL-2.0, engine: FTEQW (Spike et al.)": return "Freie Software unter GPL-2.0, Engine: FTEQW (Spike u. a.)";
+	case "Unofficial fan project - non-commercial": return "Inoffizielles Fanprojekt - nicht kommerziell";
+	case "Source: github.com/nebulausername/totes-signal": return "Quelltext: github.com/nebulausername/totes-signal";
+	case "And to you - for holding out.": return "Und an dich - fuers Durchhalten.";
+
 	default: return english;
 	}
 };

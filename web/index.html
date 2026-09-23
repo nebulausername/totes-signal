@@ -213,6 +213,8 @@
 		--z-lobby:46;       /* Koop: Gastgeber-Schirm */
 		--z-spieler:48;     /* Koop: Spielerliste, ueber dem Konto-Schirm */
 		--z-gate:50; --z-join:51; --z-load:52;
+		--z-konto-gate:51; /* Konto, vom Gate aus geoeffnet: MUSS ueber dem Gate liegen */
+		--z-einw:72;       /* Einwilligung vor dem Konto: modal, ueber allem */
 		--z-install:60; --z-build:65; --z-update:70;
 	}
 	/* An der KLASSE, nicht an einer ID-Liste. Jedes neue Overlay bekommt
@@ -238,6 +240,26 @@
 	   ueber dem Todes-Overlay aber unter Gate und Ladescreen. */
 	#accountui { z-index:var(--z-konto); overflow-y:auto; align-items:flex-start; }
 	#accountui .box { max-width:min(760px, 94vw); width:100%; padding:14px 0 28px; }
+	/* Bis 23.09.2026 oeffnete KONTO & FORTSCHRITT auf dem Gate den Schirm mit
+	   z 47 UNTER dem Gate (50): der Knopf tat sichtbar nichts. Vom Gate aus
+	   geoeffnet traegt er deshalb diese Klasse (TS_KONTO.zeigen). */
+	#accountui.ueber-gate { z-index:var(--z-konto-gate); }
+	#einwui { z-index:var(--z-einw); }
+	#einwui .box { max-width:min(560px, 92vw); }
+	/* .ts-sub ist fuer die kurze Zeile KEIN SIGNAL gesperrt -- Fliesstext wird
+	   damit unlesbar. Hier normale Laufweite. */
+	#einwui .ts-sub { text-align:left; line-height:1.55; letter-spacing:0.01em; font-size:min(3.6vw,15px); color:#d6d0c0; }
+	#einwui a { color:#e6e1d2; }
+	/* Credits und Recht auf dem Gate. Im Fluss der Box, NICHT fest am Rand:
+	   unten liegt schon der Installieren-Knopf. Ziele per Innenabstand
+	   vergroessert, die Schrift bleibt klein. */
+	.gate-fuss { margin-top:18px; font-size:min(2.6vw,11px); line-height:1.7; color:#8c8474; max-width:min(96vw,820px); margin-left:auto; margin-right:auto; }
+	.gate-fuss a { color:#c9c2b0; text-decoration:underline; padding:6px 2px; }
+	.gate-fuss small { display:block; font-size:inherit; opacity:0.8; }
+	/* Handy quer (~390 px hoch): die Box war schon vorher hoeher als das
+	   Fenster. Hier nur EINE Zeile -- der Fanprojekt-Hinweis steht zusaetzlich
+	   im Abspann und im Repo. */
+	@media (max-height:500px){ .gate-fuss { margin-top:4px; line-height:1.3; font-size:10px; } .gate-fuss small { display:none; } #mstart .ts-skull { width:min(20vw,64px); } }
 	#accountui h3 { margin:16px 0 8px; font-size:min(2.4vh,13px); letter-spacing:2px;
 		color:#c9a06a; text-transform:uppercase; font-weight:normal; }
 	.acc-kopf { display:flex; align-items:baseline; justify-content:center; gap:12px; flex-wrap:wrap; }
@@ -751,6 +773,14 @@
 		<button type="button" class="play alt" id="gate-weiter" style="display:none"></button>
 		<p class="hint" id="gate-groesse" style="color:#c9a06a"></p>
 		<p class="hint" style="margin-top:14px"><button type="button" id="gate-konto" class="linkbtn" data-i18n="accTitle"></button></p>
+		<nav class="gate-fuss" id="gate-fuss" aria-label="Credits">
+			<span data-i18n="fussBasis"></span>
+			<a href="https://github.com/nebulausername/totes-signal" target="_blank" rel="noopener" data-i18n="fussQuelle"></a> ·
+			<a href="https://github.com/nebulausername/totes-signal/blob/main/CREDITS.md" target="_blank" rel="noopener">Credits</a> ·
+			<a href="https://kaufmeinewebsite.de/legal#impressum" target="_blank" rel="noopener" data-i18n="fussImpressum"></a> ·
+			<a href="datenschutz.html" target="_blank" rel="noopener" data-i18n="fussDatenschutz"></a>
+			<small data-i18n="fussFan"></small>
+		</nav>
 	</div></div>
 	<div id="rotate" class="ts-ov"><div class="box">
 		<span class="rot">⟳</span>
@@ -897,6 +927,15 @@
 		<div id="acc-inhalt"></div>
 		<div class="death-actions">
 			<button type="button" class="play alt" id="acc-zu" data-i18n="accClose"></button>
+		</div>
+	</div></div>
+	<div id="einwui" class="ts-ov" role="dialog" aria-modal="true" aria-labelledby="einw-titel"><div class="box">
+		<p class="ts-mark" id="einw-titel" data-i18n="einwTitel"></p>
+		<p class="ts-sub" data-i18n="einwText"></p>
+		<p class="ts-sub"><a href="datenschutz.html" target="_blank" rel="noopener" data-i18n="einwLink"></a></p>
+		<div class="death-actions">
+			<button type="button" class="play" id="einw-ja" data-i18n="einwJa"></button>
+			<button type="button" class="play alt" id="einw-nein" data-i18n="einwNein"></button>
 		</div>
 	</div></div>
 	<div id="loadscreen" class="ts-ov"><div class="box">
@@ -1145,7 +1184,7 @@ function tsMarker(msg)
 // Build-Kennung dieser Shell. Bei JEDEM Shell-Deploy zusammen mit
 // web/version.json hochzaehlen (siehe CLAUDE.md) — der Update-Checker unten
 // vergleicht beide und bietet Geraeten mit alter Shell einen 1-Tap-Refresh an.
-var TS_BUILD = '2026-08-30h';
+var TS_BUILD = '2026-09-23a';
 
 // JS->Engine: beliebigen Konsolenbefehl ausfuehren (FTEC.cbufadd). Dieser Build
 // exportiert malloc/free nur auf Module (u. a. als _emscripten_builtin_*) —
@@ -1448,6 +1487,10 @@ var I18N = {
 		ruf4:'Kiste!', ruf5:'Danke!', ruf6:'Kein Geld',
 		set_lefty:'LINKSHÄNDER', set_qualitaet:'SPARSAM (FLÜSSIGER)',
 		set_hud:'HUD-GRÖSSE', set_hell:'HELLIGKEIT', accTitle:'KONTO & FORTSCHRITT', accClose:'SCHLIESSEN',
+		fussBasis:'Basiert auf Nazi Zombies: Portable vom NZ:P-Team (GPL-2.0) ·', fussQuelle:'Quelltext', fussImpressum:'Impressum', fussDatenschutz:'Datenschutz',
+		fussFan:'Inoffizielles, nicht-kommerzielles Fanprojekt. Nicht verbunden mit dem NZ:P-Team, Activision oder Microsoft.',
+		einwTitel:'KONTO ANLEGEN', einwText:'Für Bestenliste und Fortschritt legen wir ein anonymes Konto an: ein zufälliger Deckname, deine Läufe und Erfolge. Keine E-Mail, kein Passwort. Du bestätigst, mindestens 16 Jahre alt zu sein oder die Zustimmung deiner Eltern zu haben.',
+		einwLink:'Datenschutzerklärung lesen', einwJa:'ICH BIN 16+ · KONTO ANLEGEN', einwNein:'ABBRECHEN',
 		accAus:'Noch kein Konto. Aktiviere Bestenliste und Fortschritt.',
 		accLevel:'Stufe', accBisLevel:'XP bis zur nächsten Stufe',
 		accStats:'Zahlen', accRuns:'Läufe', accBestRound:'Beste Runde',
@@ -1576,6 +1619,10 @@ var I18N = {
 		ruf4:'Box!', ruf5:'Thanks!', ruf6:'No points',
 		set_lefty:'LEFT-HANDED', set_qualitaet:'PERFORMANCE MODE',
 		set_hud:'HUD SIZE', set_hell:'BRIGHTNESS', accTitle:'ACCOUNT & PROGRESS', accClose:'CLOSE',
+		fussBasis:'Based on Nazi Zombies: Portable by the NZ:P Team (GPL-2.0) ·', fussQuelle:'Source code', fussImpressum:'Imprint', fussDatenschutz:'Privacy',
+		fussFan:'Unofficial, non-commercial fan project. Not affiliated with the NZ:P Team, Activision or Microsoft.',
+		einwTitel:'CREATE ACCOUNT', einwText:'For the leaderboard and progress we create an anonymous account: a random code name, your runs and achievements. No email, no password. You confirm that you are at least 16 or have your parents\' permission.',
+		einwLink:'Read the privacy policy', einwJa:'I AM 16+ · CREATE ACCOUNT', einwNein:'CANCEL',
 		accAus:'No account yet. Enable leaderboard and progress.',
 		accLevel:'Level', accBisLevel:'XP to next level',
 		accStats:'Numbers', accRuns:'Runs', accBestRound:'Best round',
@@ -1982,10 +2029,13 @@ var TS_API = {
 	// (§25 Abs. 2 Nr. 2 TDDDG). Wird das je auf "beim Seitenaufruf" geaendert,
 	// ist ein Banner Pflicht.
 	async kontoAnlegen(){
+		// Erst fragen, dann senden. Bis 23.09.2026 stand `age_confirmed: true`
+		// hart im Aufruf, ohne dass je jemand gefragt wurde.
+		if (!(await TS_EINWILLIGUNG.frage())) throw new Error('abgelehnt');
 		var r = await fetch(this.base + '/auth/anon', {
 			method: 'POST', credentials: 'same-origin',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ age_confirmed: true, locale: LANG, privacy_version: '1.0' })
+			body: JSON.stringify({ age_confirmed: true, locale: LANG, privacy_version: TS_EINWILLIGUNG.FASSUNG })
 		});
 		if (!r.ok) throw new Error('anon ' + r.status);
 		var j = await r.json();
@@ -2234,7 +2284,7 @@ var TS_BOARD = {
 					await TS_API.kontoAnlegen();
 					await TS_RUN.nachreichen();
 					TS_BOARD.laden();
-				} catch(e){ b.textContent = T('rankFehler'); }
+				} catch(e){ b.textContent = T(e && e.message === 'abgelehnt' ? 'rankAnBtn' : 'rankFehler'); }
 			});
 			return;
 		}
@@ -2457,6 +2507,43 @@ document.addEventListener('visibilitychange', function(){
 });
 if (TS_ORIGIN_OK) setTimeout(function(){ TS_RUN.nachreichen(); }, 4000);
 
+// --- Einwilligung vor dem Konto ------------------------------------------
+// Fragt EINMAL je Anlage. Ablehnen = kein Konto, kein Aufruf an den Server.
+// FASSUNG muss zur Fassungsnummer in datenschutz.html passen.
+var TS_EINWILLIGUNG = {
+	FASSUNG: '1.1',
+	frage: function(){
+		var el = document.getElementById('einwui');
+		if (!el) return Promise.resolve(false);
+		return new Promise(function(fertig){
+			var ja = document.getElementById('einw-ja'), nein = document.getElementById('einw-nein');
+			var vorher = document.activeElement;
+			var ende = function(ok){
+				el.style.display = 'none';
+				ja.removeEventListener('click', aufJa); nein.removeEventListener('click', aufNein);
+				document.removeEventListener('keydown', aufTaste, true);
+				if (vorher && vorher.focus) try { vorher.focus(); } catch(e){}
+				fertig(ok);
+			};
+			var aufJa = function(e){ e.stopPropagation(); ende(true); };
+			var aufNein = function(e){ e.stopPropagation(); ende(false); };
+			var aufTaste = function(e){ if (e.key === 'Escape'){ e.stopPropagation(); e.preventDefault(); ende(false); } };
+			ja.addEventListener('click', aufJa); nein.addEventListener('click', aufNein);
+			document.addEventListener('keydown', aufTaste, true);
+			// Klicks im Dialog duerfen weder das Gate starten noch das Spiel treffen.
+			el.onclick = function(e){ e.stopPropagation(); };
+			el.style.display = 'flex';
+			setTimeout(function(){ try { ja.focus(); } catch(e){} }, 0);
+		});
+	}
+};
+// Links in der Gate-Fusszeile: das GANZE Gate ist klickbar, ohne das
+// stopPropagation startete derselbe Klick zusaetzlich das Spiel.
+(function(){
+	var f = document.getElementById('gate-fuss');
+	if (f) f.addEventListener('click', function(e){ e.stopPropagation(); });
+})();
+
 // --- Konto- und Fortschrittsansicht --------------------------------------
 // Erreichbar aus dem Zahnrad-Sheet (Touch) UND vom Start-Gate (Desktop) --
 // sonst kaeme ein Desktop-Spieler nie an sein Konto, denn das Sheet gibt es
@@ -2465,6 +2552,8 @@ var TS_KONTO = {
 	async zeigen(){
 		var el = document.getElementById('accountui');
 		if (!el) return;
+		var gate = document.getElementById('mstart');
+		el.classList.toggle('ueber-gate', !!(gate && gate.style.display && gate.style.display !== 'none'));
 		el.style.display = 'flex';
 		var ziel = document.getElementById('acc-inhalt');
 		if (!TS_ORIGIN_OK){ ziel.innerHTML = '<p class="ts-sub">' + T('rankFremd') + '</p>'; return; }
@@ -2475,7 +2564,7 @@ var TS_KONTO = {
 			if (b) b.addEventListener('click', async function(){
 				b.textContent = '...';
 				try { await TS_API.kontoAnlegen(); await TS_RUN.nachreichen(); TS_KONTO.zeigen(); }
-				catch(e){ b.textContent = T('rankFehler'); }
+				catch(e){ b.textContent = T(e && e.message === 'abgelehnt' ? 'rankAnBtn' : 'rankFehler'); }
 			});
 			return;
 		}
@@ -2529,7 +2618,7 @@ var TS_KONTO = {
 
 	schliessen: function(){
 		var el = document.getElementById('accountui');
-		if (el) el.style.display = 'none';
+		if (el){ el.style.display = 'none'; el.classList.remove('ueber-gate'); }
 	}
 };
 (function(){
@@ -2831,7 +2920,7 @@ function enterImmersive()
 // Liegt gerade ein Overlay vor dem Spiel? EINE Wahrheit dafuer -- vorher
 // leitete sich jede Stelle das aus dem Inline-Stil eines einzelnen Overlays
 // ab. Wird von Phase U-A (TS_OVL) uebernommen, sobald es sie gibt.
-var TS_OVERLAYS = ['mstart','loadscreen','deathui','accountui','settingsui','joinui','lobbyui','browseui','spielerui'];
+var TS_OVERLAYS = ['mstart','loadscreen','deathui','accountui','settingsui','joinui','lobbyui','browseui','spielerui','einwui'];
 function overlayOffen(){
 	for (var i = 0; i < TS_OVERLAYS.length; i++){
 		var e = document.getElementById(TS_OVERLAYS[i]);
@@ -3408,7 +3497,8 @@ var TS_LOBBY = {
 			var m = document.getElementById('raum-meldung'); if (m) m.textContent = '';
 		} catch(e){
 			this.oeffentlich = false;
-			this.melden('browseErr');
+			if (e && e.message === 'abgelehnt'){ var mm = document.getElementById('raum-meldung'); if (mm) mm.textContent = ''; }
+			else this.melden('browseErr');
 		}
 		this.schalterZeichnen();
 	},
