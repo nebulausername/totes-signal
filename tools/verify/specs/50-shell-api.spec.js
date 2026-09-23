@@ -34,7 +34,9 @@ test('@full kanonische Domain: Lauf wird beim Server angemeldet', async ({ page 
   const { markers, api } = await bootenUndSpielen(page, 'https://totersignal.de/');
 
   expect(await page.evaluate(() => window.TS_ORIGIN_OK)).toBe(true);
-  const name = await page.evaluate(async () => (await TS_API.kontoAnlegen()).user.display_name);
+  // Seit 23.09.2026 fragt kontoAnlegen() erst nach der Einwilligung. Der Dialog
+  // oeffnet synchron im Aufruf, also direkt danach zustimmen.
+  const name = await page.evaluate(async () => { const w = TS_API.kontoAnlegen(); document.getElementById('einw-ja').click(); return (await w).user.display_name; });
   expect(name).toMatch(/^[A-Za-z]+-\d{4}$/);
 
   await page.evaluate(() => window.tsCmd('map ndu\n'));
@@ -85,7 +87,7 @@ test('Konto-Ansicht zeigt Stufe, Zahlen und Erfolge', async ({ page }) => {
 
   // Konto plus ein verifizierter Lauf, damit die Ansicht Inhalt hat.
   const d = await page.evaluate(async () => {
-    await TS_API.kontoAnlegen();
+    const w = TS_API.kontoAnlegen(); document.getElementById('einw-ja').click(); await w;   // Einwilligung (seit 23.09.2026)
     const s = await TS_API.call('/runs/start', { method: 'POST',
       body: { map_key: 'ndu', difficulty: 0, gamemode: 0, player_count: 1 } });
     await TS_API.call('/runs/' + s.run_id + '/heartbeat', { method: 'POST',
